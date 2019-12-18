@@ -1,0 +1,26 @@
+version: "2"
+services:
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_DATABASE: 'db'
+      MYSQL_ROOT_PASSWORD: 'toor'
+    ports:
+     - '3306:3306'
+    volumes:
+      - ~/mysql:/var/lib/mysql
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    links:
+      - db
+    ports:
+      - "8181:80"
+    restart: always
+    volumes:
+     - /sessions
+  web:
+    build: docker/php-apache2
+    ports:
+     - 8080:80
+    volumes:
+     - .:/var/www/html
