@@ -22,7 +22,7 @@ class IndexController extends AbstractFOSRestController
 {
     /**
      * Lists all Idiomas.
-     * @Rest\Get("/idiomas")
+     * @Rest\Get("/idioma")
      *
      * @return Response
      */
@@ -75,7 +75,7 @@ class IndexController extends AbstractFOSRestController
             $em = $this->getDoctrine()->getManager();
             $em->persist($dominio);
             $em->flush();
-            return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_CREATED));
+            return $this->handleView($this->view($dominio, Response::HTTP_CREATED));
         }
         return $this->handleView($this->view($form->getErrors()));
     }
@@ -89,7 +89,20 @@ class IndexController extends AbstractFOSRestController
     public function getActividadAction()
     {
         $repository = $this->getDoctrine()->getRepository(Actividad::class);
-        $actividad = $repository->findall();
+        $actividades = $repository->findall();
+        return $this->handleView($this->view($actividades));
+    }
+
+     /**
+     * Shows an Actividad.
+     * @Rest\Get("/actividad/{id}")
+     *
+     * @return Response
+     */
+    public function showActividadAction($id)
+    {
+        $repository = $this->getDoctrine()->getRepository(Actividad::class);
+        $actividad = $repository->find($id);
         return $this->handleView($this->view($actividad));
     }
 
@@ -106,12 +119,16 @@ class IndexController extends AbstractFOSRestController
         $data = json_decode($request->getContent(), true);
         $form->submit($data);
         if ($form->isSubmitted() && $form->isValid()) {
-            $em = $this->getDoctrine()->getManager();
-            $em->persist($actividad);
-            $em->flush();
-            return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_CREATED));
+            try {
+                $em = $this->getDoctrine()->getManager();
+                $em->persist($actividad);
+                $em->flush();
+                return $this->handleView($this->view($actividad, Response::HTTP_CREATED));
+            } catch (Exception $e) {
+                return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            }
         }
-        return $this->handleView($this->view($form->getErrors()));
+        return $this->handleView($this->view($form->getErrors(), Response::HTTP_INTERNAL_SERVER_ERROR));
     }
 
     /**
@@ -128,7 +145,7 @@ class IndexController extends AbstractFOSRestController
         try {
             $idioma = $em->getRepository(Idioma::class)->find($data["idioma"]);
             $actividad = $em->getRepository(Actividad::class)->find($id);
-            if(!is_null($idioma) && !is_null($id)) {
+            if (!is_null($idioma) && !is_null($id)) {
                 $actividad->setIdioma($idioma);
                 $em->persist($actividad);
                 $em->flush();
@@ -137,7 +154,7 @@ class IndexController extends AbstractFOSRestController
                 return $this->handleView($this->view(['status' => 'error'], Response::HTTP_NOT_FOUND));
             }
         } catch (Exception $e) {
-            return $this->handleView($this->view([$e->getMessage()]  , Response::HTTP_INTERNAL_SERVER_ERROR));
+            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -155,7 +172,7 @@ class IndexController extends AbstractFOSRestController
         try {
             $dominio = $em->getRepository(Dominio::class)->find($data["dominio"]);
             $actividad = $em->getRepository(Actividad::class)->find($id);
-            if(!is_null($dominio) && !is_null($id)) {
+            if (!is_null($dominio) && !is_null($id)) {
                 $actividad->setDominio($dominio);
                 $em->persist($actividad);
                 $em->flush();
@@ -164,11 +181,11 @@ class IndexController extends AbstractFOSRestController
                 return $this->handleView($this->view(['status' => 'error'], Response::HTTP_NOT_FOUND));
             }
         } catch (Exception $e) {
-            return $this->handleView($this->view([$e->getMessage()]  , Response::HTTP_INTERNAL_SERVER_ERROR));
+            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }
     }
 
-        /**
+    /**
      * Update planificacion on Actividad.
      * @Rest\Post("/actividad/{id}/planificacion")
      *
@@ -182,7 +199,7 @@ class IndexController extends AbstractFOSRestController
         try {
             $planificacion = $em->getRepository(Planificacion::class)->find($data["planificacion"]);
             $actividad = $em->getRepository(Actividad::class)->find($id);
-            if(!is_null($planificacion) && !is_null($id)) {
+            if (!is_null($planificacion) && !is_null($id)) {
                 $actividad->setPlanificacion($planificacion);
                 $em->persist($actividad);
                 $em->flush();
@@ -191,7 +208,7 @@ class IndexController extends AbstractFOSRestController
                 return $this->handleView($this->view(['status' => 'error'], Response::HTTP_NOT_FOUND));
             }
         } catch (Exception $e) {
-            return $this->handleView($this->view([$e->getMessage()]  , Response::HTTP_INTERNAL_SERVER_ERROR));
+            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }
     }
 }
