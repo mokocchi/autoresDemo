@@ -106,6 +106,9 @@ class IndexController extends AbstractFOSRestController
     {
         $repository = $this->getDoctrine()->getRepository(Actividad::class);
         $actividad = $repository->find($id);
+        if (is_null($actividad)) {
+            return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+        }
         return $this->handleView($this->view($actividad));
     }
 
@@ -157,7 +160,7 @@ class IndexController extends AbstractFOSRestController
                 $em->flush();
                 return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
             } else {
-                return $this->handleView($this->view(['errors' => 'Objeto no encotrado'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
             }
         } catch (Exception $e) {
             return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
@@ -187,7 +190,7 @@ class IndexController extends AbstractFOSRestController
                 $em->flush();
                 return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
             } else {
-                return $this->handleView($this->view(['errors' => 'Objeto no encotrado'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
             }
         } catch (Exception $e) {
             return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
@@ -217,7 +220,7 @@ class IndexController extends AbstractFOSRestController
                 $em->flush();
                 return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
             } else {
-                return $this->handleView($this->view(['errors' => 'Objeto no encotrado'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
             }
         } catch (Exception $e) {
             return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
@@ -299,14 +302,14 @@ class IndexController extends AbstractFOSRestController
                 $em->flush();
                 return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
             } else {
-                return $this->handleView($this->view(['errors' => 'Objeto no encotrado'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
             }
         } catch (Exception $e) {
             return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }
     }
 
-       /**
+    /**
      * Update dominio on Tarea.
      * @Rest\Post("/tarea/{id}/dominio")
      *
@@ -330,7 +333,85 @@ class IndexController extends AbstractFOSRestController
                 $em->flush();
                 return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
             } else {
-                return $this->handleView($this->view(['errors' => 'Objeto no encotrado'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+            }
+        } catch (Exception $e) {
+            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    /**
+     * Shows a Tarea.
+     * @Rest\Get("/tarea/{id}")
+     *
+     * @return Response
+     */
+    public function showTareaAction($id)
+    {
+        $repository = $this->getDoctrine()->getRepository(Tarea::class);
+        $tarea = $repository->find($id);
+        if (is_null($tarea)) {
+            return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+        }
+        return $this->handleView($this->view($tarea));
+    }
+
+    /**
+     * Add a Tarea to an Activity.
+     * @Rest\Post("/actividad/{id}/tarea")
+     *
+     * @return Response
+     */
+    public function addTareaToActividad(Request $request, $id)
+    {
+        $data = json_decode($request->getContent(), true);
+        if (!array_key_exists("tarea", $data)) {
+            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
+
+        $em = $this->getDoctrine()->getManager();
+
+        try {
+            $tarea = $em->getRepository(Tarea::class)->find($data["tarea"]);
+            $actividad = $em->getRepository(Actividad::class)->find($id);
+            if (!is_null($tarea) && !is_null($actividad)) {
+                $actividad->addTarea($tarea);
+                $em->persist($actividad);
+                $em->flush();
+                return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
+            } else {
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+            }
+        } catch (Exception $e) {
+            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    /**
+     * Update extra on Tarea.
+     * @Rest\Post("/tarea/{id}/extra")
+     *
+     * @return Response
+     */
+    public function updateExtraOnTareaAction(Request $request, $id)
+    {
+        $data = json_decode($request->getContent(), true);
+        if (!array_key_exists("extra", $data)) {
+            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
+
+        $em = $this->getDoctrine()->getManager();
+
+        try {
+            $extra = $data["extra"];
+            $tarea = $em->getRepository(Tarea::class)->find($id);
+            if (!is_null($extra) && !is_null($tarea)) {
+                $tarea->setExtra($extra);
+                $em->persist($tarea);
+                $em->flush();
+                return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
+            } else {
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
             }
         } catch (Exception $e) {
             return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));

@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -43,6 +45,16 @@ class Actividad
      * @ORM\JoinColumn(nullable=true)
      */
     private $planificacion;
+
+    /**
+     * @ORM\ManyToMany(targetEntity="App\Entity\Tarea")
+     */
+    private $tareas;
+
+    public function __construct()
+    {
+        $this->tareas = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -105,6 +117,32 @@ class Actividad
     public function setPlanificacion(?Planificacion $planificacion): self
     {
         $this->planificacion = $planificacion;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Tarea[]
+     */
+    public function getTareas(): Collection
+    {
+        return $this->tareas;
+    }
+
+    public function addTarea(Tarea $tarea): self
+    {
+        if (!$this->tareas->contains($tarea)) {
+            $this->tareas[] = $tarea;
+        }
+
+        return $this;
+    }
+
+    public function removeTarea(Tarea $tarea): self
+    {
+        if ($this->tareas->contains($tarea)) {
+            $this->tareas->removeElement($tarea);
+        }
 
         return $this;
     }
