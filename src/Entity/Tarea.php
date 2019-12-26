@@ -43,6 +43,11 @@ class Tarea
      */
     private $extra = [];
 
+    /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $codigo;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -104,6 +109,18 @@ class Tarea
     public function setExtra(?array $extra): self
     {
         $this->extra = $extra;
+
+        return $this;
+    }
+
+    public function getCodigo(): ?string
+    {
+        return $this->codigo;
+    }
+
+    public function setCodigo(string $codigo): self
+    {
+        $this->codigo = $codigo;
 
         return $this;
     }

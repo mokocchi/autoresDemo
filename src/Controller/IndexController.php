@@ -76,6 +76,10 @@ class IndexController extends AbstractFOSRestController
         $form->submit($data);
         if ($form->isSubmitted() && $form->isValid()) {
             $em = $this->getDoctrine()->getManager();
+            $dominioDb = $em->getRepository(Dominio::class)->findBy(["nombre" => $data["nombre"]]);
+            if(!empty($dominioDb)) {
+                return $this->handleView($this->view($dominioDb[0], Response::HTTP_OK));    
+            }
             $em->persist($dominio);
             $em->flush();
             return $this->handleView($this->view($dominio, Response::HTTP_CREATED));
@@ -254,7 +258,7 @@ class IndexController extends AbstractFOSRestController
     }
 
     /**
-     * Lists all TipoTarea.
+     * Create Tarea.
      * @Rest\Post("/tarea")
      *
      * @return Response
@@ -268,6 +272,10 @@ class IndexController extends AbstractFOSRestController
         if ($form->isSubmitted() && $form->isValid()) {
             try {
                 $em = $this->getDoctrine()->getManager();
+                $tareaDb = $em->getRepository(Tarea::class)->findBy(["codigo" => $data["codigo"]]);
+                if(!empty($tareaDb)) {
+                    return $this->handleView($this->view($tareaDb[0], Response::HTTP_OK));    
+                }
                 $em->persist($tarea);
                 $em->flush();
                 return $this->handleView($this->view($tarea, Response::HTTP_CREATED));
