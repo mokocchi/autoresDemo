@@ -25,7 +25,7 @@ class IndexController extends AbstractFOSRestController
 {
     /**
      * Lists all Idiomas.
-     * @Rest\Get("/idioma")
+     * @Rest\Get("/idiomas")
      *
      * @return Response
      */
@@ -38,7 +38,7 @@ class IndexController extends AbstractFOSRestController
 
     /**
      * Lists all Planificacion.
-     * @Rest\Get("/planificacion")
+     * @Rest\Get("/planificaciones")
      *
      * @return Response
      */
@@ -51,7 +51,7 @@ class IndexController extends AbstractFOSRestController
 
     /**
      * Lists all Dominio.
-     * @Rest\Get("/dominio")
+     * @Rest\Get("/dominios")
      *
      * @return Response
      */
@@ -89,7 +89,7 @@ class IndexController extends AbstractFOSRestController
 
     /**
      * Lists all Actividad.
-     * @Rest\Get("/actividad")
+     * @Rest\Get("/actividades")
      *
      * @return Response
      */
@@ -233,11 +233,11 @@ class IndexController extends AbstractFOSRestController
 
     /**
      * Lists all Tarea.
-     * @Rest\Get("/tarea")
+     * @Rest\Get("/tareas")
      *
      * @return Response
      */
-    public function getTareaAction()
+    public function getTareasAction()
     {
         $repository = $this->getDoctrine()->getRepository(Tarea::class);
         $tareas = $repository->findall();
@@ -246,7 +246,7 @@ class IndexController extends AbstractFOSRestController
 
     /**
      * Lists all TipoTarea.
-     * @Rest\Get("/tipo-tarea")
+     * @Rest\Get("/tipos-tarea")
      *
      * @return Response
      */
@@ -423,6 +423,24 @@ class IndexController extends AbstractFOSRestController
             }
         } catch (Exception $e) {
             return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    /**
+     * List an Actividad's tareas.
+     * @Rest\Get("/actividad/{id}/tareas")
+     *
+     * @return Response
+     */
+    public function getActividadTareasAction(Request $request, $id)
+    {
+        $repository = $this->getDoctrine()->getRepository(Actividad::class);
+        $actividad = $repository->find($id);
+        if(!is_null($actividad)) {
+            $tareas = $actividad->getTareas();
+            return $this->handleView($this->view($tareas));
+        } else {
+            return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
         }
     }
 }
