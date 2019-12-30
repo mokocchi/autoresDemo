@@ -51,6 +51,11 @@ class Actividad
      */
     private $tareas;
 
+    /**
+     * @ORM\OneToOne(targetEntity="App\Entity\Planificacion", cascade={"persist", "remove"})
+     */
+    private $planificacion;
+
     public function __construct()
     {
         $this->tareas = new ArrayCollection();
@@ -143,6 +148,18 @@ class Actividad
         if ($this->tareas->contains($tarea)) {
             $this->tareas->removeElement($tarea);
         }
+
+        return $this;
+    }
+
+    public function getPlanificacion(): ?Planificacion
+    {
+        return $this->planificacion;
+    }
+
+    public function setPlanificacion(?Planificacion $planificacion): self
+    {
+        $this->planificacion = $planificacion;
 
         return $this;
     }

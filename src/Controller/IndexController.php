@@ -9,6 +9,7 @@ use FOS\RestBundle\Controller\Annotations as Rest;
 use App\Entity\Actividad;
 use App\Entity\Idioma;
 use App\Entity\Dominio;
+use App\Entity\Planificacion;
 use App\Entity\Tarea;
 use App\Entity\TipoPlanificacion;
 use App\Entity\TipoTarea;
@@ -23,6 +24,8 @@ use Symfony\Component\Routing\Annotation\Route;
  */
 class IndexController extends AbstractFOSRestController
 {
+    const BIFURCADA_NAME = "Bifurcada";
+
     /**
      * Lists all Idiomas.
      * @Rest\Get("/idiomas")
@@ -77,8 +80,8 @@ class IndexController extends AbstractFOSRestController
         if ($form->isSubmitted() && $form->isValid()) {
             $em = $this->getDoctrine()->getManager();
             $dominioDb = $em->getRepository(Dominio::class)->findBy(["nombre" => $data["nombre"]]);
-            if(!empty($dominioDb)) {
-                return $this->handleView($this->view($dominioDb[0], Response::HTTP_OK));    
+            if (!empty($dominioDb)) {
+                return $this->handleView($this->view($dominioDb[0], Response::HTTP_OK));
             }
             $em->persist($dominio);
             $em->flush();
@@ -219,6 +222,12 @@ class IndexController extends AbstractFOSRestController
             $tipoPlanificacion = $em->getRepository(TipoPlanificacion::class)->find($data["tipo-planificacion"]);
             $actividad = $em->getRepository(Actividad::class)->find($id);
             if (!is_null($tipoPlanificacion) && !is_null($actividad)) {
+                if ($tipoPlanificacion->getNombre() == self::BIFURCADA_NAME) {
+                    $planificacion = new Planificacion();
+                    $em->persist($planificacion);
+                    $em->flush();
+                    $actividad->setPlanificacion($planificacion);
+                }
                 $actividad->setTipoPlanificacion($tipoPlanificacion);
                 $em->persist($actividad);
                 $em->flush();
@@ -273,8 +282,8 @@ class IndexController extends AbstractFOSRestController
             try {
                 $em = $this->getDoctrine()->getManager();
                 $tareaDb = $em->getRepository(Tarea::class)->findBy(["codigo" => $data["codigo"]]);
-                if(!empty($tareaDb)) {
-                    return $this->handleView($this->view($tareaDb[0], Response::HTTP_OK));    
+                if (!empty($tareaDb)) {
+                    return $this->handleView($this->view($tareaDb[0], Response::HTTP_OK));
                 }
                 $em->persist($tarea);
                 $em->flush();
@@ -436,11 +445,63 @@ class IndexController extends AbstractFOSRestController
     {
         $repository = $this->getDoctrine()->getRepository(Actividad::class);
         $actividad = $repository->find($id);
-        if(!is_null($actividad)) {
+        if (!is_null($actividad)) {
             $tareas = $actividad->getTareas();
             return $this->handleView($this->view($tareas));
         } else {
             return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
         }
     }
+
+    /**
+     * Lists all Saltos from an Actividad.
+     * @Rest\Get("/actividad/{id}/saltos")
+     *
+     * @return Response
+     */
+    public function getActividadSaltosAction($id)
+    {
+        $repository = $this->getDoctrine()->getRepository(Actividad::class);
+        $actividad = $repository->find($id);
+        if (is_null($actividad)) {
+            return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+        }
+        $planificacion = $actividad->getPlanificacion();
+        $saltos = $planificacion->getSaltos();
+        return $this->handleView($this->view($saltos));
+    }
+
+    /**
+     * Create a planificacion for an Actividad
+     * @Rest\Post("/actividad/{id}/planificacion")
+     *
+     * @return Response
+     */
+    public function createPlanificacionForActividadAction(Request $request, $id)
+    {
+        $em = $this->getDoctrine()->getManager();
+
+        try {
+            $actividad = $em->getRepository(Actividad::class)->find($id);
+            if (!is_null($actividad)) {
+                $planificacion = new Planificacion();
+                $em->persist($planificacion);
+                $em->flush();
+                $actividad->setPlanificacion($planificacion);
+                $em->persist($actividad);
+                $em->flush();
+                return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
+            } else {
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+            }
+        } catch (Exception $e) {
+            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    //Create a Salto
+    //Show a salto
+    //List all planificaciones
+    //Show a planificacion
+    //add a salto to planificacion
 }
