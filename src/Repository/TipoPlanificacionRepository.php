@@ -2,7 +2,7 @@
 
 namespace App\Repository;
 
-use App\Entity\Planificacion;
+use App\Entity\TipoPlanificacion;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Common\Persistence\ManagerRegistry;
 
@@ -12,11 +12,11 @@ use Doctrine\Common\Persistence\ManagerRegistry;
  * @method Planificacion[]    findAll()
  * @method Planificacion[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
  */
-class PlanificacionRepository extends ServiceEntityRepository
+class TipoPlanificacionRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, Planificacion::class);
+        parent::__construct($registry, TipoPlanificacion::class);
     }
 
     // /**

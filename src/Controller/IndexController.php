@@ -8,9 +8,9 @@ use FOS\RestBundle\Controller\AbstractFOSRestController;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use App\Entity\Actividad;
 use App\Entity\Idioma;
-use App\Entity\Planificacion;
 use App\Entity\Dominio;
 use App\Entity\Tarea;
+use App\Entity\TipoPlanificacion;
 use App\Entity\TipoTarea;
 use App\Form\ActividadType;
 use App\Form\DominioType;
@@ -37,16 +37,16 @@ class IndexController extends AbstractFOSRestController
     }
 
     /**
-     * Lists all Planificacion.
-     * @Rest\Get("/planificaciones")
+     * Lists all Tipo Planificacion.
+     * @Rest\Get("/tipos-planificacion")
      *
      * @return Response
      */
-    public function getPlanificacionAction()
+    public function getTipoPlanificacionAction()
     {
-        $repository = $this->getDoctrine()->getRepository(Planificacion::class);
-        $planificacion = $repository->findall();
-        return $this->handleView($this->view($planificacion));
+        $repository = $this->getDoctrine()->getRepository(TipoPlanificacion::class);
+        $tipoPlanificacion = $repository->findall();
+        return $this->handleView($this->view($tipoPlanificacion));
     }
 
     /**
@@ -202,8 +202,8 @@ class IndexController extends AbstractFOSRestController
     }
 
     /**
-     * Update planificacion on Actividad.
-     * @Rest\Post("/actividad/{id}/planificacion")
+     * Update tipo planificacion on Actividad.
+     * @Rest\Post("/actividad/{id}/tipo-planificacion")
      *
      * @return Response
      */
@@ -213,13 +213,13 @@ class IndexController extends AbstractFOSRestController
         $em = $this->getDoctrine()->getManager();
 
         try {
-            if (!array_key_exists("planificacion", $data)) {
+            if (!array_key_exists("tipo-planificacion", $data)) {
                 return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
             }
-            $planificacion = $em->getRepository(Planificacion::class)->find($data["planificacion"]);
+            $tipoPlanificacion = $em->getRepository(TipoPlanificacion::class)->find($data["tipo-planificacion"]);
             $actividad = $em->getRepository(Actividad::class)->find($id);
-            if (!is_null($planificacion) && !is_null($actividad)) {
-                $actividad->setPlanificacion($planificacion);
+            if (!is_null($tipoPlanificacion) && !is_null($actividad)) {
+                $actividad->setTipoPlanificacion($tipoPlanificacion);
                 $em->persist($actividad);
                 $em->flush();
                 return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));

@@ -41,10 +41,10 @@ class Actividad
     private $dominio;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\Planificacion")
+     * @ORM\ManyToOne(targetEntity="App\Entity\TipoPlanificacion")
      * @ORM\JoinColumn(nullable=true)
      */
-    private $planificacion;
+    private $tipoPlanificacion;
 
     /**
      * @ORM\ManyToMany(targetEntity="App\Entity\Tarea")
@@ -109,14 +109,14 @@ class Actividad
         return $this;
     }
 
-    public function getPlanificacion(): ?Planificacion
+    public function getTipoPlanificacion(): ?TipoPlanificacion
     {
-        return $this->planificacion;
+        return $this->tipoPlanificacion;
     }
 
-    public function setPlanificacion(?Planificacion $planificacion): self
+    public function setTipoPlanificacion(?TipoPlanificacion $tipoPlanificacion): self
     {
-        $this->planificacion = $planificacion;
+        $this->tipoPlanificacion = $tipoPlanificacion;
 
         return $this;
     }
