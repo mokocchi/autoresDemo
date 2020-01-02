@@ -5,9 +5,13 @@ namespace App\Entity;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\ExclusionPolicy;
+use JMS\Serializer\Annotation\Exclude;
+use JMS\Serializer\Annotation\VirtualProperty;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\SaltoRepository")
+ * @ExclusionPolicy("none")
  */
 class Salto
 {
@@ -31,17 +35,20 @@ class Salto
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\Planificacion", inversedBy="saltos")
      * @ORM\JoinColumn(nullable=false)
+     * @Exclude
      */
     private $planificacion;
 
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\Tarea")
      * @ORM\JoinColumn(nullable=false)
+     * @Exclude
      */
     private $origen;
 
     /**
      * @ORM\ManyToMany(targetEntity="App\Entity\Tarea")
+     * @Exclude
      */
     private $destino;
 
@@ -127,5 +134,22 @@ class Salto
         }
 
         return $this;
+    }
+
+    /**
+     * @VirtualProperty(name="destino_ids") 
+     */
+    public function getDestinoIds(): Collection
+    {
+        return $this->destino->map(function($elem){$elem->getId();});
+    }
+
+
+    /**
+     * @VirtualProperty(name="origen_id") 
+     */
+    public function getOrigenIds(): ?int
+    {
+        return $this->origen->getId();
     }
 }
