@@ -10,6 +10,7 @@ use App\Entity\Actividad;
 use App\Entity\Idioma;
 use App\Entity\Dominio;
 use App\Entity\Planificacion;
+use App\Entity\Salto;
 use App\Entity\Tarea;
 use App\Entity\TipoPlanificacion;
 use App\Entity\TipoTarea;
@@ -467,6 +468,9 @@ class IndexController extends AbstractFOSRestController
             return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
         }
         $planificacion = $actividad->getPlanificacion();
+        if(is_null($planificacion)){
+            return $this->handleView($this->view(['errors' => "La actividad no es ".self::BIFURCADA_NAME], Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
         $saltos = $planificacion->getSaltos();
         return $this->handleView($this->view($saltos));
     }
@@ -499,9 +503,59 @@ class IndexController extends AbstractFOSRestController
         }
     }
 
-    //Create a Salto
-    //Show a salto
-    //List all planificaciones
-    //Show a planificacion
-    //add a salto to planificacion
+    /**
+     * Create a Salto for an Actividad.
+     * @Rest\Post("/actividad/{id}/salto")
+     *
+     * @return Response
+     */
+    public function postSaltoForActividadAction(Request $request, $id)
+    {
+        $salto = new Salto();
+        $data = json_decode($request->getContent(), true);
+
+        if (
+            !array_key_exists("origen", $data) || !array_key_exists("condicion", $data)
+        ) {
+            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
+
+        try {
+            $em = $this->getDoctrine()->getManager();
+            $actividad = $em->getRepository(Actividad::class)->find($id);
+            if (is_null($actividad)) {
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado: actividad ' . $id], Response::HTTP_NOT_FOUND));
+            }
+            $planificacion = $actividad->getPlanificacion();
+            if(is_null($planificacion)){
+                return $this->handleView($this->view(['errors' => "La actividad no es ".self::BIFURCADA_NAME], Response::HTTP_UNPROCESSABLE_ENTITY));
+            }
+            $salto->setPlanificacion($planificacion);
+            $tareaRepository = $em->getRepository(Tarea::class);
+            $origen = $tareaRepository->find($data["origen"]);
+            if (is_null($origen)) {
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado: tarea origen ' . $data["origen"]], Response::HTTP_NOT_FOUND));
+            }
+            $salto->setOrigen($origen);
+            if (array_key_exists("destinos", $data) && !is_null($data["destinos"])) {
+                foreach ($data["destinos"] as $destino_id) {
+                    $tareaDb = $tareaRepository->find($destino_id);
+                    if (is_null($tareaDb)) {
+                        return $this->handleView($this->view(['errors' => 'Objeto no encontrado: tarea destino ' . $destino_id], Response::HTTP_NOT_FOUND));
+                    }
+                    $salto->addDestino($tareaDb);
+                }
+            }
+            $salto->setCondicion($data["condicion"]);
+            if(array_key_exists("respuesta", $data) && !is_null($data["respuesta"])){
+                $salto->setRespuesta($data["respuesta"]);
+            }
+
+            $em->persist($salto);
+            $em->flush();
+            return $this->handleView($this->view($salto, Response::HTTP_CREATED));
+        } catch (Exception $e) {
+            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+        }
+    }
 }
