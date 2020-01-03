@@ -15,6 +15,8 @@ class TareaType extends AbstractType
       ->add('nombre')
       ->add('consigna')
       ->add('codigo')
+      ->add('tipo')
+      ->add('dominio')
       ->add('save', SubmitType::class)
     ;
   }

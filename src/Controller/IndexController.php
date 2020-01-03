@@ -7,7 +7,7 @@ use Symfony\Component\HttpFoundation\Response;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use App\Entity\Actividad;
-use App\Entity\Idioma;
+use App\Entity\Idioma;  
 use App\Entity\Dominio;
 use App\Entity\Planificacion;
 use App\Entity\Salto;
@@ -143,102 +143,6 @@ class IndexController extends AbstractFOSRestController
             }
         }
         return $this->handleView($this->view($form->getErrors(), Response::HTTP_INTERNAL_SERVER_ERROR));
-    }
-
-    /**
-     * Update idioma on Actividad.
-     * @Rest\Post("/actividad/{id}/idioma")
-     *
-     * @return Response
-     */
-    public function updateIdiomaOnActividadAction(Request $request, $id)
-    {
-        $data = json_decode($request->getContent(), true);
-        $em = $this->getDoctrine()->getManager();
-
-        try {
-            if (!array_key_exists("idioma", $data)) {
-                return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
-            }
-            $idioma = $em->getRepository(Idioma::class)->find($data["idioma"]);
-            $actividad = $em->getRepository(Actividad::class)->find($id);
-            if (!is_null($idioma) && !is_null($actividad)) {
-                $actividad->setIdioma($idioma);
-                $em->persist($actividad);
-                $em->flush();
-                return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
-            } else {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
-            }
-        } catch (Exception $e) {
-            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
-        }
-    }
-
-    /**
-     * Update dominio on Actividad.
-     * @Rest\Post("/actividad/{id}/dominio")
-     *
-     * @return Response
-     */
-    public function updateDominoOnActividadAction(Request $request, $id)
-    {
-        $data = json_decode($request->getContent(), true);
-        $em = $this->getDoctrine()->getManager();
-
-        try {
-            if (!array_key_exists("dominio", $data)) {
-                return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
-            }
-            $dominio = $em->getRepository(Dominio::class)->find($data["dominio"]);
-            $actividad = $em->getRepository(Actividad::class)->find($id);
-            if (!is_null($dominio) && !is_null($actividad)) {
-                $actividad->setDominio($dominio);
-                $em->persist($actividad);
-                $em->flush();
-                return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
-            } else {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
-            }
-        } catch (Exception $e) {
-            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
-        }
-    }
-
-    /**
-     * Update tipo planificacion on Actividad.
-     * @Rest\Post("/actividad/{id}/tipo-planificacion")
-     *
-     * @return Response
-     */
-    public function updatePlanificacionOnActividadAction(Request $request, $id)
-    {
-        $data = json_decode($request->getContent(), true);
-        $em = $this->getDoctrine()->getManager();
-
-        try {
-            if (!array_key_exists("tipo-planificacion", $data)) {
-                return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
-            }
-            $tipoPlanificacion = $em->getRepository(TipoPlanificacion::class)->find($data["tipo-planificacion"]);
-            $actividad = $em->getRepository(Actividad::class)->find($id);
-            if (!is_null($tipoPlanificacion) && !is_null($actividad)) {
-                if ($tipoPlanificacion->getNombre() == self::BIFURCADA_NAME) {
-                    $planificacion = new Planificacion();
-                    $em->persist($planificacion);
-                    $em->flush();
-                    $actividad->setPlanificacion($planificacion);
-                }
-                $actividad->setTipoPlanificacion($tipoPlanificacion);
-                $em->persist($actividad);
-                $em->flush();
-                return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
-            } else {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
-            }
-        } catch (Exception $e) {
-            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
-        }
     }
 
     /**
