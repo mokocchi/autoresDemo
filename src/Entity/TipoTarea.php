@@ -21,6 +21,11 @@ class TipoTarea
      */
     private $nombre;
 
+    /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $codigo;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -34,6 +39,18 @@ class TipoTarea
     public function setNombre(string $nombre): self
     {
         $this->nombre = $nombre;
+
+        return $this;
+    }
+
+    public function getCodigo(): ?string
+    {
+        return $this->codigo;
+    }
+
+    public function setCodigo(string $codigo): self
+    {
+        $this->codigo = $codigo;
 
         return $this;
     }

@@ -141,12 +141,18 @@ class Salto
      */
     public function getDestinoIds(): Collection
     {
-        return $this->destino->map(function($elem){return $elem->getId();});
+        return $this->destino->map(function ($elem) {
+            return $elem->getId();
+        });
     }
 
-    public function getDestinoCodes(): Collection
+    public function getDestinoCodes()
     {
-        return $this->destino->map(function($elem){return $elem->getCodigo();});
+        $destinoCodes = [];
+        foreach ($this->destino as $destino) {
+            $destinoCodes[] = $destino->getCodigo();
+        }
+        return $destinoCodes;
     }
 
 
