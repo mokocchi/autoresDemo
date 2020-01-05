@@ -19,7 +19,7 @@ use Symfony\Component\Routing\Annotation\Route;
 class ActividadesController extends AbstractFOSRestController
 {
     const BIFURCADA_NAME = "Bifurcada";
- 
+
     /**
      * Lists all Actividad.
      * @Rest\Get
@@ -144,7 +144,7 @@ class ActividadesController extends AbstractFOSRestController
         return $this->handleView($this->view($saltos));
     }
 
-        /**
+    /**
      * Create a Salto for an Actividad.
      * @Rest\Post("/{id}/saltos")
      *
@@ -168,8 +168,8 @@ class ActividadesController extends AbstractFOSRestController
                 return $this->handleView($this->view(['errors' => 'Objeto no encontrado: actividad ' . $id], Response::HTTP_NOT_FOUND));
             }
             $planificacion = $actividad->getPlanificacion();
-            if(is_null($planificacion)){
-                return $this->handleView($this->view(['errors' => "La actividad no es ".self::BIFURCADA_NAME], Response::HTTP_UNPROCESSABLE_ENTITY));
+            if (is_null($planificacion)) {
+                return $this->handleView($this->view(['errors' => "La actividad no es " . self::BIFURCADA_NAME], Response::HTTP_UNPROCESSABLE_ENTITY));
             }
             $salto->setPlanificacion($planificacion);
             $tareaRepository = $em->getRepository(Tarea::class);
@@ -188,7 +188,7 @@ class ActividadesController extends AbstractFOSRestController
                 }
             }
             $salto->setCondicion($data["condicion"]);
-            if(array_key_exists("respuesta", $data) && !is_null($data["respuesta"])){
+            if (array_key_exists("respuesta", $data) && !is_null($data["respuesta"])) {
                 $salto->setRespuesta($data["respuesta"]);
             }
 
@@ -198,5 +198,50 @@ class ActividadesController extends AbstractFOSRestController
         } catch (Exception $e) {
             return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }
+    }
+
+    /**
+     * Lists all Saltos from an Actividad.
+     * @Rest\Get("/{id}/download")
+     *
+     * @return Response
+     */
+    public function downloadActividadAction($id)
+    {
+        $repository = $this->getDoctrine()->getRepository(Actividad::class);
+        $actividad = $repository->find($id);
+        if (is_null($actividad)) {
+            return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+        }
+        $JSON = [];
+        $JSON["language"] = $actividad->getIdioma()->getCode();
+        $educationalActivity = [
+            "name" => $actividad->getNombre(),
+            "goal" => $actividad->getObjetivo(),
+            "sequential" => ($actividad->getTipoPlanificacion()->getNombre() == "Secuencial")
+        ];
+        $JSON["educationalActivity"] = $educationalActivity;
+        $saltos = $actividad->getPlanificacion()->getSaltos();
+        $jumps = [];
+        foreach ($saltos as $salto) {
+            $jump = [
+                "on" => $salto->getCondicion(),
+                "to" => $salto->getDestinoCodes(),
+                "answer" => $salto->getRespuesta()
+            ];
+            $jumps[$salto->getOrigen()->getId()] = $jump;
+        }
+
+        $tasks = $actividad->getTareas()->map(function ($tarea) use ($jumps) {
+            return [
+                "code" => $tarea->getCodigo(),
+                "name" => $tarea->getNombre(),
+                "instruction" => $tarea->getConsigna(),
+                "type" => $tarea->getTipo()->getNombre(),
+                "jumps" => $jumps[$tarea->getId()]
+            ];
+        });
+        $JSON["tasks"] = $tasks;
+        return $this->handleView($this->view($JSON));
     }
 }

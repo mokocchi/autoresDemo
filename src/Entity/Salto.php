@@ -144,6 +144,11 @@ class Salto
         return $this->destino->map(function($elem){return $elem->getId();});
     }
 
+    public function getDestinoCodes(): Collection
+    {
+        return $this->destino->map(function($elem){return $elem->getCodigo();});
+    }
+
 
     /**
      * @VirtualProperty(name="origen_id") 
