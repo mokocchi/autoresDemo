@@ -66,7 +66,7 @@ class ActividadesController extends AbstractFOSRestController
         if ($form->isSubmitted() && $form->isValid()) {
             try {
                 $em = $this->getDoctrine()->getManager();
-                if($actividad->getTipoPlanificacion()->getNombre() == $this::BIFURCADA_NAME) {
+                if ($actividad->getTipoPlanificacion()->getNombre() == $this::BIFURCADA_NAME) {
                     $planificacion = new Planificacion();
                     $em->persist($planificacion);
                     $em->flush();
@@ -207,6 +207,36 @@ class ActividadesController extends AbstractFOSRestController
             return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }
     }
+
+    /**
+     * Deletes all saltos from an Actividad
+     * @Rest\Delete("/{id}/saltos")
+     * @return Response
+     */
+    public function deleteSaltosAction($id)
+    {
+        try {
+            $repository = $this->getDoctrine()->getRepository(Actividad::class);
+            $actividad = $repository->find($id);
+            if (is_null($actividad)) {
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado: actividad ' . $id], Response::HTTP_NOT_FOUND));
+            }
+            $planificacion = $actividad->getPlanificacion();
+            if (is_null($planificacion)) {
+                return $this->handleView($this->view(['errors' => "La actividad no es " . self::BIFURCADA_NAME], Response::HTTP_UNPROCESSABLE_ENTITY));
+            }
+            $saltos = $planificacion->getSaltos();
+            $em = $this->getDoctrine()->getManager();
+            foreach ($saltos as $salto) {
+                $em->remove($salto);
+            }
+            $em->persist($planificacion);
+            $em->flush();
+        } catch (Exception $e) {
+            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+        }
+    }
+
 
     /**
      * Lists all Saltos from an Actividad.
