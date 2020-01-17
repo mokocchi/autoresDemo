@@ -33,13 +33,13 @@ class Planificacion
      * @ORM\ManyToMany(targetEntity="App\Entity\Tarea")
      * @ORM\JoinTable(name="tarea_inicial")
      */
-    private $inciales;
+    private $iniciales;
 
     public function __construct()
     {
         $this->saltos = new ArrayCollection();
         $this->opcionales = new ArrayCollection();
-        $this->inciales = new ArrayCollection();
+        $this->iniciales = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -86,19 +86,19 @@ class Planificacion
         return $this->opcionales;
     }
 
-    public function addOpcionale(Tarea $opcionale): self
+    public function addOpcional(Tarea $opcional): self
     {
-        if (!$this->opcionales->contains($opcionale)) {
-            $this->opcionales[] = $opcionale;
+        if (!$this->opcionales->contains($opcional)) {
+            $this->opcionales[] = $opcional;
         }
 
         return $this;
     }
 
-    public function removeOpcionale(Tarea $opcionale): self
+    public function removeOpcional(Tarea $opcional): self
     {
-        if ($this->opcionales->contains($opcionale)) {
-            $this->opcionales->removeElement($opcionale);
+        if ($this->opcionales->contains($opcional)) {
+            $this->opcionales->removeElement($opcional);
         }
 
         return $this;
@@ -107,24 +107,24 @@ class Planificacion
     /**
      * @return Collection|Tarea[]
      */
-    public function getInciales(): Collection
+    public function getIniciales(): Collection
     {
-        return $this->inciales;
+        return $this->iniciales;
     }
 
-    public function addInciale(Tarea $inciale): self
+    public function addInicial(Tarea $inicial): self
     {
-        if (!$this->inciales->contains($inciale)) {
-            $this->inciales[] = $inciale;
+        if (!$this->iniciales->contains($inicial)) {
+            $this->iniciales[] = $inicial;
         }
 
         return $this;
     }
 
-    public function removeInciale(Tarea $inciale): self
+    public function removeInicial(Tarea $inicial): self
     {
-        if ($this->inciales->contains($inciale)) {
-            $this->inciales->removeElement($inciale);
+        if ($this->iniciales->contains($inicial)) {
+            $this->iniciales->removeElement($inicial);
         }
 
         return $this;

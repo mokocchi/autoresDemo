@@ -228,7 +228,7 @@ class ActividadesController extends AbstractFOSRestController
 
     /**
      * Create a Salto for an Actividad.
-     * @Rest\Post("/{id}/planificacion")
+     * @Rest\Post("/{id}/planificaciones")
      *
      * @return Response
      */
@@ -249,6 +249,15 @@ class ActividadesController extends AbstractFOSRestController
                 return $this->handleView($this->view(['errors' => 'Objeto no encontrado: actividad'], Response::HTTP_NOT_FOUND));
             }
             $planificacion = $actividad->getPlanificacion();
+            $prevOpcionales = $planificacion->getOpcionales();
+            foreach ($prevOpcionales as $opcional) {
+                $planificacion->removeOpcional($opcional);
+            }
+            $prevIniciales = $planificacion->getIniciales();
+            foreach ($prevIniciales as $inicial) {
+                $planificacion->removeInicial($inicial);
+            }
+
             $iniciales = $data["iniciales"];
             $tareaRepository = $this->getDoctrine()->getRepository(Tarea::class);
             foreach ($iniciales as $inicial) {
