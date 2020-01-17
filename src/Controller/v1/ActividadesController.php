@@ -66,12 +66,10 @@ class ActividadesController extends AbstractFOSRestController
         if ($form->isSubmitted() && $form->isValid()) {
             try {
                 $em = $this->getDoctrine()->getManager();
-                if ($actividad->getTipoPlanificacion()->getNombre() == $this::BIFURCADA_NAME) {
-                    $planificacion = new Planificacion();
-                    $em->persist($planificacion);
-                    $em->flush();
-                    $actividad->setPlanificacion($planificacion);
-                }
+                $planificacion = new Planificacion();
+                $em->persist($planificacion);
+                $em->flush();
+                $actividad->setPlanificacion($planificacion);
                 $em->persist($actividad);
                 $em->flush();
                 return $this->handleView($this->view($actividad, Response::HTTP_CREATED));
@@ -145,9 +143,6 @@ class ActividadesController extends AbstractFOSRestController
             return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
         }
         $planificacion = $actividad->getPlanificacion();
-        if (is_null($planificacion)) {
-            return $this->handleView($this->view(['errors' => "La actividad no es " . self::BIFURCADA_NAME], Response::HTTP_UNPROCESSABLE_ENTITY));
-        }
         $saltos = $planificacion->getSaltos();
         return $this->handleView($this->view($saltos));
     }
@@ -173,24 +168,21 @@ class ActividadesController extends AbstractFOSRestController
             $em = $this->getDoctrine()->getManager();
             $actividad = $em->getRepository(Actividad::class)->find($id);
             if (is_null($actividad)) {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado: actividad ' . $id], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado:actividad'], Response::HTTP_NOT_FOUND));
             }
             $planificacion = $actividad->getPlanificacion();
-            if (is_null($planificacion)) {
-                return $this->handleView($this->view(['errors' => "La actividad no es " . self::BIFURCADA_NAME], Response::HTTP_UNPROCESSABLE_ENTITY));
-            }
             $salto->setPlanificacion($planificacion);
             $tareaRepository = $em->getRepository(Tarea::class);
             $origen = $tareaRepository->find($data["origen"]);
             if (is_null($origen)) {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado: tarea origen ' . $data["origen"]], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado: tarea origen'], Response::HTTP_NOT_FOUND));
             }
             $salto->setOrigen($origen);
             if (array_key_exists("destinos", $data) && !is_null($data["destinos"])) {
                 foreach ($data["destinos"] as $destino_id) {
                     $tareaDb = $tareaRepository->find($destino_id);
                     if (is_null($tareaDb)) {
-                        return $this->handleView($this->view(['errors' => 'Objeto no encontrado: tarea destino ' . $destino_id], Response::HTTP_NOT_FOUND));
+                        return $this->handleView($this->view(['errors' => 'Objeto no encontrado: tarea destino'], Response::HTTP_NOT_FOUND));
                     }
                     $salto->addDestino($tareaDb);
                 }
@@ -219,12 +211,9 @@ class ActividadesController extends AbstractFOSRestController
             $repository = $this->getDoctrine()->getRepository(Actividad::class);
             $actividad = $repository->find($id);
             if (is_null($actividad)) {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado: actividad ' . $id], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado: actividad'], Response::HTTP_NOT_FOUND));
             }
             $planificacion = $actividad->getPlanificacion();
-            if (is_null($planificacion)) {
-                return $this->handleView($this->view(['errors' => "La actividad no es " . self::BIFURCADA_NAME], Response::HTTP_UNPROCESSABLE_ENTITY));
-            }
             $saltos = $planificacion->getSaltos();
             $em = $this->getDoctrine()->getManager();
             foreach ($saltos as $salto) {
@@ -237,9 +226,58 @@ class ActividadesController extends AbstractFOSRestController
         }
     }
 
+    /**
+     * Create a Salto for an Actividad.
+     * @Rest\Post("/{id}/planificacion")
+     *
+     * @return Response
+     */
+    public function updatePlanificacionSettings(Request $request, $id)
+    {
+        $data = json_decode($request->getContent(), true);
+
+        if (
+            !array_key_exists("iniciales", $data) || !array_key_exists("opcionales", $data)
+        ) {
+            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
+
+        try {
+            $repository = $this->getDoctrine()->getRepository(Actividad::class);
+            $actividad = $repository->find($id);
+            if (is_null($actividad)) {
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado: actividad'], Response::HTTP_NOT_FOUND));
+            }
+            $planificacion = $actividad->getPlanificacion();
+            $iniciales = $data["iniciales"];
+            $tareaRepository = $this->getDoctrine()->getRepository(Tarea::class);
+            foreach ($iniciales as $inicial) {
+                $tareaInicial = $tareaRepository->find($inicial);
+                if (is_null($tareaInicial)) {
+                    return $this->handleView($this->view(['errors' => 'Objeto no encontrado: tarea inicial'], Response::HTTP_NOT_FOUND));
+                }
+                $planificacion->addInicial($tareaInicial);
+            }
+            $opcionales = $data["opcionales"];
+            foreach ($opcionales as $opcional) {
+                $tareaOpcional = $tareaRepository->find($opcional);
+                if (is_null($tareaOpcional)) {
+                    return $this->handleView($this->view(['errors' => 'Objeto no encontrado: tarea opcional'], Response::HTTP_NOT_FOUND));
+                }
+                $planificacion->addOpcional($tareaOpcional);
+            }
+            $em = $this->getDoctrine()->getManager();
+            $em->persist($planificacion);
+            $em->flush();
+        } catch (Exception $e) {
+            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+        }
+    }
+
+
 
     /**
-     * Lists all Saltos from an Actividad.
+     * Download the JSON definition for the Actividad.
      * @Rest\Get("/{id}/download")
      *
      * @return Response

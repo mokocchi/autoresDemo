@@ -23,9 +23,23 @@ class Planificacion
      */
     private $saltos;
 
+    /**
+     * @ORM\ManyToMany(targetEntity="App\Entity\Tarea")
+     * @ORM\JoinTable(name="tarea_opcional")
+     */
+    private $opcionales;
+
+    /**
+     * @ORM\ManyToMany(targetEntity="App\Entity\Tarea")
+     * @ORM\JoinTable(name="tarea_inicial")
+     */
+    private $inciales;
+
     public function __construct()
     {
         $this->saltos = new ArrayCollection();
+        $this->opcionales = new ArrayCollection();
+        $this->inciales = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -59,6 +73,58 @@ class Planificacion
             if ($salto->getPlanificacion() === $this) {
                 $salto->setPlanificacion(null);
             }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Tarea[]
+     */
+    public function getOpcionales(): Collection
+    {
+        return $this->opcionales;
+    }
+
+    public function addOpcionale(Tarea $opcionale): self
+    {
+        if (!$this->opcionales->contains($opcionale)) {
+            $this->opcionales[] = $opcionale;
+        }
+
+        return $this;
+    }
+
+    public function removeOpcionale(Tarea $opcionale): self
+    {
+        if ($this->opcionales->contains($opcionale)) {
+            $this->opcionales->removeElement($opcionale);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Tarea[]
+     */
+    public function getInciales(): Collection
+    {
+        return $this->inciales;
+    }
+
+    public function addInciale(Tarea $inciale): self
+    {
+        if (!$this->inciales->contains($inciale)) {
+            $this->inciales[] = $inciale;
+        }
+
+        return $this;
+    }
+
+    public function removeInciale(Tarea $inciale): self
+    {
+        if ($this->inciales->contains($inciale)) {
+            $this->inciales->removeElement($inciale);
         }
 
         return $this;
