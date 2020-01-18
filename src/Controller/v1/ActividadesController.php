@@ -306,19 +306,20 @@ class ActividadesController extends AbstractFOSRestController
             "sequential" => ($actividad->getTipoPlanificacion()->getNombre() != "Libre")
         ];
         $JSON["educationalActivity"] = $educationalActivity;
+        $planificacion = $actividad->getPlanificacion();
         $jumps = [];
-        if (!is_null($actividad->getPlanificacion())) {
-            $saltos = $actividad->getPlanificacion()->getSaltos();
-            foreach ($saltos as $salto) {
-                $jump = [
-                    "on" => $salto->getCondicion(),
-                    "to" => count($salto->getDestinoCodes()) == 0 ?  ["END"] : $salto->getDestinoCodes(),
-                    "answer" => $salto->getRespuesta()
-                ];
-                //multiple jumps for each tarea
-                $jumps[$salto->getOrigen()->getId()][] = $jump;
-            }
+        $saltos = $planificacion->getSaltos();
+        foreach ($saltos as $salto) {
+            $jump = [
+                "on" => $salto->getCondicion(),
+                "to" => count($salto->getDestinoCodes()) == 0 ?  ["END"] : $salto->getDestinoCodes(),
+                "answer" => $salto->getRespuesta()
+            ];
+            //multiple jumps for each tarea
+            $jumps[$salto->getOrigen()->getId()][] = $jump;
         }
+        $iniciales = $planificacion->getIniciales()->map(function($elem){return $elem->getId();})->toArray();
+        $opcionales = $planificacion->getOpcionales()->map(function($elem){return $elem->getId();})->toArray();
 
         $tasks = [];
         foreach ($actividad->getTareas() as $tarea) {
@@ -326,6 +327,8 @@ class ActividadesController extends AbstractFOSRestController
                 "code" => $tarea->getCodigo(),
                 "name" => $tarea->getNombre(),
                 "instruction" => $tarea->getConsigna(),
+                "initial" => in_array($tarea->getId(), $iniciales),
+                "optional" => in_array($tarea->getId(), $opcionales), 
                 "type" => $tarea->getTipo()->getCodigo(),
                 "jumps" => count($jumps) == 0 ? [] : $jumps[$tarea->getId()]
             ];
