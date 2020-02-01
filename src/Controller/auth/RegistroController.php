@@ -7,6 +7,7 @@ use Exception;
 use Swagger\Annotations as SWG;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
 use FOS\RestBundle\Controller\Annotations as Rest;
+use Google_Client;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -90,23 +91,23 @@ class RegistroController extends AbstractFOSRestController
             $data = json_decode($request->getContent(), true);
 
             $username = $data['username'];
-            if(!array_key_exists("username", $data)) {
+            if (!array_key_exists("username", $data)) {
                 return $this->handleView($this->view(['errors' => 'Faltan campos en el request: username'], Response::HTTP_UNPROCESSABLE_ENTITY));
             }
             $email = $data['email'];
-            if(!array_key_exists("email", $data)) {
+            if (!array_key_exists("email", $data)) {
                 return $this->handleView($this->view(['errors' => 'Faltan campos en el request: email'], Response::HTTP_UNPROCESSABLE_ENTITY));
             }
             $nombre = $data['nombre'];
-            if(!array_key_exists("nombre", $data)) {
+            if (!array_key_exists("nombre", $data)) {
                 return $this->handleView($this->view(['errors' => 'Faltan campos en el request: nombre'], Response::HTTP_UNPROCESSABLE_ENTITY));
             }
             $apellido = $data['apellido'];
-            if(!array_key_exists("apellido", $data)) {
+            if (!array_key_exists("apellido", $data)) {
                 return $this->handleView($this->view(['errors' => 'Faltan campos en el request: apellido'], Response::HTTP_UNPROCESSABLE_ENTITY));
             }
             $id_token = $data['id_token'];
-            if(!array_key_exists("id_token", $data)) {
+            if (!array_key_exists("id_token", $data)) {
                 return $this->handleView($this->view(['errors' => 'Faltan campos en el request: id_token'], Response::HTTP_UNPROCESSABLE_ENTITY));
             }
 
@@ -116,9 +117,19 @@ class RegistroController extends AbstractFOSRestController
             $user->setNombre($nombre);
             $user->setApellido($apellido);
             //exchange id_token with google_id
-            $user->setGoogleid("googleid");
-
-            //$em->persist($user);
+            $client = new Google_Client(['client_id' => $_ENV["GOOGLE_CLIENT_ID"]]);  // Specify the CLIENT_ID of the app that accesses the backend
+            $payload = $client->verifyIdToken($id_token);
+            if ($payload) {
+                $userid = $payload['sub'];
+                $user->setGoogleid($userid);
+            } else {
+                return $this->handleView($this->view(['errors' => 'Ocurrió un error al crear el usuario'], Response::HTTP_INTERNAL_SERVER_ERROR));
+            }
+            $users = $this->getDoctrine()->getRepository(Usuario::class)->findBy(["username" => $username]);
+            if(count($users) != 0) {
+                return $this->handleView($this->view(['errors' => 'El nombre de usuario ya existe'], Response::HTTP_UNPROCESSABLE_ENTITY));
+            }
+            $em->persist($user);
             $em->flush();
         } catch (Exception $ex) {
             return $this->handleView($this->view(['errors' => 'Ocurrió un error al crear el usuario'], Response::HTTP_INTERNAL_SERVER_ERROR));
