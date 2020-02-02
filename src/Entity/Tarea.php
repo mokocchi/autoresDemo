@@ -48,6 +48,18 @@ class Tarea
      */
     private $codigo;
 
+    /**
+     * @ORM\ManyToOne(targetEntity="App\Entity\Usuario", inversedBy="tareas")
+     * @ORM\JoinColumn(nullable=true)
+     */
+    private $autor;
+
+    /**
+     * @ORM\ManyToOne(targetEntity="App\Entity\Estado")
+     * @ORM\JoinColumn(nullable=true)
+     */
+    private $estado;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -121,6 +133,30 @@ class Tarea
     public function setCodigo(string $codigo): self
     {
         $this->codigo = $codigo;
+
+        return $this;
+    }
+
+    public function getAutor(): ?Usuario
+    {
+        return $this->autor;
+    }
+
+    public function setAutor(?Usuario $autor): self
+    {
+        $this->autor = $autor;
+
+        return $this;
+    }
+
+    public function getEstado(): ?Estado
+    {
+        return $this->estado;
+    }
+
+    public function setEstado(?Estado $estado): self
+    {
+        $this->estado = $estado;
 
         return $this;
     }

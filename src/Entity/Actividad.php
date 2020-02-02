@@ -56,6 +56,18 @@ class Actividad
      */
     private $planificacion;
 
+    /**
+     * @ORM\ManyToOne(targetEntity="App\Entity\Usuario", inversedBy="actividadesCreadas")
+     * @ORM\JoinColumn(nullable=true)
+     */
+    private $autor;
+
+    /**
+     * @ORM\ManyToOne(targetEntity="App\Entity\Estado")
+     * @ORM\JoinColumn(nullable=true)
+     */
+    private $estado;
+
     public function __construct()
     {
         $this->tareas = new ArrayCollection();
@@ -160,6 +172,30 @@ class Actividad
     public function setPlanificacion(?Planificacion $planificacion): self
     {
         $this->planificacion = $planificacion;
+
+        return $this;
+    }
+
+    public function getAutor(): ?Usuario
+    {
+        return $this->autor;
+    }
+
+    public function setAutor(?Usuario $autor): self
+    {
+        $this->autor = $autor;
+
+        return $this;
+    }
+
+    public function getEstado(): ?Estado
+    {
+        return $this->estado;
+    }
+
+    public function setEstado(?Estado $estado): self
+    {
+        $this->estado = $estado;
 
         return $this;
     }
