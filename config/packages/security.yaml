@@ -6,20 +6,17 @@ security:
     providers:
         api_user_provider:
             entity:
-                class: App\Entity\User
+                class: App\Entity\Usuario
                 property: username
 
     firewalls:
         login:
             pattern: ^/api/login
             stateless: true
-            anonymous: true
-            form_login:
-                check_path: /api/login_check
-                success_handler: lexik_jwt_authentication.handler.authentication_success
-                failure_handler: lexik_jwt_authentication.handler.authentication_failure
-                require_previous_session: false
-
+            anonymous: false
+            guard:
+                authenticators:
+                    - App\Security\GoogleAuthenticator
         api:
             pattern: ^/api/v1
             stateless: true
@@ -30,7 +27,6 @@ security:
                     - lexik_jwt_authentication.jwt_token_authenticator
 
     access_control:
-        - { path: ^/api/login_check, roles: IS_AUTHENTICATED_ANONYMOUSLY }
-        - { path: ^/api/login, roles: IS_AUTHENTICATED_ANONYMOUSLY }
         - { path: ^/api/register, roles: IS_AUTHENTICATED_ANONYMOUSLY }
-        - { path: ^/api/v1, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/api/login, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/api/v1.0, roles: IS_AUTHENTICATED_FULLY }

@@ -81,13 +81,7 @@ class RegistroController extends AbstractFOSRestController
     {
         $em = $this->getDoctrine()->getManager();
 
-        $user = [];
-        $message = "";
-
         try {
-            $code = 200;
-            $error = false;
-
             $data = json_decode($request->getContent(), true);
 
             $username = $data['username'];
