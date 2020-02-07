@@ -81,6 +81,12 @@
     "firebase/php-jwt": {
         "version": "v5.0.0"
     },
+    "friendsofsymfony/oauth-server-bundle": {
+        "version": "1.6.2"
+    },
+    "friendsofsymfony/oauth2-php": {
+        "version": "1.2.3"
+    },
     "friendsofsymfony/rest-bundle": {
         "version": "2.2",
         "recipe": {
@@ -460,6 +466,9 @@
     },
     "symfony/stopwatch": {
         "version": "v4.4.1"
+    },
+    "symfony/templating": {
+        "version": "v4.4.4"
     },
     "symfony/translation-contracts": {
         "version": "v2.0.1"
