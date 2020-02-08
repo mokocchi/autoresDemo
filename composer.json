@@ -9,7 +9,6 @@
         "friendsofsymfony/rest-bundle": "^2.6",
         "google/apiclient": "^2.0",
         "jms/serializer-bundle": "^3.5",
-        "lexik/jwt-authentication-bundle": "^2.6",
         "nelmio/api-doc-bundle": "^3.5",
         "nelmio/cors-bundle": "^2.0",
         "sensio/framework-extra-bundle": "^5.5",
