@@ -1,19 +1,12 @@
 <?php
 
-// AppBundle\Controller\TokenController.php
-
 namespace App\Controller\auth;
 
 use App\Entity\Usuario;
-use AppBundle\Entity\OAuthAccessToken;
-use AppBundle\Entity\Manager\OAuthClientManager;
 use Doctrine\ORM\EntityManagerInterface;
 use FOS\OAuthServerBundle\Controller\TokenController as BaseTokenController;
-use FOS\OAuthServerBundle\Model\AccessTokenManagerInterface;
-use FOS\OAuthServerBundle\Model\ClientManagerInterface;
 use Google_Client;
 use OAuth2\OAuth2;
-use OAuth2\OAuth2ServerException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -78,7 +71,7 @@ class TokenController extends BaseTokenController
     } else {
       return new JsonResponse(['errors' => 'Token inválido'], Response::HTTP_BAD_REQUEST);
     }
-    
+
     // build a standard client credentials request
     $request->$property->set('client_id', $oauthClient->getPublicId());
     $request->$property->set('client_secret', $oauthClient->getSecret());
