@@ -59,6 +59,11 @@ class Usuario implements UserInterface
      */
     private $tareas;
 
+    /**
+     * @ORM\OneToOne(targetEntity="App\Entity\Client", cascade={"persist", "remove"})
+     */
+    private $oauthClient;
+
     public function __construct()
     {
         $this->roles = new ArrayCollection();
@@ -232,6 +237,18 @@ class Usuario implements UserInterface
                 $tarea->setAutor(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getOauthClient(): ?Client
+    {
+        return $this->oauthClient;
+    }
+
+    public function setOauthClient(?Client $oauthClient): self
+    {
+        $this->oauthClient = $oauthClient;
 
         return $this;
     }

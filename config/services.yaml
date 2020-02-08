@@ -22,6 +22,8 @@ services:
     App\Controller\:
         resource: '../src/Controller'
         tags: ['controller.service_arguments']
+    
+    OAuth2\OAuth2: '@fos_oauth_server.server'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

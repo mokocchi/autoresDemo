@@ -14,32 +14,12 @@ security:
             pattern: ^/api/oauth/v2/token
             security: false
 
-        oauth_authorize:
-            pattern: ^/api/oauth/v2/auth
-            ### not working↓
-            guard:
-                authenticators:
-                    - App\Security\GoogleAuthenticator
-
-        login:
-            pattern: ^/api/login
-            stateless: true
-            anonymous: false
-            guard:
-                authenticators:
-                    - App\Security\GoogleAuthenticator
         api:
             pattern: ^/api/v1
             stateless: true
             anonymous: false
             provider: api_user_provider
-            ###
             fos_oauth: true
-            # OR
-            guard:
-                authenticators:
-                    - lexik_jwt_authentication.jwt_token_authenticator
-            ###
     access_control:
         - { path: ^/api/register, roles: IS_AUTHENTICATED_ANONYMOUSLY }
         - { path: ^/api/login, roles: IS_AUTHENTICATED_FULLY }
