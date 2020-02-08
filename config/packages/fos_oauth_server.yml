@@ -6,3 +6,5 @@ fos_oauth_server:
   auth_code_class: App\Entity\AuthCode
   service:
     user_provider: App\Security\DatabaseUserProvider
+    options:
+      supported_scopes: api_client

@@ -37,11 +37,6 @@ class Usuario implements UserInterface
     /**
      * @ORM\Column(type="string", length=255)
      */
-    private $username;
-
-    /**
-     * @ORM\Column(type="string", length=255)
-     */
     private $googleid;
 
     /**
@@ -114,14 +109,7 @@ class Usuario implements UserInterface
 
     public function getUsername(): ?string
     {
-        return $this->username;
-    }
-
-    public function setUsername(string $username): self
-    {
-        $this->username = $username;
-
-        return $this;
+        return $this->getGoogleid();
     }
 
     public function getGoogleid(): ?string

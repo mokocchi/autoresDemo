@@ -5,6 +5,7 @@ namespace App\Controller\auth;
 use App\Entity\Usuario;
 use Doctrine\ORM\EntityManagerInterface;
 use FOS\OAuthServerBundle\Controller\TokenController as BaseTokenController;
+use FOS\OAuthServerBundle\Model\ClientManagerInterface;
 use Google_Client;
 use OAuth2\OAuth2;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -15,11 +16,33 @@ class TokenController extends BaseTokenController
 {
   protected $clientManager;
   protected $tokenManager;
-  protected $entityManager;
-  public function __construct(OAuth2 $server, EntityManagerInterface $entityManager)
+  protected $em;
+  public function __construct(OAuth2 $server, EntityManagerInterface $entityManager, ClientManagerInterface $clientManager)
   {
     parent::__construct($server);
     $this->em = $entityManager;
+    $this->clientManager = $clientManager;
+  }
+
+  private function register($client, $userid, $id_token) {
+    $httpClient = $client->authorize();
+
+    // make an HTTP request
+    $response = $httpClient->get('https://www.googleapis.com/oauth2/v3/tokeninfo?id_token='.$id_token);
+    $data = json_decode((string)$response->getBody());
+    $user = new Usuario();
+    $user->setEmail($data->email);
+    $user->setNombre($data->given_name);
+    $user->setApellido($data->family_name);
+    $user->setGoogleid($userid);
+
+    $client = $this->clientManager->createClient();
+    $client->setAllowedGrantTypes(array(OAuth2::GRANT_TYPE_CLIENT_CREDENTIALS));
+    $user->setOAuthClient($client);
+    $this->clientManager->updateClient($client);
+    $this->em->persist($user);
+    $this->em->flush();
+    return $user;
   }
 
   public function tokenAction(Request $request)
@@ -62,7 +85,7 @@ class TokenController extends BaseTokenController
         $userid = $payload['sub'];
         $usuario = $this->em->getRepository(Usuario::class)->findOneBy(['googleid' => $userid]);
         if (is_null($usuario)) {
-          //register
+          $usuario = $this->register($client, $userid, $id_token);
         }
         $oauthClient = $usuario->getOauthClient();
       } else {
