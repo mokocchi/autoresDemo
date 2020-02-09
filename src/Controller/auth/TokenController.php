@@ -67,7 +67,10 @@ class TokenController extends BaseTokenController
         return new JsonResponse(['errors' => 'Credenciales inválidas o faltantes'], Response::HTTP_BAD_REQUEST);
       }
     }
-    $id_token = $request->$property->get('token');
+
+    $data = json_decode($request->getContent(), true);
+
+    $id_token = $data['token'];
     $request->$property->remove('token');
 
     if (is_null($id_token)) {

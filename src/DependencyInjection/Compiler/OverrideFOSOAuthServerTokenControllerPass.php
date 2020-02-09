@@ -17,7 +17,7 @@ class OverrideFOSOAuthServerTokenControllerPass implements CompilerPassInterface
     $definition->addArgument(new Reference('doctrine.orm.entity_manager'));
     $definition->addArgument(new Reference('fos_oauth_server.client_manager'));
 
-    // $definition = $container->getDefinition('fos_oauth_server.security.entry_point');
-    // $definition->setClass(OAuthEntryPoint::class);
+    $definition = $container->getDefinition('fos_oauth_server.security.entry_point');
+    $definition->setClass(OAuthEntryPoint::class);
   }
 }
