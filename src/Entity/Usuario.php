@@ -6,9 +6,13 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\UserInterface;
+use JMS\Serializer\Annotation\ExclusionPolicy;
+use JMS\Serializer\Annotation\Exclude;
+use JMS\Serializer\Annotation\VirtualProperty;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\UsuarioRepository")
+ * @ExclusionPolicy("none")
  */
 class Usuario implements UserInterface
 {
@@ -16,6 +20,7 @@ class Usuario implements UserInterface
      * @ORM\Id()
      * @ORM\GeneratedValue()
      * @ORM\Column(type="integer")
+     * @Exclude
      */
     private $id;
 
@@ -41,21 +46,25 @@ class Usuario implements UserInterface
 
     /**
      * @ORM\ManyToMany(targetEntity="App\Entity\Role")
+     * @Exclude
      */
     private $roles;
 
     /**
      * @ORM\OneToMany(targetEntity="App\Entity\Actividad", mappedBy="autor")
+     * @Exclude
      */
     private $actividadesCreadas;
 
     /**
      * @ORM\OneToMany(targetEntity="App\Entity\Tarea", mappedBy="autor")
+     * @Exclude
      */
     private $tareas;
 
     /**
      * @ORM\OneToOne(targetEntity="App\Entity\Client", cascade={"persist", "remove"})
+     * @Exclude
      */
     private $oauthClient;
 
@@ -124,6 +133,9 @@ class Usuario implements UserInterface
         return $this;
     }
 
+    /**
+     * @VirtualProperty(name="roles") 
+     */
     public function getRoles()
     {
         $roles = ['ROLE_USER'];

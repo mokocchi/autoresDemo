@@ -2,6 +2,7 @@
 
 namespace App\Controller\auth;
 
+use App\Entity\AccessToken;
 use App\Entity\Usuario;
 use Doctrine\ORM\EntityManagerInterface;
 use FOS\OAuthServerBundle\Controller\TokenController as BaseTokenController;
@@ -141,6 +142,7 @@ class TokenController extends BaseTokenController
 
     $client = new Google_Client(['client_id' => $_ENV["GOOGLE_CLIENT_ID"]]);
     $payload = $client->verifyIdToken($id_token);
+    $usuario = null;
     if ($payload) {
       if ($payload['aud'] == $_ENV["GOOGLE_CLIENT_ID"]) {
         $userid = $payload['sub'];
@@ -164,6 +166,11 @@ class TokenController extends BaseTokenController
 
     $response = parent::tokenAction($request);
     if ($response->getStatusCode(Response::HTTP_OK)) {
+      $access_token = json_decode($response->getContent())->access_token;
+      $token = $this->em->getRepository(AccessToken::class)->findOneBy(["token" => $access_token]);
+      $token->setUser($usuario);
+      $this->em->persist($token);
+      $this->em->flush();
       return $response;
     } else {
       return new JsonResponse(['errors' => 'Credenciales inválidas o faltantes'], Response::HTTP_BAD_REQUEST);
