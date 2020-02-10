@@ -6,12 +6,18 @@ use App\Entity\Usuario;
 use Doctrine\ORM\EntityManagerInterface;
 use FOS\OAuthServerBundle\Controller\TokenController as BaseTokenController;
 use FOS\OAuthServerBundle\Model\ClientManagerInterface;
+use FOS\RestBundle\Controller\Annotations\Route;
 use Google_Client;
 use OAuth2\OAuth2;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use FOS\RestBundle\Controller\Annotations as Rest;
+use Swagger\Annotations as SWG;
 
+/**
+ * @Route("/oauth/v2/token")
+ */
 class TokenController extends BaseTokenController
 {
   protected $clientManager;
@@ -24,12 +30,13 @@ class TokenController extends BaseTokenController
     $this->clientManager = $clientManager;
   }
 
-  private function register($client, $userid, $id_token) {
+  private function register($client, $userid, $id_token)
+  {
     $httpClient = $client->authorize();
 
     // make an HTTP request
-    $response = $httpClient->get('https://www.googleapis.com/oauth2/v3/tokeninfo?id_token='.$id_token);
-    $data = json_decode((string)$response->getBody());
+    $response = $httpClient->get('https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=' . $id_token);
+    $data = json_decode((string) $response->getBody());
     $user = new Usuario();
     $user->setEmail($data->email);
     $user->setNombre($data->given_name);
@@ -45,6 +52,57 @@ class TokenController extends BaseTokenController
     return $user;
   }
 
+  /**
+   * @Rest\Post
+   * 
+   * @SWG\Response(
+   *     response=200,
+   *     description="The token was returned"
+   * )
+   *
+   * @SWG\Response(
+   *     response=400,
+   *     description="There was a problem with the request"
+   * )
+   *
+   * @SWG\Parameter(
+   *     name="X-AUTH-TOKEN",
+   *     in="header",
+   *     type="string",
+   *     description="Indicates a google id_token flow",
+   * )
+   *
+   * @SWG\Parameter(
+   *     name="X-AUTH-CREDENTIALS",
+   *     in="header",
+   *     type="string",
+   *     description="Indicates a client_credentials flow",
+   * )
+   *
+   * @SWG\Parameter(
+   *     name="token",
+   *     in="body",
+   *     type="string",
+   *     description="The google id_token from the client",
+   *     schema={}
+   * )
+   *
+   * @SWG\Parameter(
+   *     name="client_id",
+   *     in="formData",
+   *     type="string",
+   *     description="The OAuth client id"
+   * )
+   * 
+   * * @SWG\Parameter(
+   *     name="client_secret",
+   *     in="formData",
+   *     type="string",
+   *     description="The OAuth client secret"
+   * )
+   *
+   * @SWG\Tag(name="Auth")
+   */
   public function tokenAction(Request $request)
   {
     if ($request === null) {
