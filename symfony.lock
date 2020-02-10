@@ -188,6 +188,9 @@
             "config/packages/prod/jms_serializer.yaml"
         ]
     },
+    "laminas/laminas-zendframework-bridge": {
+        "version": "1.0.1"
+    },
     "monolog/monolog": {
         "version": "2.0.2"
     },
@@ -226,7 +229,7 @@
         "version": "2.2.3"
     },
     "php": {
-        "version": "7.3"
+        "version": "7.3.14"
     },
     "phpdocumentor/reflection-common": {
         "version": "2.0.0"
