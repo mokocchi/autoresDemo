@@ -3,6 +3,7 @@
 namespace App\Controller\auth;
 
 use App\Entity\AccessToken;
+use App\Entity\Client;
 use App\Entity\Usuario;
 use Doctrine\ORM\EntityManagerInterface;
 use FOS\OAuthServerBundle\Controller\TokenController as BaseTokenController;
@@ -121,6 +122,14 @@ class TokenController extends BaseTokenController
       $request->$property->set('grant_type', OAuth2::GRANT_TYPE_CLIENT_CREDENTIALS);
       $response = parent::tokenAction($request);
       if ($response->getStatusCode() == Response::HTTP_OK) {
+        $access_token = json_decode($response->getContent())->access_token;
+        $token = $this->em->getRepository(AccessToken::class)->findOneBy(["token" => $access_token]);
+        $id = explode("_",$request->$property->get("client_id"))[0];
+        $client = $this->em->getRepository(Client::class)->find($id);
+        $usuario = $this->em->getRepository(Usuario::class)->findOneBy(["oauthClient" => $client]);
+        $token->setUser($usuario);
+        $this->em->persist($token);
+        $this->em->flush();
         return $response;
       } else {
         return new JsonResponse(['errors' => 'Credenciales inválidas o faltantes'], Response::HTTP_BAD_REQUEST);
