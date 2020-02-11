@@ -46,7 +46,6 @@ class Usuario implements UserInterface
 
     /**
      * @ORM\ManyToMany(targetEntity="App\Entity\Role")
-     * @Exclude
      */
     private $roles;
 
@@ -133,9 +132,6 @@ class Usuario implements UserInterface
         return $this;
     }
 
-    /**
-     * @VirtualProperty(name="roles") 
-     */
     public function getRoles()
     {
         $roles = ['ROLE_USER'];
