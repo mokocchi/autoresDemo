@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 
 /**
  * @Route("/actividades")
@@ -25,6 +26,7 @@ class ActividadesController extends AbstractFOSRestController
     /**
      * Lists all Actividad.
      * @Rest\Get
+     * @IsGranted("ROLE_AUTOR")
      *
      * @return Response
      */
@@ -34,6 +36,22 @@ class ActividadesController extends AbstractFOSRestController
         //get all public activities
         $repository = $this->getDoctrine()->getRepository(Actividad::class);
         $actividades = $repository->findall();
+        return $this->handleView($this->view($actividades));
+    }
+
+    /**
+     * Lists actividades for the current user
+     * 
+     * @Rest\Get("/user")
+     * @IsGranted("ROLE_AUTOR")
+     * 
+     * @return Response
+     */
+    public function getActividadForUserAction()
+    {
+        $user = $this->getUser();
+        $repository = $this->getDoctrine()->getRepository(Actividad::class);
+        $actividades = $repository->findBy(["autor" => $user]);
         return $this->handleView($this->view($actividades));
     }
 
@@ -320,8 +338,12 @@ class ActividadesController extends AbstractFOSRestController
             //multiple jumps for each tarea
             $jumps[$salto->getOrigen()->getId()][] = $jump;
         }
-        $iniciales = $planificacion->getIniciales()->map(function($elem){return $elem->getId();})->toArray();
-        $opcionales = $planificacion->getOpcionales()->map(function($elem){return $elem->getId();})->toArray();
+        $iniciales = $planificacion->getIniciales()->map(function ($elem) {
+            return $elem->getId();
+        })->toArray();
+        $opcionales = $planificacion->getOpcionales()->map(function ($elem) {
+            return $elem->getId();
+        })->toArray();
 
         $tasks = [];
         foreach ($actividad->getTareas() as $tarea) {
@@ -330,7 +352,7 @@ class ActividadesController extends AbstractFOSRestController
                 "name" => $tarea->getNombre(),
                 "instruction" => $tarea->getConsigna(),
                 "initial" => in_array($tarea->getId(), $iniciales),
-                "optional" => in_array($tarea->getId(), $opcionales), 
+                "optional" => in_array($tarea->getId(), $opcionales),
                 "type" => $tarea->getTipo()->getCodigo(),
                 "jumps" => count($jumps) == 0 ? [] : $jumps[$tarea->getId()]
             ];

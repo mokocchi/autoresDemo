@@ -4,6 +4,7 @@ namespace App\Controller\auth;
 
 use App\Entity\AccessToken;
 use App\Entity\Client;
+use App\Entity\Role;
 use App\Entity\Usuario;
 use Doctrine\ORM\EntityManagerInterface;
 use FOS\OAuthServerBundle\Controller\TokenController as BaseTokenController;
@@ -44,6 +45,8 @@ class TokenController extends BaseTokenController
     $user->setNombre($data->given_name);
     $user->setApellido($data->family_name);
     $user->setGoogleid($userid);
+    $role = $this->em->getRepository(Role::class)->findOneBy(["name" => "ROLE_AUTOR"]);
+    $user->addRole($role);
 
     $client = $this->clientManager->createClient();
     $client->setAllowedGrantTypes(array(OAuth2::GRANT_TYPE_CLIENT_CREDENTIALS));
