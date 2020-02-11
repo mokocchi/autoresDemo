@@ -30,6 +30,8 @@ class ActividadesController extends AbstractFOSRestController
      */
     public function getActividadAction()
     {
+        //get actividades for a user
+        //get all public activities
         $repository = $this->getDoctrine()->getRepository(Actividad::class);
         $actividades = $repository->findall();
         return $this->handleView($this->view($actividades));
