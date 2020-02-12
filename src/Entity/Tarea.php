@@ -3,9 +3,13 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\ExclusionPolicy;
+use JMS\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\Expose;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\TareaRepository")
+ * @ExclusionPolicy("all")
  */
 class Tarea
 {
@@ -13,50 +17,68 @@ class Tarea
      * @ORM\Id()
      * @ORM\GeneratedValue()
      * @ORM\Column(type="integer")
+     * @Expose
+     * @Groups({"autor"})
      */
     private $id;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $nombre;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $consigna;
 
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\Dominio")
      * @ORM\JoinColumn(nullable=true)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $dominio;
 
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\TipoTarea")
      * @ORM\JoinColumn(nullable=true)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $tipo;
 
     /**
      * @ORM\Column(type="json", nullable=true)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $extra = [];
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $codigo;
 
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\Usuario", inversedBy="tareas")
      * @ORM\JoinColumn(nullable=true)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $autor;
 
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\Estado")
      * @ORM\JoinColumn(nullable=true)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $estado;
 

@@ -5,6 +5,7 @@ namespace App\Controller\v1;
 use App\Entity\Tarea;
 use App\Form\TareaType;
 use Exception;
+use FOS\RestBundle\Context\Context;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\Request;
@@ -28,7 +29,11 @@ class TareasController extends AbstractFOSRestController
     {
         $repository = $this->getDoctrine()->getRepository(Tarea::class);
         $tareas = $repository->findall();
-        return $this->handleView($this->view($tareas));
+        $view = $this->view($tareas);
+        $context = new Context();
+        $context->addGroup('autor');
+        $view->setContext($context);
+        return $this->handleView($view);
     }
 
     /**
@@ -44,7 +49,11 @@ class TareasController extends AbstractFOSRestController
         $user = $this->getUser();
         $repository = $this->getDoctrine()->getRepository(Tarea::class);
         $tareas = $repository->findBy(["autor" => $user]);
-        return $this->handleView($this->view($tareas));
+        $view = $this->view($tareas);
+        $context = new Context();
+        $context->addGroup('autor');
+        $view->setContext($context);
+        return $this->handleView($view);
     }
 
 
@@ -71,7 +80,11 @@ class TareasController extends AbstractFOSRestController
                 $tarea->setAutor($this->getUser());
                 $em->persist($tarea);
                 $em->flush();
-                return $this->handleView($this->view($tarea, Response::HTTP_CREATED));
+                $view = $this->view($tarea, Response::HTTP_CREATED);
+                $context = new Context();
+                $context->addGroup('autor');
+                $view->setContext($context);
+                return $this->handleView($view);
             } catch (Exception $e) {
                 return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
             }
@@ -94,7 +107,11 @@ class TareasController extends AbstractFOSRestController
         if (is_null($tarea)) {
             return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
         }
-        return $this->handleView($this->view($tarea));
+        $view = $this->view($tarea);
+        $context = new Context();
+        $context->addGroup('autor');
+        $view->setContext($context);
+        return $this->handleView($view);
     }
 
     

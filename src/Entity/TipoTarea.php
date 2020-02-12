@@ -3,9 +3,13 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\ExclusionPolicy;
+use JMS\Serializer\Annotation\Expose;
+use JMS\Serializer\Annotation\Groups;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\TipoTareaRepository")
+ * @ExclusionPolicy("all")
  */
 class TipoTarea
 {
@@ -18,11 +22,15 @@ class TipoTarea
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $nombre;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $codigo;
 

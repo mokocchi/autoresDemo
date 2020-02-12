@@ -109,7 +109,11 @@ class ActividadesController extends AbstractFOSRestController
                 $actividad->setAutor($this->getUser());
                 $em->persist($actividad);
                 $em->flush();
-                return $this->handleView($this->view($actividad, Response::HTTP_CREATED));
+                $view = $this->view($actividad, Response::HTTP_CREATED);
+                $context = new Context();
+                $context->addGroup('autor');
+                $view->setContext($context);
+                return $this->handleView($view);
             } catch (Exception $e) {
                 return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
             }
@@ -140,7 +144,11 @@ class ActividadesController extends AbstractFOSRestController
                 $actividad->addTarea($tarea);
                 $em->persist($actividad);
                 $em->flush();
-                return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
+                $view = $this->view(['status' => 'ok'], Response::HTTP_OK);
+                $context = new Context();
+                $context->addGroup('autor');
+                $view->setContext($context);
+                return $this->handleView($view);
             } else {
                 return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
             }
@@ -162,7 +170,11 @@ class ActividadesController extends AbstractFOSRestController
         $actividad = $repository->find($id);
         if (!is_null($actividad)) {
             $tareas = $actividad->getTareas();
-            return $this->handleView($this->view($tareas));
+            $view = $this->view($tareas);
+            $context = new Context();
+            $context->addGroup('autor');
+            $view->setContext($context);
+            return $this->handleView($view);
         } else {
             return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
         }
@@ -184,7 +196,11 @@ class ActividadesController extends AbstractFOSRestController
         }
         $planificacion = $actividad->getPlanificacion();
         $saltos = $planificacion->getSaltos();
-        return $this->handleView($this->view($saltos));
+        $view = $this->view($saltos);
+        $context = new Context();
+        $context->addGroup('autor');
+        $view->setContext($context);
+        return $this->handleView($view);
     }
 
     /**
@@ -235,7 +251,11 @@ class ActividadesController extends AbstractFOSRestController
 
             $em->persist($salto);
             $em->flush();
-            return $this->handleView($this->view($salto, Response::HTTP_CREATED));
+            $view = $this->view($salto, Response::HTTP_CREATED);
+            $context = new Context();
+            $context->addGroup('autor');
+            $view->setContext($context);
+            return $this->handleView($view);
         } catch (Exception $e) {
             return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }
@@ -263,6 +283,7 @@ class ActividadesController extends AbstractFOSRestController
             }
             $em->persist($planificacion);
             $em->flush();
+            return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
         } catch (Exception $e) {
             return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }
@@ -321,6 +342,7 @@ class ActividadesController extends AbstractFOSRestController
             $em = $this->getDoctrine()->getManager();
             $em->persist($planificacion);
             $em->flush();
+            return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
         } catch (Exception $e) {
             return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }
