@@ -5,9 +5,13 @@ namespace App\Entity;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\ExclusionPolicy;
+use JMS\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\Expose;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\ActividadRepository")
+ * @ExclusionPolicy("all")
  */
 class Actividad
 {
@@ -15,15 +19,21 @@ class Actividad
      * @ORM\Id()
      * @ORM\GeneratedValue()
      * @ORM\Column(type="integer")
+     * @Expose
+     * @Groups({"autor"})
      */
     private $id;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $nombre;
 
     /**
+     * @Expose
+     * @Groups({"autor"})
      * @ORM\Column(type="string", length=255)
      */
     private $objetivo;
@@ -31,18 +41,24 @@ class Actividad
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\Idioma")
      * @ORM\JoinColumn(nullable=true)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $idioma;
 
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\Dominio")
      * @ORM\JoinColumn(nullable=true)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $dominio;
 
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\TipoPlanificacion")
      * @ORM\JoinColumn(nullable=true)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $tipoPlanificacion;
 
@@ -59,12 +75,16 @@ class Actividad
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\Usuario", inversedBy="actividadesCreadas")
      * @ORM\JoinColumn(nullable=true)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $autor;
 
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\Estado")
      * @ORM\JoinColumn(nullable=true)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $estado;
 

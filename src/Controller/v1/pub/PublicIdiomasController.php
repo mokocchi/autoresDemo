@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller\v1;
+namespace App\Controller\v1\pub;
 
 use App\Entity\Idioma;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 /**
  * @Route("/idiomas")
  */
-class IdiomasController extends AbstractFOSRestController
+class PublicIdiomasController extends AbstractFOSRestController
 {
     /**
      * Lists all Idiomas.

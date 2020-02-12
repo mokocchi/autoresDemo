@@ -9,3 +9,8 @@ auth_controllers:
     resource: ../src/Controller/auth
     type: annotation
     prefix: '/api'
+
+v1_public_controllers:
+    resource: ../src/Controller/v1/pub
+    type: annotation
+    prefix: '/api/v1.0/public'

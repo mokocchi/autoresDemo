@@ -3,6 +3,7 @@
 namespace App\Controller\v1;
 
 use App\Entity\AccessToken;
+use FOS\RestBundle\Context\Context;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
 use Symfony\Component\Routing\Annotation\Route;
 use FOS\RestBundle\Controller\Annotations as Rest;
@@ -19,6 +20,11 @@ class UsuarioController extends AbstractFOSRestController
     public function me()
     {
         $usuario = $this->getUser();
-        return $this->handleView($this->view($usuario));
+
+        $view = $this->view($usuario);
+        $context = new Context();
+        $context->addGroup('auth');
+        $view->setContext($context);
+        return $this->handleView($view);
     }
 }

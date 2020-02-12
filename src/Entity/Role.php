@@ -3,9 +3,13 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\ExclusionPolicy;
+use JMS\Serializer\Annotation\Expose;
+use JMS\Serializer\Annotation\Groups;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\RoleRepository")
+ * @ExclusionPolicy("all")
  */
 class Role
 {
@@ -18,6 +22,8 @@ class Role
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Expose
+     * @Groups({"auth"})
      */
     private $name;
 

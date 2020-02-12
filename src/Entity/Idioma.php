@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\Expose;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\IdiomaRepository")
@@ -18,11 +20,15 @@ class Idioma
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $nombre;
 
     /**
      * @ORM\Column(type="string", length=5)
+     * @Expose
+     * @Groups({"autor"})
      */
     private $code;
 

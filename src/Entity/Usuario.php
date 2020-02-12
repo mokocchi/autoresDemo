@@ -7,12 +7,12 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\UserInterface;
 use JMS\Serializer\Annotation\ExclusionPolicy;
-use JMS\Serializer\Annotation\Exclude;
-use JMS\Serializer\Annotation\VirtualProperty;
+use JMS\Serializer\Annotation\Expose;
+use JMS\Serializer\Annotation\Groups;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\UsuarioRepository")
- * @ExclusionPolicy("none")
+ * @ExclusionPolicy("all")
  */
 class Usuario implements UserInterface
 {
@@ -20,50 +20,56 @@ class Usuario implements UserInterface
      * @ORM\Id()
      * @ORM\GeneratedValue()
      * @ORM\Column(type="integer")
-     * @Exclude
      */
     private $id;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Expose
+     * @Groups({"auth", "autor"})
      */
     private $nombre;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Expose
+     * @Groups({"auth", "autor"})
      */
     private $apellido;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Expose
+     * @Groups({"auth"})
      */
     private $email;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Expose
+     * @Groups({"auth"})
      */
     private $googleid;
 
     /**
      * @ORM\ManyToMany(targetEntity="App\Entity\Role")
+     * @Expose
+     * @Groups({"auth"})
      */
     private $roles;
 
     /**
      * @ORM\OneToMany(targetEntity="App\Entity\Actividad", mappedBy="autor")
-     * @Exclude
      */
     private $actividadesCreadas;
 
     /**
      * @ORM\OneToMany(targetEntity="App\Entity\Tarea", mappedBy="autor")
-     * @Exclude
      */
     private $tareas;
 
     /**
      * @ORM\OneToOne(targetEntity="App\Entity\Client", cascade={"persist", "remove"})
-     * @Exclude
      */
     private $oauthClient;
 
@@ -136,9 +142,9 @@ class Usuario implements UserInterface
     {
         $roles = ['ROLE_USER'];
         foreach ($this->roles as $role) {
-            $roles[]=$role->getName();
+            $roles[] = $role->getName();
         }
-        
+
         return $roles;
     }
 

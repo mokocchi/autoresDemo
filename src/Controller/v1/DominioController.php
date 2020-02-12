@@ -9,29 +9,17 @@ use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 
 /**
  * @Route("/dominios")
  */
 class DominioController extends AbstractFOSRestController
 {
-
-    /**
-     * Lists all Dominio.
-     * @Rest\Get
-     *
-     * @return Response
-     */
-    public function getDominioAction()
-    {
-        $repository = $this->getDoctrine()->getRepository(Dominio::class);
-        $dominio = $repository->findall();
-        return $this->handleView($this->view($dominio));
-    }
-
     /**
      * Create Dominio.
      * @Rest\Post
+     * @IsGranted("ROLE_AUTOR")
      *
      * @return Response
      */

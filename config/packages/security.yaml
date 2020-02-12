@@ -15,13 +15,14 @@ security:
             security: false
             access_denied_handler: App\Security\AccessDeniedHandler
 
+        public_api:
+            pattern: ^/api/v1.0/public
+            stateless: true
+            anonymous: true
+            
         api:
-            pattern: ^/api/v1
+            pattern: ^/api/v1.0
             stateless: true
             anonymous: false
             provider: api_user_provider
             fos_oauth: true
-    access_control:
-        - { path: ^/api/register, roles: IS_AUTHENTICATED_ANONYMOUSLY }
-        - { path: ^/api/login, roles: IS_AUTHENTICATED_FULLY }
-        - { path: ^/api/v1.0, roles: IS_AUTHENTICATED_FULLY }
