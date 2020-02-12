@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller\v1;
+namespace App\Controller\v1\pub;
 
 use App\Entity\TipoPlanificacion;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 /**
  * @Route("/tipos-planificacion")
  */
-class TipoPlanificacionController extends AbstractFOSRestController
+class PublicTipoPlanificacionController extends AbstractFOSRestController
 {
     /**
      * Lists all Tipo Planificacion.

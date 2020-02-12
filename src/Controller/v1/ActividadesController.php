@@ -8,6 +8,7 @@ use App\Entity\Salto;
 use App\Entity\Tarea;
 use App\Form\ActividadType;
 use Exception;
+use FOS\RestBundle\Context\Context;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\HeaderUtils;
@@ -26,17 +27,19 @@ class ActividadesController extends AbstractFOSRestController
     /**
      * Lists all Actividad.
      * @Rest\Get
-     * @IsGranted("ROLE_AUTOR")
+     * @IsGranted("ROLE_ADMIN")
      *
      * @return Response
      */
     public function getActividadAction()
     {
-        //get actividades for a user
-        //get all public activities
         $repository = $this->getDoctrine()->getRepository(Actividad::class);
-        $actividades = $repository->findall();
-        return $this->handleView($this->view($actividades));
+        $actividades = $repository->findBy(["autor" => $this->getUser()]);
+        $view = $this->view($actividades);
+        $context = new Context();
+        $context->addGroup('autor');
+        $view->setContext($context);
+        return $this->handleView($view);
     }
 
     /**
@@ -52,12 +55,17 @@ class ActividadesController extends AbstractFOSRestController
         $user = $this->getUser();
         $repository = $this->getDoctrine()->getRepository(Actividad::class);
         $actividades = $repository->findBy(["autor" => $user]);
-        return $this->handleView($this->view($actividades));
+        $view = $this->view($actividades);
+        $context = new Context();
+        $context->addGroup('autor');
+        $view->setContext($context);
+        return $this->handleView($view);
     }
 
     /**
      * Shows an Actividad.
      * @Rest\Get("/{id}")
+     * @IsGranted("ROLE_AUTOR")
      *
      * @return Response
      */
@@ -68,12 +76,20 @@ class ActividadesController extends AbstractFOSRestController
         if (is_null($actividad)) {
             return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
         }
-        return $this->handleView($this->view($actividad));
+        if ($actividad->getEstado()->getNombre() == "Privado" && $actividad->getAutor()->getId() !== $this->getUser()->getId()) {
+            return $this->handleView($this->view(['errors' => 'La actividad es privada'], Response::HTTP_UNAUTHORIZED));
+        }
+        $view = $this->view($actividad);
+        $context = new Context();
+        $context->addGroup('autor');
+        $view->setContext($context);
+        return $this->handleView($view);
     }
 
     /**
      * Create Actividad.
      * @Rest\Post
+     * @IsGranted("ROLE_AUTOR")
      *
      * @return Response
      */
@@ -90,6 +106,7 @@ class ActividadesController extends AbstractFOSRestController
                 $em->persist($planificacion);
                 $em->flush();
                 $actividad->setPlanificacion($planificacion);
+                $actividad->setAutor($this->getUser());
                 $em->persist($actividad);
                 $em->flush();
                 return $this->handleView($this->view($actividad, Response::HTTP_CREATED));
@@ -103,6 +120,7 @@ class ActividadesController extends AbstractFOSRestController
     /**
      * Add a Tarea to an Activity.
      * @Rest\Post("/{id}/tareas")
+     * @IsGranted("ROLE_AUTOR")
      *
      * @return Response
      */
@@ -134,6 +152,7 @@ class ActividadesController extends AbstractFOSRestController
     /**
      * List an Actividad's tareas.
      * @Rest\Get("/{id}/tareas")
+     * @IsGranted("ROLE_AUTOR")
      *
      * @return Response
      */
@@ -152,6 +171,7 @@ class ActividadesController extends AbstractFOSRestController
     /**
      * Lists all Saltos from an Actividad.
      * @Rest\Get("/{id}/saltos")
+     * @IsGranted("ROLE_AUTOR")
      *
      * @return Response
      */
@@ -170,6 +190,7 @@ class ActividadesController extends AbstractFOSRestController
     /**
      * Create a Salto for an Actividad.
      * @Rest\Post("/{id}/saltos")
+     * @IsGranted("ROLE_AUTOR")
      *
      * @return Response
      */
@@ -223,6 +244,7 @@ class ActividadesController extends AbstractFOSRestController
     /**
      * Deletes all saltos from an Actividad
      * @Rest\Delete("/{id}/saltos")
+     * @IsGranted("ROLE_AUTOR")
      * @return Response
      */
     public function deleteSaltosAction($id)
@@ -249,6 +271,7 @@ class ActividadesController extends AbstractFOSRestController
     /**
      * Create a Salto for an Actividad.
      * @Rest\Post("/{id}/planificaciones")
+     * @IsGranted("ROLE_AUTOR")
      *
      * @return Response
      */

@@ -31,7 +31,7 @@ class PublicActividadesController extends AbstractFOSRestController
      *
      * @return Response
      */
-    public function getActividadAction()
+    public function getActividadesAction()
     {
         $repository = $this->getDoctrine()->getRepository(Actividad::class);
         $estadoRepository = $this->getDoctrine()->getRepository(Estado::class);
@@ -40,7 +40,32 @@ class PublicActividadesController extends AbstractFOSRestController
         
         $view = $this->view($actividades);
         $context = new Context();
-        $context->addGroup('autor');
+        $context->addGroup('publico');
+        $view->setContext($context);
+        return $this->handleView($view);
+    }
+
+
+    /**
+     * Shows an Actividad.
+     * @Rest\Get("/{id}")
+     *
+     * @return Response
+     */
+    public function showActividadAction($id)
+    {
+        $repository = $this->getDoctrine()->getRepository(Actividad::class);
+        $actividad = $repository->find($id);
+        if (is_null($actividad)) {
+            return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+        }
+        if ($actividad->getEstado()->getNombre() == "Privado") {
+            return $this->handleView($this->view(['errors' => 'La actividad es privada'], Response::HTTP_UNAUTHORIZED));
+        }
+
+        $view = $this->view($actividad);
+        $context = new Context();
+        $context->addGroup('publico');
         $view->setContext($context);
         return $this->handleView($view);
     }

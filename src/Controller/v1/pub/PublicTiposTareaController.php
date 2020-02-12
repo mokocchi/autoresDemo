@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller\v1;
+namespace App\Controller\v1\pub;
 
 use App\Entity\TipoTarea;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 /**
  * @Route("/tipos-tarea")
  */
-class TiposTareaController extends AbstractFOSRestController
+class PublicTiposTareaController extends AbstractFOSRestController
 {
     /**
      * Lists all TipoTarea.

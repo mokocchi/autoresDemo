@@ -17,6 +17,7 @@ class ActividadType extends AbstractType
       ->add('dominio')
       ->add('idioma')
       ->add('tipoPlanificacion')
+      ->add('estado')
       ->add('save', SubmitType::class)
     ;
   }

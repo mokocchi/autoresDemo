@@ -26,14 +26,14 @@ class Usuario implements UserInterface
     /**
      * @ORM\Column(type="string", length=255)
      * @Expose
-     * @Groups({"auth", "autor"})
+     * @Groups({"auth", "autor", "publico"})
      */
     private $nombre;
 
     /**
      * @ORM\Column(type="string", length=255)
      * @Expose
-     * @Groups({"auth", "autor"})
+     * @Groups({"auth", "autor", "publico"})
      */
     private $apellido;
 

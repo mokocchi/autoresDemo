@@ -5,9 +5,13 @@ namespace App\Entity;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\Serializer\Annotation\ExclusionPolicy;
+use JMS\Serializer\Annotation\Expose;
+use JMS\Serializer\Annotation\Groups;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\PlanificacionRepository")
+ * @ExclusionPolicy("all")
  */
 class Planificacion
 {
@@ -20,18 +24,24 @@ class Planificacion
 
     /**
      * @ORM\OneToMany(targetEntity="App\Entity\Salto", mappedBy="planificacion")
+     * @Expose
+     * @Groups({"publico", "autor"})
      */
     private $saltos;
 
     /**
      * @ORM\ManyToMany(targetEntity="App\Entity\Tarea")
      * @ORM\JoinTable(name="tarea_opcional")
+     * @Expose
+     * @Groups({"publico", "autor"})
      */
     private $opcionales;
 
     /**
      * @ORM\ManyToMany(targetEntity="App\Entity\Tarea")
      * @ORM\JoinTable(name="tarea_inicial")
+     * @Expose
+     * @Groups({"publico", "autor"})
      */
     private $iniciales;
 

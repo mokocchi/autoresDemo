@@ -20,20 +20,20 @@ class Actividad
      * @ORM\GeneratedValue()
      * @ORM\Column(type="integer")
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $id;
 
     /**
      * @ORM\Column(type="string", length=255)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $nombre;
 
     /**
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      * @ORM\Column(type="string", length=255)
      */
     private $objetivo;
@@ -42,7 +42,7 @@ class Actividad
      * @ORM\ManyToOne(targetEntity="App\Entity\Idioma")
      * @ORM\JoinColumn(nullable=true)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $idioma;
 
@@ -50,7 +50,7 @@ class Actividad
      * @ORM\ManyToOne(targetEntity="App\Entity\Dominio")
      * @ORM\JoinColumn(nullable=true)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $dominio;
 
@@ -58,7 +58,7 @@ class Actividad
      * @ORM\ManyToOne(targetEntity="App\Entity\TipoPlanificacion")
      * @ORM\JoinColumn(nullable=true)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $tipoPlanificacion;
 
@@ -69,6 +69,8 @@ class Actividad
 
     /**
      * @ORM\OneToOne(targetEntity="App\Entity\Planificacion", cascade={"persist", "remove"})
+     * @Expose
+     * @Groups({"autor", "publico"})
      */
     private $planificacion;
 
@@ -76,7 +78,7 @@ class Actividad
      * @ORM\ManyToOne(targetEntity="App\Entity\Usuario", inversedBy="actividadesCreadas")
      * @ORM\JoinColumn(nullable=true)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $autor;
 
@@ -84,7 +86,7 @@ class Actividad
      * @ORM\ManyToOne(targetEntity="App\Entity\Estado")
      * @ORM\JoinColumn(nullable=true)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $estado;
 

@@ -10,6 +10,7 @@ use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 
 /**
  * @Route("/tareas")
@@ -19,7 +20,8 @@ class TareasController extends AbstractFOSRestController
     /**
      * Lists all Tarea.
      * @Rest\Get
-     *
+     * @IsGranted("ROLE_ADMIN")
+     * 
      * @return Response
      */
     public function getTareasAction()
@@ -29,9 +31,27 @@ class TareasController extends AbstractFOSRestController
         return $this->handleView($this->view($tareas));
     }
 
-        /**
+    /**
+     * Lists tareas for the current user
+     * 
+     * @Rest\Get("/user")
+     * @IsGranted("ROLE_AUTOR")
+     * 
+     * @return Response
+     */
+    public function getActividadForUserAction()
+    {
+        $user = $this->getUser();
+        $repository = $this->getDoctrine()->getRepository(Tarea::class);
+        $tareas = $repository->findBy(["autor" => $user]);
+        return $this->handleView($this->view($tareas));
+    }
+
+
+    /**
      * Create Tarea.
      * @Rest\Post
+     * @IsGranted("ROLE_AUTOR")
      *
      * @return Response
      */
@@ -48,6 +68,7 @@ class TareasController extends AbstractFOSRestController
                 if (!empty($tareaDb)) {
                     return $this->handleView($this->view($tareaDb[0], Response::HTTP_OK));
                 }
+                $tarea->setAutor($this->getUser());
                 $em->persist($tarea);
                 $em->flush();
                 return $this->handleView($this->view($tarea, Response::HTTP_CREATED));
@@ -62,6 +83,7 @@ class TareasController extends AbstractFOSRestController
     /**
      * Shows a Tarea.
      * @Rest\Get("/{id}")
+     * @IsGranted("ROLE_AUTOR")
      *
      * @return Response
      */
@@ -80,6 +102,7 @@ class TareasController extends AbstractFOSRestController
     /**
      * Update extra on Tarea.
      * @Rest\Post("/{id}/extra")
+     * @IsGranted("ROLE_AUTOR")
      *
      * @return Response
      */
