@@ -147,4 +147,16 @@ class TareasController extends AbstractFOSRestController
             return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }
     }
+
+     /**
+     * Update plano on Tarea.
+     * @Rest\Post("/{id}/plano")
+     * @IsGranted("ROLE_AUTOR")
+     *
+     * @return Response
+     */
+    public function updateMapOnTareaAction(Request $request, $id)
+    {
+        dd($request->files->get('plano'));
+    }
 }
