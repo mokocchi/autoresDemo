@@ -165,7 +165,7 @@ class Salto
      * @Expose
      * @Groups({"publico", "autor"})
      */
-    public function getOrigenIds(): ?int
+    public function getOrigenId(): ?int
     {
         return $this->origen->getId();
     }

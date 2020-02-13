@@ -289,6 +289,33 @@ class ActividadesController extends AbstractFOSRestController
         }
     }
 
+     /**
+     * Deletes all tareas from an Actividad
+     * @Rest\Delete("/{id}/tareas")
+     * @IsGranted("ROLE_AUTOR")
+     * @return Response
+     */
+    public function deleteTareasAction($id)
+    {
+        try {
+            $repository = $this->getDoctrine()->getRepository(Actividad::class);
+            $actividad = $repository->find($id);
+            if (is_null($actividad)) {
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado: actividad'], Response::HTTP_NOT_FOUND));
+            }
+            $tareas = $actividad->getTareas();
+            foreach ($tareas as $tarea) {
+                $actividad->removeTarea($tarea);
+            }
+            $em = $this->getDoctrine()->getManager();
+            $em->persist($actividad);
+            $em->flush();
+            return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
+        } catch (Exception $e) {
+            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+        }
+    }
+
     /**
      * Create a Salto for an Actividad.
      * @Rest\Post("/{id}/planificaciones")

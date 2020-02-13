@@ -18,6 +18,7 @@ class TipoTarea
      * @ORM\GeneratedValue()
      * @ORM\Column(type="integer")
      * @Expose
+     * @Groups({"autor"}) //para chequeos de tipo
      */
     private $id;
 
