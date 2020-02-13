@@ -309,6 +309,13 @@ class ActividadesController extends AbstractFOSRestController
             }
             $em = $this->getDoctrine()->getManager();
             $em->persist($actividad);
+            $planificacion = $actividad->getPlanificacion();
+            $saltos = $planificacion->getSaltos();
+            $em = $this->getDoctrine()->getManager();
+            foreach ($saltos as $salto) {
+                $em->remove($salto);
+            }
+            $em->persist($planificacion);
             $em->flush();
             return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
         } catch (Exception $e) {
