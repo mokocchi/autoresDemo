@@ -69,4 +69,76 @@ class PublicActividadesController extends AbstractFOSRestController
         $view->setContext($context);
         return $this->handleView($view);
     }
+
+        /**
+     * Download the JSON definition for the Actividad.
+     * @Rest\Get("/{id}/download")
+     *
+     * @return Response
+     */
+    public function downloadActividadAction($id)
+    {
+        $repository = $this->getDoctrine()->getRepository(Actividad::class);
+        $actividad = $repository->find($id);
+        if (is_null($actividad)) {
+            return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+        }
+        $JSON = [];
+        $JSON["language"] = $actividad->getIdioma()->getCode();
+        $educationalActivity = [
+            "name" => $actividad->getNombre(),
+            "goal" => $actividad->getObjetivo(),
+            "sequential" => ($actividad->getTipoPlanificacion()->getNombre() != "Libre")
+        ];
+        $JSON["educationalActivity"] = $educationalActivity;
+        $planificacion = $actividad->getPlanificacion();
+        $jumps = [];
+        $saltos = $planificacion->getSaltos();
+        foreach ($saltos as $salto) {
+            $jump = [
+                "on" => $salto->getCondicion(),
+                "to" => count($salto->getDestinoCodes()) == 0 ?  ["END"] : $salto->getDestinoCodes(),
+                "answer" => $salto->getRespuesta()
+            ];
+            //multiple jumps for each tarea
+            $jumps[$salto->getOrigen()->getId()][] = $jump;
+        }
+        $iniciales = $planificacion->getIniciales()->map(function ($elem) {
+            return $elem->getId();
+        })->toArray();
+        $opcionales = $planificacion->getOpcionales()->map(function ($elem) {
+            return $elem->getId();
+        })->toArray();
+
+        $tasks = [];
+        foreach ($actividad->getTareas() as $tarea) {
+            $task = [
+                "code" => $tarea->getCodigo(),
+                "name" => $tarea->getNombre(),
+                "instruction" => $tarea->getConsigna(),
+                "initial" => in_array($tarea->getId(), $iniciales),
+                "optional" => in_array($tarea->getId(), $opcionales),
+                "type" => $tarea->getTipo()->getCodigo(),
+                "jumps" => count($jumps) == 0 ? [] : $jumps[$tarea->getId()]
+            ];
+            foreach ($tarea->getExtra() as $key => $value) {
+                $task[$key] = $value;
+            }
+            $tasks[] = $task;
+        }
+        $JSON["tasks"] = $tasks;
+        //return $this->handleView($this->view($JSON));
+
+
+        $fileContent = json_encode($JSON, JSON_PRETTY_PRINT);
+        $response = new Response($fileContent);
+
+        $disposition = HeaderUtils::makeDisposition(
+            HeaderUtils::DISPOSITION_ATTACHMENT,
+            iconv("UTF-8", "ASCII//TRANSLIT", $actividad->getNombre()) . '.json'
+        );
+
+        $response->headers->set('Content-Disposition', $disposition);
+        return $response;
+    }
 }
