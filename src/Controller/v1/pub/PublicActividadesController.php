@@ -93,6 +93,9 @@ class PublicActividadesController extends AbstractFOSRestController
         $JSON["educationalActivity"] = $educationalActivity;
         $planificacion = $actividad->getPlanificacion();
         $jumps = [];
+        foreach ($actividad->getTareas() as $tarea) {
+            $jumps[$tarea->getId()] = [];
+        }
         $saltos = $planificacion->getSaltos();
         foreach ($saltos as $salto) {
             $jump = [
