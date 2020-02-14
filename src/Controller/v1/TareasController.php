@@ -171,7 +171,7 @@ class TareasController extends AbstractFOSRestController
         $errors = $validator->validate($plano);
 
         if (count($errors) > 0) {
-            return $this->handleView($this->view(['errors' => $errors], Response::HTTP_UNPROCESSABLE_ENTITY));
+            return $this->handleView($this->view(['errors' => "El archivo no es válido"], Response::HTTP_UNPROCESSABLE_ENTITY));
         }
         try {
             $em = $this->getDoctrine()->getManager();
