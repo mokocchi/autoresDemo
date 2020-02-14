@@ -2,8 +2,11 @@
 
 namespace App\Controller\v1;
 
+use App\Entity\Plano;
 use App\Entity\Tarea;
+use App\Form\PlanoType;
 use App\Form\TareaType;
+use App\Service\UploaderHelper;
 use Exception;
 use FOS\RestBundle\Context\Context;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
@@ -12,7 +15,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
-
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 /**
  * @Route("/tareas")
  */
@@ -114,7 +117,7 @@ class TareasController extends AbstractFOSRestController
         return $this->handleView($view);
     }
 
-    
+
 
     /**
      * Update extra on Tarea.
@@ -148,15 +151,42 @@ class TareasController extends AbstractFOSRestController
         }
     }
 
-     /**
+    /**
      * Update plano on Tarea.
      * @Rest\Post("/{id}/plano")
      * @IsGranted("ROLE_AUTOR")
      *
      * @return Response
      */
-    public function updateMapOnTareaAction(Request $request, $id)
+    public function updateMapOnTareaAction(Request $request, $id, UploaderHelper $uploaderHelper, ValidatorInterface $validator)
     {
-        dd($request->files->get('plano'));
+        
+        if (!$request->files->has('plano')) {
+            return $this->handleView($this->view(['errors' => 'No se encontró el archivo'], Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
+        $plano = new Plano();
+        $uploadedFile = $request->files->get('plano');
+        $plano->setPlano($uploadedFile);
+
+        $errors = $validator->validate($plano);
+
+        if (count($errors) > 0) {
+            return $this->handleView($this->view(['errors' => $errors], Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
+        try {
+            $em = $this->getDoctrine()->getManager();
+            $tarea = $em->getRepository(Tarea::class)->find($id);
+
+            if (!is_null($tarea)) {
+
+                $uploaderHelper->uploadPlano($uploadedFile, $tarea->getCodigo());
+
+                return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
+            } else {
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+            }
+        } catch (Exception $e) {
+            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+        }
     }
 }
