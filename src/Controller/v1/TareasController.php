@@ -4,7 +4,6 @@ namespace App\Controller\v1;
 
 use App\Entity\Plano;
 use App\Entity\Tarea;
-use App\Form\PlanoType;
 use App\Form\TareaType;
 use App\Service\UploaderHelper;
 use Exception;
@@ -16,6 +15,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Swagger\Annotations as SWG;
+
 /**
  * @Route("/tareas")
  */
@@ -61,10 +62,81 @@ class TareasController extends AbstractFOSRestController
 
 
     /**
-     * Create Tarea.
+     * Crear Tarea.
      * @Rest\Post
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Response(
+     *     response=201,
+     *     description="La tarea fue creada"
+     * )
+     *
+     * @SWG\Response(
+     *     response=422,
+     *     description="Hubo un problema con la petición"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     *
+     * @SWG\Parameter(
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     *
+     * @SWG\Parameter(
+     *     name="nombre",
+     *     in="body",
+     *     type="string",
+     *     description="Nombre de la tarea",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     name="consigna",
+     *     in="body",
+     *     type="string",
+     *     description="Consigna de la tarea",
+     *     schema={}
+     * )
+     *
+     * @SWG\Parameter(
+     *     name="codigo",
+     *     in="body",
+     *     type="integer",
+     *     description="Codigo de la tarea",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     name="tipo",
+     *     in="body",
+     *     type="integer",
+     *     description="Tipo de tarea",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     name="dominio",
+     *     in="body",
+     *     type="integer",
+     *     description="Dominio de la tarea",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     name="estado",
+     *     in="body",
+     *     type="integer",
+     *     description="Id del estado de la tarea",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Tag(name="Tarea")
      * @return Response
      */
     public function postTareaAction(Request $request)
@@ -72,6 +144,19 @@ class TareasController extends AbstractFOSRestController
         $tarea = new Tarea();
         $form = $this->createForm(TareaType::class, $tarea);
         $data = json_decode($request->getContent(), true);
+        if(is_null($data)) {
+            return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
+        if (
+            !array_key_exists("nombre", $data) ||
+            !array_key_exists("consigna", $data) ||
+            !array_key_exists("codigo", $data) ||
+            !array_key_exists("tipo", $data) ||
+            !array_key_exists("dominio", $data) ||
+            !array_key_exists("estado", $data)
+        ) {
+            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
         $form->submit($data);
         if ($form->isSubmitted() && $form->isValid()) {
             try {

@@ -87,18 +87,23 @@ class ActividadesController extends AbstractFOSRestController
     }
 
     /**
-     * Create Actividad.
+     * Crear Actividad.
      * @Rest\Post
      * @IsGranted("ROLE_AUTOR")
      *
      * @SWG\Response(
-     *     response=200,
-     *     description="The token was returned"
+     *     response=201,
+     *     description="La actividad fue creada"
      * )
      *
      * @SWG\Response(
-     *     response=400,
-     *     description="There was a problem with the request"
+     *     response=422,
+     *     description="Hubo un problema con la petición"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
      * )
      *
      * @SWG\Parameter(
@@ -165,8 +170,21 @@ class ActividadesController extends AbstractFOSRestController
         $actividad = new Actividad();
         $form = $this->createForm(ActividadType::class, $actividad);
         $data = json_decode($request->getContent(), true);
+        if(is_null($data)) {
+            return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
         $form->submit($data);
         if ($form->isSubmitted() && $form->isValid()) {
+            if (
+                !array_key_exists("nombre", $data) ||
+                !array_key_exists("objetivo", $data) ||
+                !array_key_exists("dominio", $data) ||
+                !array_key_exists("idioma", $data) ||
+                !array_key_exists("tipoPlanificacion", $data) ||
+                !array_key_exists("estado", $data)
+            ) {
+                return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+            }
             try {
                 $em = $this->getDoctrine()->getManager();
                 $planificacion = new Planificacion();

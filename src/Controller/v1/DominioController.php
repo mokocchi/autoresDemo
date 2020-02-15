@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
+use Swagger\Annotations as SWG;
 
 /**
  * @Route("/dominios")
@@ -17,10 +18,46 @@ use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 class DominioController extends AbstractFOSRestController
 {
     /**
-     * Create Dominio.
+     * Crear Dominio.
      * @Rest\Post
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Response(
+     *     response=200,
+     *     description="El dominio ya existe"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=201,
+     *     description="El dominio fue creado"
+     * )
+     *
+     * @SWG\Response(
+     *     response=422,
+     *     description="Hubo un problema con la petición"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     *
+     * @SWG\Parameter(
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     *
+     * @SWG\Parameter(
+     *     name="nombre",
+     *     in="body",
+     *     type="string",
+     *     description="Nombre del dominio",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Tag(name="Dominio")
      * @return Response
      */
     public function postDominioAction(Request $request)
@@ -28,6 +65,12 @@ class DominioController extends AbstractFOSRestController
         $dominio = new Dominio();
         $form = $this->createForm(DominioType::class, $dominio);
         $data = json_decode($request->getContent(), true);
+        if(is_null($data)) {
+            return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
+        if(!array_key_exists("nombre",$data)) {
+            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
         $form->submit($data);
         if ($form->isSubmitted() && $form->isValid()) {
             $em = $this->getDoctrine()->getManager();
