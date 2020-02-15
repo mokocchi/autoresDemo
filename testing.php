@@ -54,12 +54,12 @@ try {
     echo "\n\n";
     $response = $client->post($prefijo_api . "/dominios", $options);
 
-    echo $response->getBody();
+    $location = $response->getHeader("Location")[0];
+    echo "Location: " . $location;
     echo "\n\n";
 
-    $data = json_decode((string) $response->getBody());
-    $dominio_id = $data->id;
-
+    $exploded_location = explode("/", $location);
+    $dominio_id = $exploded_location[count($exploded_location) - 1];
 
     $options = [
         'headers' => ['Authorization' => $auth_header],
@@ -77,11 +77,12 @@ try {
     echo "\n\n";
     $response = $client->post($prefijo_api . "/actividades", $options);
 
-    echo $response->getBody();
+    $location = $response->getHeader("Location")[0];
+    echo "Location: " . $location;
     echo "\n\n";
 
-    $data = json_decode((string) $response->getBody());
-    $actividad_id = $data->id;
+    $exploded_location = explode("/", $location);
+    $actividad_id = $exploded_location[count($exploded_location) - 1];
 
     echo "GET " . $prefijo_api . "/actividades/" . $actividad_id;
     echo "\n\n";

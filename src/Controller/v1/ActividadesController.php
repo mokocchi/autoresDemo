@@ -63,10 +63,28 @@ class ActividadesController extends AbstractFOSRestController
     }
 
     /**
-     * Shows an Actividad.
-     * @Rest\Get("/{id}")
+     * Muestra una actividad
+     * @Rest\Get("/{id}", name="show_actividad")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Parameter(
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     * 
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     *
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     * 
+     * @SWG\Tag(name="Actividad")
      * @return Response
      */
     public function showActividadAction($id)
@@ -87,8 +105,8 @@ class ActividadesController extends AbstractFOSRestController
     }
 
     /**
-     * Crear Actividad.
-     * @Rest\Post
+     * Crea una actividad
+     * @Rest\Post(name="post_actividad")
      * @IsGranted("ROLE_AUTOR")
      *
      * @SWG\Response(
@@ -170,18 +188,24 @@ class ActividadesController extends AbstractFOSRestController
         $actividad = new Actividad();
         $form = $this->createForm(ActividadType::class, $actividad);
         $data = json_decode($request->getContent(), true);
-        if(is_null($data)) {
+        if (is_null($data)) {
             return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
         }
         $form->submit($data);
         if ($form->isSubmitted() && $form->isValid()) {
             if (
                 !array_key_exists("nombre", $data) ||
+                is_null($data["nombre"]) ||
                 !array_key_exists("objetivo", $data) ||
+                is_null($data["objetivo"]) ||
                 !array_key_exists("dominio", $data) ||
+                is_null($data["dominio"]) ||
                 !array_key_exists("idioma", $data) ||
+                is_null($data["idioma"]) ||
                 !array_key_exists("tipoPlanificacion", $data) ||
-                !array_key_exists("estado", $data)
+                is_null($data["tipoPlanificacion"]) ||
+                !array_key_exists("estado", $data) ||
+                is_null($data["objetivo"])
             ) {
                 return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
             }
@@ -194,7 +218,9 @@ class ActividadesController extends AbstractFOSRestController
                 $actividad->setAutor($this->getUser());
                 $em->persist($actividad);
                 $em->flush();
-                $view = $this->view($actividad, Response::HTTP_CREATED);
+
+                $url = $this->generateUrl('show_actividad', ['id' => $actividad->getId()]);
+                $view = $this->view(null, Response::HTTP_CREATED, ["Location" => $url]);
                 $context = new Context();
                 $context->addGroup('autor');
                 $view->setContext($context);

@@ -149,11 +149,17 @@ class TareasController extends AbstractFOSRestController
         }
         if (
             !array_key_exists("nombre", $data) ||
+            is_null($data["nombre"]) ||
             !array_key_exists("consigna", $data) ||
+            is_null($data["consigna"]) ||
             !array_key_exists("codigo", $data) ||
+            is_null($data["codigo"]) ||
             !array_key_exists("tipo", $data) ||
+            is_null($data["tipo"]) ||
             !array_key_exists("dominio", $data) ||
-            !array_key_exists("estado", $data)
+            is_null($data["dominio"]) ||
+            !array_key_exists("estado", $data) ||
+            is_null($data["estado"])
         ) {
             return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
         }

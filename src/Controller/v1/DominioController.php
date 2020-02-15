@@ -18,8 +18,8 @@ use Swagger\Annotations as SWG;
 class DominioController extends AbstractFOSRestController
 {
     /**
-     * Crear Dominio.
-     * @Rest\Post
+     * Crea un dominio.
+     * @Rest\Post(name="post_dominio")
      * @IsGranted("ROLE_AUTOR")
      *
      * @SWG\Response(
@@ -68,19 +68,21 @@ class DominioController extends AbstractFOSRestController
         if(is_null($data)) {
             return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
         }
-        if(!array_key_exists("nombre",$data)) {
+        if(!array_key_exists("nombre",$data) || is_null($data["nombre"])) {
             return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
         }
         $form->submit($data);
         if ($form->isSubmitted() && $form->isValid()) {
             $em = $this->getDoctrine()->getManager();
-            $dominioDb = $em->getRepository(Dominio::class)->findBy(["nombre" => $data["nombre"]]);
+            $dominioDb = $em->getRepository(Dominio::class)->findOneBy(["nombre" => $data["nombre"]]);
             if (!empty($dominioDb)) {
-                return $this->handleView($this->view($dominioDb[0], Response::HTTP_OK));
+            $url = $this->generateUrl("show_dominio", ["id" => $dominioDb->getId()]);
+                return $this->handleView($this->view(null, Response::HTTP_OK, ["Location" => $url]));
             }
             $em->persist($dominio);
             $em->flush();
-            return $this->handleView($this->view($dominio, Response::HTTP_CREATED));
+            $url = $this->generateUrl("show_dominio", ["id" => $dominio->getId()]);
+            return $this->handleView($this->view(null, Response::HTTP_CREATED, ["Location" => $url]));
         }
         return $this->handleView($this->view($form->getErrors()));
     }
