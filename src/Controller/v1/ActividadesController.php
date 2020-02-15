@@ -11,11 +11,11 @@ use Exception;
 use FOS\RestBundle\Context\Context;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
 use FOS\RestBundle\Controller\Annotations as Rest;
-use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
+use Swagger\Annotations as SWG;
 
 /**
  * @Route("/actividades")
@@ -91,6 +91,73 @@ class ActividadesController extends AbstractFOSRestController
      * @Rest\Post
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Response(
+     *     response=200,
+     *     description="The token was returned"
+     * )
+     *
+     * @SWG\Response(
+     *     response=400,
+     *     description="There was a problem with the request"
+     * )
+     *
+     * @SWG\Parameter(
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     *
+     * @SWG\Parameter(
+     *     name="nombre",
+     *     in="body",
+     *     type="string",
+     *     description="Nombre de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     name="objetivo",
+     *     in="body",
+     *     type="string",
+     *     description="Objetivo de la actividad",
+     *     schema={}
+     * )
+     *
+     * @SWG\Parameter(
+     *     name="dominio",
+     *     in="body",
+     *     type="integer",
+     *     description="Id del dominio de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     name="idioma",
+     *     in="body",
+     *     type="integer",
+     *     description="Id del idioma de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     name="tipoPlanificacion",
+     *     in="body",
+     *     type="integer",
+     *     description="Id del tipo de planificación de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     name="estado",
+     *     in="body",
+     *     type="integer",
+     *     description="Id del estado de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Tag(name="Actividad")
+     * 
      * @return Response
      */
     public function postActividadAction(Request $request)
@@ -289,7 +356,7 @@ class ActividadesController extends AbstractFOSRestController
         }
     }
 
-     /**
+    /**
      * Deletes all tareas from an Actividad
      * @Rest\Delete("/{id}/tareas")
      * @IsGranted("ROLE_AUTOR")
