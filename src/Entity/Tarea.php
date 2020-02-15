@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Service\UploaderHelper;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\ExclusionPolicy;
 use JMS\Serializer\Annotation\Groups;
@@ -181,5 +182,10 @@ class Tarea
         $this->estado = $estado;
 
         return $this;
+    }
+
+    public function getPlanoPath(): string
+    {
+        return UploaderHelper::PLANOS . '/' . $this->getCodigo();
     }
 }
