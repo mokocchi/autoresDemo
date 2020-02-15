@@ -18,14 +18,14 @@ class Dominio
      * @ORM\GeneratedValue()
      * @ORM\Column(type="integer")
      * @Expose
-     * @Groups({"public"})
+     * @Groups({"publico"})
      */
     private $id;
 
     /**
      * @ORM\Column(type="string", length=255)
      * @Expose
-     * @Groups({"autor", "public"})
+     * @Groups({"autor", "publico"})
      */
     private $nombre;
 

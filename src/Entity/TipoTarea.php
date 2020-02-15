@@ -18,21 +18,21 @@ class TipoTarea
      * @ORM\GeneratedValue()
      * @ORM\Column(type="integer")
      * @Expose
-     * @Groups({"autor"}) //para chequeos de tipo
+     * @Groups({"autor", "publico"}) //para chequeos de tipo
      */
     private $id;
 
     /**
      * @ORM\Column(type="string", length=255)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $nombre;
 
     /**
      * @ORM\Column(type="string", length=255)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $codigo;
 

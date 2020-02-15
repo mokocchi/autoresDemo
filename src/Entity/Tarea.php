@@ -26,14 +26,14 @@ class Tarea
     /**
      * @ORM\Column(type="string", length=255)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $nombre;
 
     /**
      * @ORM\Column(type="string", length=255)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $consigna;
 
@@ -41,7 +41,7 @@ class Tarea
      * @ORM\ManyToOne(targetEntity="App\Entity\Dominio")
      * @ORM\JoinColumn(nullable=true)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $dominio;
 
@@ -49,21 +49,21 @@ class Tarea
      * @ORM\ManyToOne(targetEntity="App\Entity\TipoTarea")
      * @ORM\JoinColumn(nullable=true)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $tipo;
 
     /**
      * @ORM\Column(type="json", nullable=true)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $extra = [];
 
     /**
      * @ORM\Column(type="string", length=255)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $codigo;
 
@@ -71,7 +71,7 @@ class Tarea
      * @ORM\ManyToOne(targetEntity="App\Entity\Usuario", inversedBy="tareas")
      * @ORM\JoinColumn(nullable=true)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $autor;
 
@@ -79,7 +79,7 @@ class Tarea
      * @ORM\ManyToOne(targetEntity="App\Entity\Estado")
      * @ORM\JoinColumn(nullable=true)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $estado;
 
