@@ -179,7 +179,7 @@ class TareasController extends AbstractFOSRestController
 
             if (!is_null($tarea)) {
 
-                $uploaderHelper->uploadPlano($uploadedFile, $tarea->getCodigo());
+                $uploaderHelper->uploadPlano($uploadedFile, $tarea->getCodigo(), false);
 
                 return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
             } else {

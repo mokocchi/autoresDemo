@@ -9,8 +9,11 @@ use App\Entity\Estado;
 use App\Entity\Tag;
 use App\Entity\Tarea;
 use App\Entity\TipoTarea;
-use Doctrine\Common\DataFixtures\DependentFixtureInterface;
+use App\Entity\Usuario;
+use App\Service\UploaderHelper;
 use Doctrine\Persistence\ObjectManager;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\HttpFoundation\File\File;
 
 class TareaFixtures extends BaseFixture
 {
@@ -20,13 +23,36 @@ class TareaFixtures extends BaseFixture
         'Sonidos Prueba',
     ];
 
+    private static $planosTarea = [
+        'mesa1.png',
+        'mesa2.png',
+        'suelo.png'
+    ];
+
+    private $uploaderHelper;
+    public function __construct(UploaderHelper $uploaderHelper)
+    {
+        $this->uploaderHelper = $uploaderHelper;
+    }
+
+    private function fakeUploadImage(string $codigo)
+    {
+        $randomImage = $this->faker->randomElement(self::$planosTarea);
+
+        $fs = new Filesystem();
+        $targetPath = sys_get_temp_dir() . '/' . $randomImage;
+        $fs->copy(__DIR__ . '/images/' . $randomImage, $targetPath, true);
+
+        $this->uploaderHelper->uploadPlano(new File($targetPath), $codigo, false);
+    }
+
     protected function loadData(ObjectManager $manager)
     {
-        $this->createMany(5, 'main_tareas', function($count) use ($manager) {
+        $this->createMany(5, 'main_tareas', function ($count) use ($manager) {
             $tarea = new Tarea();
             $tarea->setNombre($this->faker->randomElement(self::$nombresTarea))
                 ->setConsigna("Tarea libre!");
-            
+
             $tipoDeposito = $manager->getRepository(TipoTarea::class)->findOneBy(["codigo" => "deposit"]);
             $tarea->setTipo($tipoDeposito);
 
@@ -43,7 +69,12 @@ class TareaFixtures extends BaseFixture
                 $tarea->setEstado($privado);
             }
 
-            $tarea->setCodigo($this->faker->md5);
+            $tarea->setCodigo($this->faker->sha256);
+
+            $usuario = $manager->getRepository(Usuario::class)->findOneBy(["email" => "ag6071267@gmail.com"]);
+            $tarea->setAutor($usuario);
+
+            $this->fakeUploadImage($tarea->getCodigo());
 
             return $tarea;
         });
