@@ -4,12 +4,14 @@ namespace App\Controller\v1\pub;
 
 use App\Entity\Actividad;
 use App\Entity\Estado;
+use Exception;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use FOS\RestBundle\Context\Context;
+use Swagger\Annotations as SWG;
 
 /**
  * @Route("/actividades")
@@ -22,20 +24,35 @@ class PublicActividadesController extends AbstractFOSRestController
      * Lists all Actividad.
      * @Rest\Get
      *
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     *
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     * 
+     * @SWG\Tag(name="Actividad")
      * @return Response
      */
     public function getActividadesAction()
     {
-        $repository = $this->getDoctrine()->getRepository(Actividad::class);
-        $estadoRepository = $this->getDoctrine()->getRepository(Estado::class);
-        $estado = $estadoRepository->findOneBy(["nombre" => "Público"]);
-        $actividades = $repository->findBy(["estado" => $estado]);
-        
-        $view = $this->view($actividades);
-        $context = new Context();
-        $context->addGroup('publico');
-        $view->setContext($context);
-        return $this->handleView($view);
+        try {
+            $repository = $this->getDoctrine()->getRepository(Actividad::class);
+            $estadoRepository = $this->getDoctrine()->getRepository(Estado::class);
+            $estado = $estadoRepository->findOneBy(["nombre" => "Público"]);
+            $actividades = $repository->findBy(["estado" => $estado]);
+
+            $view = $this->view($actividades);
+            $context = new Context();
+            $context->addGroup('publico');
+            $view->setContext($context);
+            return $this->handleView($view);
+        } catch (Exception $e) {
+            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+        }
     }
 
 
@@ -43,27 +60,42 @@ class PublicActividadesController extends AbstractFOSRestController
      * Shows an Actividad.
      * @Rest\Get("/{id}")
      *
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     *
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     * 
+     * @SWG\Tag(name="Actividad")
      * @return Response
      */
     public function showActividadAction($id)
     {
-        $repository = $this->getDoctrine()->getRepository(Actividad::class);
-        $actividad = $repository->find($id);
-        if (is_null($actividad)) {
-            return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
-        }
-        if ($actividad->getEstado()->getNombre() == "Privado") {
-            return $this->handleView($this->view(['errors' => 'La actividad es privada'], Response::HTTP_UNAUTHORIZED));
-        }
+        try {
+            $repository = $this->getDoctrine()->getRepository(Actividad::class);
+            $actividad = $repository->find($id);
+            if (is_null($actividad)) {
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+            }
+            if ($actividad->getEstado()->getNombre() == "Privado") {
+                return $this->handleView($this->view(['errors' => 'La actividad es privada'], Response::HTTP_UNAUTHORIZED));
+            }
 
-        $view = $this->view($actividad);
-        $context = new Context();
-        $context->addGroup('publico');
-        $view->setContext($context);
-        return $this->handleView($view);
+            $view = $this->view($actividad);
+            $context = new Context();
+            $context->addGroup('publico');
+            $view->setContext($context);
+            return $this->handleView($view);
+        } catch (Exception $e) {
+            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+        }
     }
 
-        /**
+    /**
      * Download the JSON definition for the Actividad.
      * @Rest\Get("/{id}/download")
      *
