@@ -62,17 +62,22 @@ class TareasController extends AbstractFOSRestController
 
 
     /**
-     * Crear Tarea.
+     * Crear Tarea
      * @Rest\Post
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Response(
+     *     response=200,
+     *     description="La tarea ya existe"
+     * )
+     * 
      * @SWG\Response(
      *     response=201,
      *     description="La tarea fue creada"
      * )
      *
      * @SWG\Response(
-     *     response=422,
+     *     response=400,
      *     description="Hubo un problema con la petición"
      * )
      * 
@@ -145,7 +150,7 @@ class TareasController extends AbstractFOSRestController
         $form = $this->createForm(TareaType::class, $tarea);
         $data = json_decode($request->getContent(), true);
         if(is_null($data)) {
-            return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+            return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_BAD_REQUEST));
         }
         if (
             !array_key_exists("nombre", $data) ||
@@ -161,24 +166,22 @@ class TareasController extends AbstractFOSRestController
             !array_key_exists("estado", $data) ||
             is_null($data["estado"])
         ) {
-            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
         }
         $form->submit($data);
         if ($form->isSubmitted() && $form->isValid()) {
             try {
                 $em = $this->getDoctrine()->getManager();
-                $tareaDb = $em->getRepository(Tarea::class)->findBy(["codigo" => $data["codigo"]]);
-                if (!empty($tareaDb)) {
-                    return $this->handleView($this->view($tareaDb[0], Response::HTTP_OK));
+                $tareaDb = $em->getRepository(Tarea::class)->findOneBy(["codigo" => $data["codigo"]]);
+                if (!is_null($tareaDb)) {
+                    $url = $this->generateUrl("show_tarea", ["id" => $tareaDb->getId()]);
+                    return $this->handleView($this->view(null, Response::HTTP_OK, ["Location" => $url]));
                 }
                 $tarea->setAutor($this->getUser());
                 $em->persist($tarea);
                 $em->flush();
-                $view = $this->view($tarea, Response::HTTP_CREATED);
-                $context = new Context();
-                $context->addGroup('autor');
-                $view->setContext($context);
-                return $this->handleView($view);
+                $url = $this->generateUrl("show_tarea", ["id" => $tarea->getId()]);
+                return $this->handleView($this->view($tarea, Response::HTTP_CREATED,["Location" => $url]));
             } catch (Exception $e) {
                 return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
             }
@@ -188,24 +191,47 @@ class TareasController extends AbstractFOSRestController
 
 
     /**
-     * Shows a Tarea.
-     * @Rest\Get("/{id}")
+     * Muestra una tarea
+     * @Rest\Get("/{id}", name="show_tarea")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Parameter(
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     * 
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     *
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     * 
+     * @SWG\Tag(name="Tarea")
      * @return Response
      */
     public function showTareaAction($id)
     {
-        $repository = $this->getDoctrine()->getRepository(Tarea::class);
-        $tarea = $repository->find($id);
-        if (is_null($tarea)) {
-            return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+        try {
+            $repository = $this->getDoctrine()->getRepository(Tarea::class);
+            $tarea = $repository->find($id);
+            if (is_null($tarea)) {
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+            }
+            $view = $this->view($tarea);
+            $context = new Context();
+            $context->addGroup('autor');
+            $view->setContext($context);
+            return $this->handleView($view);
+        } catch (Exception $e) {
+            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }
-        $view = $this->view($tarea);
-        $context = new Context();
-        $context->addGroup('autor');
-        $view->setContext($context);
-        return $this->handleView($view);
+        
     }
 
 
@@ -221,7 +247,7 @@ class TareasController extends AbstractFOSRestController
     {
         $data = json_decode($request->getContent(), true);
         if (!array_key_exists("extra", $data)) {
-            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
         }
 
         $em = $this->getDoctrine()->getManager();
@@ -253,7 +279,7 @@ class TareasController extends AbstractFOSRestController
     {
         
         if (!$request->files->has('plano')) {
-            return $this->handleView($this->view(['errors' => 'No se encontró el archivo'], Response::HTTP_UNPROCESSABLE_ENTITY));
+            return $this->handleView($this->view(['errors' => 'No se encontró el archivo'], Response::HTTP_BAD_REQUEST));
         }
         $plano = new Plano();
         $uploadedFile = $request->files->get('plano');
@@ -262,7 +288,7 @@ class TareasController extends AbstractFOSRestController
         $errors = $validator->validate($plano);
 
         if (count($errors) > 0) {
-            return $this->handleView($this->view(['errors' => "El archivo no es válido"], Response::HTTP_UNPROCESSABLE_ENTITY));
+            return $this->handleView($this->view(['errors' => "El archivo no es válido"], Response::HTTP_BAD_REQUEST));
         }
         try {
             $em = $this->getDoctrine()->getManager();

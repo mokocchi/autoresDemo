@@ -115,7 +115,7 @@ class ActividadesController extends AbstractFOSRestController
      * )
      *
      * @SWG\Response(
-     *     response=422,
+     *     response=400,
      *     description="Hubo un problema con la petición"
      * )
      * 
@@ -189,7 +189,7 @@ class ActividadesController extends AbstractFOSRestController
         $form = $this->createForm(ActividadType::class, $actividad);
         $data = json_decode($request->getContent(), true);
         if (is_null($data)) {
-            return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+            return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_BAD_REQUEST));
         }
         $form->submit($data);
         if ($form->isSubmitted() && $form->isValid()) {
@@ -207,7 +207,7 @@ class ActividadesController extends AbstractFOSRestController
                 !array_key_exists("estado", $data) ||
                 is_null($data["objetivo"])
             ) {
-                return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+                return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
             }
             try {
                 $em = $this->getDoctrine()->getManager();
@@ -243,7 +243,7 @@ class ActividadesController extends AbstractFOSRestController
     {
         $data = json_decode($request->getContent(), true);
         if (!array_key_exists("tarea", $data)) {
-            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
         }
 
         $em = $this->getDoctrine()->getManager();
@@ -329,7 +329,7 @@ class ActividadesController extends AbstractFOSRestController
         if (
             !array_key_exists("origen", $data) || !array_key_exists("condicion", $data)
         ) {
-            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
         }
 
         try {
@@ -448,7 +448,7 @@ class ActividadesController extends AbstractFOSRestController
         if (
             !array_key_exists("iniciales", $data) || !array_key_exists("opcionales", $data)
         ) {
-            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
         }
 
         try {

@@ -33,7 +33,7 @@ class DominioController extends AbstractFOSRestController
      * )
      *
      * @SWG\Response(
-     *     response=422,
+     *     response=400,
      *     description="Hubo un problema con la petición"
      * )
      * 
@@ -66,16 +66,16 @@ class DominioController extends AbstractFOSRestController
         $form = $this->createForm(DominioType::class, $dominio);
         $data = json_decode($request->getContent(), true);
         if(is_null($data)) {
-            return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+            return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_BAD_REQUEST));
         }
         if(!array_key_exists("nombre",$data) || is_null($data["nombre"])) {
-            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_UNPROCESSABLE_ENTITY));
+            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
         }
         $form->submit($data);
         if ($form->isSubmitted() && $form->isValid()) {
             $em = $this->getDoctrine()->getManager();
             $dominioDb = $em->getRepository(Dominio::class)->findOneBy(["nombre" => $data["nombre"]]);
-            if (!empty($dominioDb)) {
+            if (!is_null($dominioDb)) {
             $url = $this->generateUrl("show_dominio", ["id" => $dominioDb->getId()]);
                 return $this->handleView($this->view(null, Response::HTTP_OK, ["Location" => $url]));
             }
