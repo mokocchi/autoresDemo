@@ -2,24 +2,23 @@
 
 namespace App\Controller\Tests;
 
+use App\Entity\Dominio;
 use App\Test\ApiTestCase;
+use Doctrine\Persistence\ObjectManager;
 
 class DominioControllerTest extends ApiTestCase
 {
-    public function tearDown()
+    private static $dominioName = "Test";
+
+    protected function tearDown(): void
     {
-        $uri = self::$prefijo_api . "/public/dominios?nombre=Test";
-        $options = [
-            'headers' => ['Authorization' => self::getAuthHeader()]
-        ];
-        $response = self::$client->get($uri, $options);
-        $data = json_decode((string) $response->getBody(), true);
-
-        $dominios = $data["results"];
-
-        foreach ($dominios as $dominio) {
-            $uri = self::$prefijo_api . "/dominios/" . $dominio["id"];
-            self::$client->delete($uri, $options);
+        parent::tearDown();
+        /** @var ObjectManager $em */
+        $em = self::getService("doctrine")->getManager();
+        $dominio = $em->getRepository(Dominio::class)->findOneBy(["nombre" => self::$dominioName]);
+        if(!is_null($dominio)){
+            $em->remove($dominio);
+            $em->flush();
         }
     }
 
@@ -30,7 +29,7 @@ class DominioControllerTest extends ApiTestCase
         $options = [
             'headers' => ['Authorization' => self::getAuthHeader()],
             'json' => [
-                "nombre" => "Test",
+                "nombre" => self::$dominioName,
             ]
         ];
 

@@ -4,58 +4,53 @@ declare(strict_types=1);
 
 namespace App\Controller\Tests;
 
+use App\Entity\Actividad;
+use App\Entity\Dominio;
 use App\Test\ApiTestCase;
-use Exception;
-use GuzzleHttp\Client;
+use Doctrine\Persistence\ObjectManager;
 use GuzzleHttp\Exception\RequestException;
 use Symfony\Component\HttpFoundation\Response;
 
 class ActividadControllerTest extends ApiTestCase
 {
+    private static $dominioName = "Test";
+    private static $actividadName = "actividadtest";
     private static $dominioId;
 
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
-        $uri = self::$prefijo_api . "/dominios";
-        $options = [
-            'headers' => ['Authorization' => self::getAuthHeader()],
-            'json' => [
-                "nombre" => "Test",
-            ]
-        ];
-
-        $response = self::$client->post($uri, $options);
-        $data = json_decode((string) $response->getBody(), true);
-        
-        self::$dominioId = $data["id"];
+        /** @var ObjectManager $em */
+        $em = self::getService("doctrine")->getManager();
+        $dominio = new Dominio();
+        $dominio->setNombre(self::$dominioName);
+        $em->persist($dominio);
+        $em->flush();
+        self::$dominioId = $dominio->getId();
     }
 
-    public function tearDown() {
-        $uri = self::$prefijo_api . "/actividades?codigo=actividadtest";
-        $options = [
-            "headers" => [ "Authorization" => self::getAuthHeader()]
-        ];
-
-        $response = self::$client->get($uri, $options);
-        $data = json_decode((string) $response->getBody(), true);
-        
-        $actividades = $data["results"];
-
-        foreach ($actividades as $actividad) {
-            $uri = self::$prefijo_api . "/actividades/" . $actividad["id"];
-            self::$client->delete($uri, $options);
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+        /** @var ObjectManager $em */
+        $em = self::getService("doctrine")->getManager();
+        $actividad = $em->getRepository(Actividad::class)->findOneBy(["codigo" => self::$actividadName]);
+        if ($actividad) {
+            $em->remove($actividad);
+            $em->flush();
         }
     }
 
-    public static function tearDownAfterClass() {
-        $uri = self::$prefijo_api . "/dominios/" . self::$dominioId;
-
-        $options = [
-            "headers" => [ "Authorization" => self::getAuthHeader()]
-        ];
-
-        self::$client->delete($uri, $options);
+    public static function tearDownAfterClass()
+    {
+        parent::tearDownAfterClass();
+        /** @var ObjectManager $em */
+        $em = self::getService("doctrine")->getManager();
+        $dominio = $em->getRepository(Dominio::class)->find(self::$dominioId);
+        if($dominio) {
+            $em->remove($dominio);
+            $em->flush();
+        }
     }
 
     public function testPost()
@@ -124,7 +119,7 @@ class ActividadControllerTest extends ApiTestCase
 
         $response = self::$client->post($uri, $options);
         $data = json_decode((string) $response->getBody(), true);
-        
+
         $id = $data["id"];
 
         $uri = self::$prefijo_api . "/actividades/" . $id; //TODO: id por codigos
@@ -142,7 +137,8 @@ class ActividadControllerTest extends ApiTestCase
         $this->assertTrue($data["nombre"] == "Actividad test 2");
     }
 
-    public function PutMissingJson() {
+    public function PutMissingJson()
+    {
         $uri = self::$prefijo_api . "/actividades";
 
         $options = [

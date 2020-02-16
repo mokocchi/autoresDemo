@@ -21,7 +21,7 @@ class ApiTestCase extends KernelTestCase
         self::bootKernel();
         self::$client = new Client(
             [
-                'base_uri' => 'http://localhost:8080/'
+                'base_uri' => 'http://localhost:80/'
             ]
         );
         $options = [
@@ -39,7 +39,7 @@ class ApiTestCase extends KernelTestCase
     {
     }
 
-    protected function getService($id)
+    protected static function getService($id)
     {
         return self::$kernel->getContainer()->get($id);
     }
