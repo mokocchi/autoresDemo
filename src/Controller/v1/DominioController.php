@@ -87,12 +87,13 @@ class DominioController extends BaseController
             $dominioDb = $em->getRepository(Dominio::class)->findOneBy(["nombre" => $data["nombre"]]);
             if (!is_null($dominioDb)) {
             $url = $this->generateUrl("show_dominio", ["id" => $dominioDb->getId()]);
-                return $this->handleView($this->view(null, Response::HTTP_OK, ["Location" => $url]));
+                return $this->handleView($this->setGroupToView($this->view($dominio, Response::HTTP_OK, ["Location" => $url]), "autor"));
             }
             $em->persist($dominio);
             $em->flush();
             $url = $this->generateUrl("show_dominio", ["id" => $dominio->getId()]);
-            return $this->handleView($this->view(null, Response::HTTP_CREATED, ["Location" => $url]));
+            print_r($dominio); exit;
+            return $this->handleView($this->setGroupToView($this->view($dominio, Response::HTTP_CREATED, ["Location" => $url]),"autor"));
         }
         return $this->handleView($this->view($form->getErrors()));
     }

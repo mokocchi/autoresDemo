@@ -324,7 +324,7 @@ class ActividadesController extends BaseController
                 $em->flush();
 
                 $url = $this->generateUrl('show_actividad', ['id' => $actividad->getId()]);
-                return $this->handleView($this->view(null, Response::HTTP_CREATED, ["Location" => $url]));
+                return $this->handleView($this->setGroupToView($this->view($actividad, Response::HTTP_CREATED, ["Location" => $url]),"autor"));
             } catch (Exception $e) {
                 return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
             }
@@ -659,8 +659,8 @@ class ActividadesController extends BaseController
             $em->persist($salto);
             $em->flush();
             $url = $this->generateUrl("show_salto", ["id" => $salto->getId()]);
-            $view = $this->view(null, Response::HTTP_CREATED, ["Location" => $url]);
-            return $this->handleView($view);
+            $view = $this->view($salto, Response::HTTP_CREATED, ["Location" => $url]);
+            return $this->handleView($this->setGroupToView($view,"autor"));
         } catch (Exception $e) {
             return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }

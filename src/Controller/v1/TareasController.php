@@ -238,7 +238,7 @@ class TareasController extends BaseController
                 $em->persist($tarea);
                 $em->flush();
                 $url = $this->generateUrl("show_tarea", ["id" => $tarea->getId()]);
-                return $this->handleView($this->view($tarea, Response::HTTP_CREATED, ["Location" => $url]));
+                return $this->handleView($this->setGroupToView($this->view($tarea, Response::HTTP_CREATED, ["Location" => $url]),"autor"));
             } catch (Exception $e) {
                 return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
             }
