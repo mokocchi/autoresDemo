@@ -39,7 +39,7 @@ class PublicDominioController extends BaseController
         try {
             $repository = $this->getDoctrine()->getRepository(Dominio::class);
             $dominios = $repository->findall();
-            return $this->handleView($this->getViewWithGroups($dominios, "select"));
+            return $this->handleView($this->getViewWithGroups(["results" => $dominios], "select"));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
             return $this->handleView($this->view(

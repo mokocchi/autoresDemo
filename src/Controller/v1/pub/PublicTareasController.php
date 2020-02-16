@@ -41,7 +41,7 @@ class PublicTareasController extends BaseController
             $estadoRepository = $this->getDoctrine()->getRepository(Estado::class);
             $estado = $estadoRepository->findOneBy(["nombre" => "Público"]);
             $tareas = $repository->findBy(["estado" => $estado]);
-            return $this->handleView($this->getViewWithGroups($tareas, "publico"));
+            return $this->handleView($this->getViewWithGroups(["results" => $tareas], "publico"));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
             return $this->handleView($this->view(

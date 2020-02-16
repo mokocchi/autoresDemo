@@ -43,7 +43,7 @@ class PublicActividadesController extends BaseController
             $estado = $estadoRepository->findOneBy(["nombre" => "Público"]);
             $actividades = $repository->findBy(["estado" => $estado]);
 
-            return $this->handleView($this->getViewWithGroups($actividades, "publico"));
+            return $this->handleView($this->getViewWithGroups(["results" => $actividades], "publico"));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
             return $this->handleView($this->view(

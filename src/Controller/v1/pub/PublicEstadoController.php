@@ -39,7 +39,7 @@ class PublicEstadoController extends BaseController
         try {
             $repository = $this->getDoctrine()->getRepository(Estado::class);
             $estado = $repository->findall();
-            return $this->handleView($this->getViewWithGroups($estado, "select"));
+            return $this->handleView($this->getViewWithGroups(["results" => $estado], "select"));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
             return $this->handleView($this->view(

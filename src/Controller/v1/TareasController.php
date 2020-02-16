@@ -62,7 +62,7 @@ class TareasController extends BaseController
         try {
             $repository = $this->getDoctrine()->getRepository(Tarea::class);
             $tareas = $repository->findall();
-            return $this->handleView($this->getViewWithGroups($tareas, "autor"));
+            return $this->handleView($this->getViewWithGroups(["results" => $tareas], "autor"));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
             return $this->handleView($this->view(
@@ -114,7 +114,7 @@ class TareasController extends BaseController
             $user = $this->getUser();
             $repository = $this->getDoctrine()->getRepository(Tarea::class);
             $tareas = $repository->findBy(["autor" => $user]);
-            return $this->handleView($this->getViewWithGroups($tareas, "autor"));
+            return $this->handleView($this->getViewWithGroups(["results" => $tareas], "autor"));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
             return $this->handleView($this->view(

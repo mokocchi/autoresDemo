@@ -38,7 +38,7 @@ class PublicTipoPlanificacionController extends BaseController
         try{
             $repository = $this->getDoctrine()->getRepository(TipoPlanificacion::class);
             $tipoPlanificacion = $repository->findall();
-            return $this->handleView($this->getViewWithGroups($tipoPlanificacion, "select"));
+            return $this->handleView($this->getViewWithGroups(["results" => $tipoPlanificacion], "select"));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
             return $this->handleView($this->view(

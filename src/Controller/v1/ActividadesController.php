@@ -69,7 +69,7 @@ class ActividadesController extends BaseController
         try {
             $repository = $this->getDoctrine()->getRepository(Actividad::class);
             $actividades = $repository->findBy(["autor" => $this->getUser()]);
-            return $this->handleView($this->getViewWithGroups($actividades, "autor"));
+            return $this->handleView($this->getViewWithGroups(["results" => $actividades], "autor"));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
             return $this->handleView($this->view(
@@ -122,7 +122,7 @@ class ActividadesController extends BaseController
             $user = $this->getUser();
             $repository = $this->getDoctrine()->getRepository(Actividad::class);
             $actividades = $repository->findBy(["autor" => $user]);
-            return $this->handleView($this->getViewWithGroups($actividades, "autor"));
+            return $this->handleView($this->getViewWithGroups(["results" => $actividades], "autor"));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
             return $this->handleView($this->view(
@@ -747,7 +747,7 @@ class ActividadesController extends BaseController
             $actividad = $repository->find($id);
             if (!is_null($actividad)) {
                 $tareas = $actividad->getTareas();
-                return $this->handleView($this->getViewWithGroups($tareas, "autor"));
+                return $this->handleView($this->getViewWithGroups(["results" => $tareas], "autor"));
             } else {
                 return $this->handleView($this->view(
                     new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
@@ -821,7 +821,7 @@ class ActividadesController extends BaseController
             }
             $planificacion = $actividad->getPlanificacion();
             $saltos = $planificacion->getSaltos();
-            return $this->handleView($this->getViewWithGroups($saltos, "autor"));
+            return $this->handleView($this->getViewWithGroups(["results" => $saltos], "autor"));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
             return $this->handleView($this->view(

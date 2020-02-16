@@ -38,7 +38,7 @@ class PublicIdiomasController extends BaseController
         try {
             $repository = $this->getDoctrine()->getRepository(Idioma::class);
             $idiomas = $repository->findall();
-            return $this->handleView($this->getViewWithGroups($idiomas, "select"));
+            return $this->handleView($this->getViewWithGroups(["results" => $idiomas], "select"));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
             return $this->handleView($this->view(

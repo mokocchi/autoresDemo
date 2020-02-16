@@ -38,7 +38,7 @@ class PublicTiposTareaController extends BaseController
         try {
             $repository = $this->getDoctrine()->getRepository(TipoTarea::class);
             $tipostarea = $repository->findall();
-            return $this->handleView($this->getViewWithGroups($tipostarea, "select"));
+            return $this->handleView($this->getViewWithGroups(["results" => $tipostarea], "select"));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
             return $this->handleView($this->view(
