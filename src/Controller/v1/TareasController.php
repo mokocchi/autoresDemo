@@ -255,9 +255,12 @@ class TareasController extends BaseController
                 $em = $this->getDoctrine()->getManager();
                 $tareaDb = $em->getRepository(Tarea::class)->findOneBy(["codigo" => $data["codigo"]]);
                 if (!is_null($tareaDb)) {
-                    $url = $this->generateUrl("show_tarea", ["id" => $tareaDb->getId()]);
-                    return $this->handleView($this->view(null, Response::HTTP_OK, ["Location" => $url]));
+                    return $this->handleView($this->view(
+                        new ApiProblem(Response::HTTP_BAD_REQUEST, "Ya existe una tarea con el mismo código", "Ya existe una tarea con el mismo código"),
+                        Response::HTTP_BAD_REQUEST
+                    ));
                 }
+
                 $tarea->setAutor($this->getUser());
                 $em->persist($tarea);
                 $em->flush();

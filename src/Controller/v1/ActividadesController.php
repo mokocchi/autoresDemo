@@ -64,11 +64,16 @@ class ActividadesController extends BaseController
      * @SWG\Tag(name="Actividad")
      * @return Response
      */
-    public function getActividadesAction()
+    public function getActividadesAction(Request $request)
     {
         try {
             $repository = $this->getDoctrine()->getRepository(Actividad::class);
-            $actividades = $repository->findBy(["autor" => $this->getUser()]);
+            $codigo = $request->query->get("codigo");
+            if(is_null($codigo)){
+                $actividades = $repository->findAll();
+            } else {
+                $actividades = $repository->findBy(["codigo" => $codigo]);
+            }
             return $this->handleView($this->getViewWithGroups(["results" => $actividades], "autor"));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
@@ -267,6 +272,15 @@ class ActividadesController extends BaseController
      *
      * @SWG\Parameter(
      *     required=true,
+     *     name="codigo",
+     *     in="body",
+     *     type="string",
+     *     description="Código que identifica a la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     required=true,
      *     name="dominio",
      *     in="body",
      *     type="integer",
@@ -318,12 +332,15 @@ class ActividadesController extends BaseController
                 ));
             }
             $form->submit($data);
+            $this->logger->alert(json_encode($data));
             if ($form->isSubmitted() && $form->isValid()) {
                 if (
                     !array_key_exists("nombre", $data) ||
                     is_null($data["nombre"]) ||
                     !array_key_exists("objetivo", $data) ||
                     is_null($data["objetivo"]) ||
+                    !array_key_exists("codigo", $data) ||
+                    is_null($data["codigo"]) ||
                     !array_key_exists("dominio", $data) ||
                     is_null($data["dominio"]) ||
                     !array_key_exists("idioma", $data) ||
@@ -339,6 +356,13 @@ class ActividadesController extends BaseController
                     ));
                 }
                 $em = $this->getDoctrine()->getManager();
+                $actividadDb = $em->getRepository(Actividad::class)->findOneBy(["codigo" => $data["codigo"]]);
+                if (!is_null($actividadDb)) {
+                    return $this->handleView($this->view(
+                        new ApiProblem(Response::HTTP_BAD_REQUEST, "Ya existe una actividad con el mismo código", "Ya existe una actividad con el mismo código"),
+                        Response::HTTP_BAD_REQUEST
+                    ));
+                }
                 $planificacion = new Planificacion();
                 $em->persist($planificacion);
                 $em->flush();
@@ -350,7 +374,8 @@ class ActividadesController extends BaseController
                 $url = $this->generateUrl('show_actividad', ['id' => $actividad->getId()]);
                 return $this->handleView($this->setGroupToView($this->view($actividad, Response::HTTP_CREATED, ["Location" => $url]), "autor"));
             } else {
-                $this->logger->alert("Datos inválidos: " . json_decode($form->getErrors()));
+                $this->logger->alert("Datos inválidos: ");
+                $this->logger->alert($form->getErrors(true)); exit;
                 return $this->handleView($this->view(
                     new ApiProblem(Response::HTTP_BAD_REQUEST, "Se recibieron datos inválidos", "Datos inválidos"),
                     Response::HTTP_BAD_REQUEST

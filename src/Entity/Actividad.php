@@ -91,6 +91,11 @@ class Actividad
      */
     private $estado;
 
+    /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $codigo;
+
     public function __construct()
     {
         $this->tareas = new ArrayCollection();
@@ -219,6 +224,18 @@ class Actividad
     public function setEstado(?Estado $estado): self
     {
         $this->estado = $estado;
+
+        return $this;
+    }
+
+    public function getCodigo(): ?string
+    {
+        return $this->codigo;
+    }
+
+    public function setCodigo(string $codigo): self
+    {
+        $this->codigo = $codigo;
 
         return $this;
     }

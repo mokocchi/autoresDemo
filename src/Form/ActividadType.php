@@ -14,6 +14,7 @@ class ActividadType extends AbstractType
     $builder
       ->add('nombre')
       ->add('objetivo')
+      ->add('codigo')
       ->add('dominio')
       ->add('idioma')
       ->add('tipoPlanificacion')

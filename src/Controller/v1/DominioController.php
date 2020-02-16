@@ -98,13 +98,15 @@ class DominioController extends BaseController
                 $em = $this->getDoctrine()->getManager();
                 $dominioDb = $em->getRepository(Dominio::class)->findOneBy(["nombre" => $data["nombre"]]);
                 if (!is_null($dominioDb)) {
-                    $url = $this->generateUrl("show_dominio", ["id" => $dominioDb->getId()]);
-                    return $this->handleView($this->setGroupToView($this->view($dominio, Response::HTTP_OK, ["Location" => $url]), "autor"));
+                    return $this->handleView($this->view(
+                        new ApiProblem(Response::HTTP_BAD_REQUEST, "Ya existe un dominio con el mismo nombre", "Ya existe un dominio con el mismo nombre"),
+                        Response::HTTP_BAD_REQUEST
+                    ));
                 }
                 $em->persist($dominio);
                 $em->flush();
                 $url = $this->generateUrl("show_dominio", ["id" => $dominio->getId()]);
-                return $this->handleView($this->setGroupToView($this->view($dominio, Response::HTTP_CREATED, ["Location" => $url]), "autor"));
+                return $this->handleView($this->setGroupToView($this->view($dominio, Response::HTTP_CREATED, ["Location" => $url]), "select"));
             } else {
                 $this->logger->alert("Datos inválidos: " . json_decode($form->getErrors()));
                 return $this->handleView($this->view(

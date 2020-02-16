@@ -44,8 +44,7 @@ class DominioControllerTest extends \PHPUnit\Framework\TestCase
 
         foreach ($dominios as $dominio) {
             $uri = $this->prefijo_api . "/dominios/" . $dominio["id"];
-            $response = $this->client->delete($uri, $options);
-            print (string) $response->getBody();
+            $this->client->delete($uri, $options);
         }
     }
 

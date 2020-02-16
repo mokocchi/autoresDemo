@@ -14,6 +14,8 @@ class ActividadControllerTest extends \PHPUnit\Framework\TestCase
     private $access_token;
     private $client;
     private $prefijo_api = '/api/v1.0';
+    private $dominioId;
+
     private function getAuthHeader()
     {
         return 'Bearer ' . $this->access_token;
@@ -35,7 +37,42 @@ class ActividadControllerTest extends \PHPUnit\Framework\TestCase
 
         $data = json_decode((string) $response->getBody());
         $this->access_token = $data->access_token;
+
+        $uri = $this->prefijo_api . "/dominios";
+        $options = [
+            'headers' => ['Authorization' => $this->getAuthHeader()],
+            'json' => [
+                "nombre" => "Test",
+            ]
+        ];
+
+        $response = $this->client->post($uri, $options);
+        $data = json_decode((string) $response->getBody(), true);
+        
+        $this->dominioId = $data["id"];
     }
+
+    public function tearDown() {
+        $uri = $this->prefijo_api . "/actividades?codigo=actividadtest";
+        $options = [
+            "headers" => [ "Authorization" => $this->getAuthHeader()]
+        ];
+
+        $response = $this->client->get($uri, $options);
+        $data = json_decode((string) $response->getBody(), true);
+        
+        $actividades = $data["results"];
+
+        foreach ($actividades as $actividad) {
+            $uri = $this->prefijo_api . "/actividades/" . $actividad["id"];
+            $this->client->delete($uri, $options);
+        }
+
+        $uri = $this->prefijo_api . "/dominios/" . $this->dominioId;
+        
+        $this->client->delete($uri, $options);
+    }
+
     public function testPost()
     {
         $uri = $this->prefijo_api . "/actividades";
@@ -45,7 +82,8 @@ class ActividadControllerTest extends \PHPUnit\Framework\TestCase
             'json' => [
                 "nombre" => "Actividad test",
                 "objetivo" => "Probar crear una actividad",
-                "dominio" => 38,
+                "codigo" => "actividadtest",
+                "dominio" => $this->dominioId,
                 "idioma" => 1,
                 "tipoPlanificacion" => 1,
                 "estado" => 1
@@ -67,7 +105,8 @@ class ActividadControllerTest extends \PHPUnit\Framework\TestCase
             'headers' => ['Authorization' => $this->getAuthHeader()],
             'json' => [
                 "objetivo" => "Probar crear una actividad",
-                "dominio" => 38,
+                "dominio" => $this->dominioId,
+                "codigo" => "actividadtest",
                 "idioma" => 1,
                 "tipoPlanificacion" => 1,
                 "estado" => 1
@@ -75,7 +114,7 @@ class ActividadControllerTest extends \PHPUnit\Framework\TestCase
         ];
 
         try {
-            $response = $this->client->post($uri, $options);
+            $this->client->post($uri, $options);
         } catch (RequestException $e) {
             $this->assertTrue($e->getResponse()->getStatusCode() == Response::HTTP_BAD_REQUEST);
         }
@@ -90,7 +129,8 @@ class ActividadControllerTest extends \PHPUnit\Framework\TestCase
             'json' => [
                 "nombre" => "Actividad test",
                 "objetivo" => "Probar crear una actividad",
-                "dominio" => 38,
+                "codigo" => "actividadtest",
+                "dominio" => $this->dominioId,
                 "idioma" => 1,
                 "tipoPlanificacion" => 1,
                 "estado" => 1
@@ -99,6 +139,7 @@ class ActividadControllerTest extends \PHPUnit\Framework\TestCase
 
         $response = $this->client->post($uri, $options);
         $data = json_decode((string) $response->getBody(), true);
+        
         $id = $data["id"];
 
         $uri = $this->prefijo_api . "/actividades/" . $id; //TODO: id por codigos
@@ -106,12 +147,7 @@ class ActividadControllerTest extends \PHPUnit\Framework\TestCase
         $options = [
             'headers' => ['Authorization' => $this->getAuthHeader()],
             'json' => [
-                "nombre" => "Actividad test 2",
-                "objetivo" => "Probar crear una actividad",
-                "dominio" => 38,
-                "idioma" => 1,
-                "tipoPlanificacion" => 1,
-                "estado" => 1
+                "nombre" => "Actividad test 2"
             ]
         ];
 
@@ -129,7 +165,8 @@ class ActividadControllerTest extends \PHPUnit\Framework\TestCase
             'json' => [
                 "nombre" => "Actividad test",
                 "objetivo" => "Probar crear una actividad",
-                "dominio" => 38,
+                "codigo" => "actividadTest",
+                "dominio" => $this->dominioId,
                 "idioma" => 1,
                 "tipoPlanificacion" => 1,
                 "estado" => 1
@@ -148,7 +185,7 @@ class ActividadControllerTest extends \PHPUnit\Framework\TestCase
 
         try {
             $response = $this->client->put($uri, $options);
-        } catch (Exception $e) {
+        } catch (RequestException $e) {
             $this->assertTrue($e->getResponse()->getStatusCode() == Response::HTTP_BAD_REQUEST);
         }
     }
@@ -162,7 +199,8 @@ class ActividadControllerTest extends \PHPUnit\Framework\TestCase
             'json' => [
                 "nombre" => "Actividad test",
                 "objetivo" => "Probar crear una actividad",
-                "dominio" => 38,
+                "codigo" => "actividadTest",
+                "dominio" => $this->dominioId,
                 "idioma" => 1,
                 "tipoPlanificacion" => 1,
                 "estado" => 1
