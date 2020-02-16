@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Actividad;
+use App\Entity\Dominio;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Common\Persistence\ManagerRegistry;
 
@@ -19,22 +20,15 @@ class ActividadRepository extends ServiceEntityRepository
         parent::__construct($registry, Actividad::class);
     }
 
-    // /**
-    //  * @return Actividad[] Returns an array of Actividad objects
-    //  */
-    /*
-    public function findByExampleField($value)
+    public function isThereWithDominio(Dominio $value)
     {
-        return $this->createQueryBuilder('a')
-            ->andWhere('a.exampleField = :val')
+        return $this->createQueryBuilder('t')
+            ->select('count(t)')
+            ->where('t.dominio = :val')
             ->setParameter('val', $value)
-            ->orderBy('a.id', 'ASC')
-            ->setMaxResults(10)
             ->getQuery()
-            ->getResult()
-        ;
+            ->getSingleScalarResult();
     }
-    */
 
     /*
     public function findOneBySomeField($value): ?Actividad

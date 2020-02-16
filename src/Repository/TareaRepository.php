@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Entity\Dominio;
 use App\Entity\Tarea;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Common\Persistence\ManagerRegistry;
@@ -19,22 +20,21 @@ class TareaRepository extends ServiceEntityRepository
         parent::__construct($registry, Tarea::class);
     }
 
-    // /**
-    //  * @return Tarea[] Returns an array of Tarea objects
-    //  */
-    /*
-    public function findByExampleField($value)
+    /**
+     * @return bool Devuelve si hay tareas con un dominio
+     */
+    
+    public function isThereWithDominio(Dominio $value)
     {
         return $this->createQueryBuilder('t')
-            ->andWhere('t.exampleField = :val')
+            ->select('count(t)')
+            ->where('t.dominio = :val')
             ->setParameter('val', $value)
-            ->orderBy('t.id', 'ASC')
-            ->setMaxResults(10)
             ->getQuery()
-            ->getResult()
+            ->getSingleScalarResult()
         ;
     }
-    */
+   
 
     /*
     public function findOneBySomeField($value): ?Tarea

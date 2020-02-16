@@ -527,7 +527,7 @@ class ActividadesController extends BaseController
     }
 
     /**
-     * Actualiza una actividad
+     * Elimina una actividad
      * @Rest\Delete("/{id}",name="delete_actividad")
      * @IsGranted("ROLE_AUTOR")
      *
