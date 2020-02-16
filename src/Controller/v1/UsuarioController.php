@@ -16,6 +16,11 @@ class UsuarioController extends BaseController
      * @Rest\Get(name="get_me")
      * 
      * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
      *     response=200,
      *     description="Operación exitosa"
      * )

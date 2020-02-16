@@ -19,7 +19,7 @@ class PublicActividadesController extends BaseController
 {
     /**
      * Lista todas las actividades públicas
-     * @Rest\Get
+     * @Rest\Get(name="get_actividades_public")
      *
      * @SWG\Response(
      *     response=200,
@@ -51,7 +51,7 @@ class PublicActividadesController extends BaseController
 
     /**
      * Muestra una actividad pública
-     * @Rest\Get("/{id}")
+     * @Rest\Get("/{id}", name="show_actividad_public")
      *
      * @SWG\Response(
      *     response=200,

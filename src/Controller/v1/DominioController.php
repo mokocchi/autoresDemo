@@ -23,6 +23,16 @@ class DominioController extends BaseController
      * @IsGranted("ROLE_AUTOR")
      *
      * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
+     * @SWG\Response(
      *     response=200,
      *     description="El dominio ya existe"
      * )

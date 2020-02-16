@@ -58,7 +58,7 @@ class TokenController extends BaseTokenController
   }
 
   /**
-   * @Rest\Post
+   * @Rest\Post(name="get_token")
    * 
    * @SWG\Response(
    *     response=200,

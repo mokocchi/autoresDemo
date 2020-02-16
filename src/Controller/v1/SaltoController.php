@@ -22,6 +22,16 @@ class SaltoController extends BaseController
      * @Rest\Get("/{id}", name="show_salto")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
      * @SWG\Parameter(
      *     required=true,
      *     name="Authorization",

@@ -25,12 +25,22 @@ class ActividadesController extends BaseController
 
     /**
      * Lista todas las actividades del sistema
-     * @Rest\Get
+     * @Rest\Get(name="get_actividades")
      * @IsGranted("ROLE_ADMIN")
      *
      * @SWG\Response(
      *     response=200,
      *     description="Operación exitosa"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
      * )
      *
      * @SWG\Response(
@@ -63,7 +73,7 @@ class ActividadesController extends BaseController
     /**
      * Lista las actividades del usuario actual
      * 
-     * @Rest\Get("/user")
+     * @Rest\Get("/user", name="get_actividades_user")
      * @IsGranted("ROLE_AUTOR")
      * 
      * @SWG\Response(
@@ -71,6 +81,16 @@ class ActividadesController extends BaseController
      *     description="Operación exitosa"
      * )
      *
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
      * @SWG\Response(
      *     response=500,
      *     description="Error en el servidor"
@@ -104,6 +124,16 @@ class ActividadesController extends BaseController
      * @Rest\Get("/{id}", name="show_actividad")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
      * @SWG\Parameter(
      *     required=true,
      *     name="Authorization",
@@ -166,6 +196,16 @@ class ActividadesController extends BaseController
      * @Rest\Post(name="post_actividad")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
      * @SWG\Response(
      *     response=201,
      *     description="La actividad fue creada"
@@ -294,9 +334,19 @@ class ActividadesController extends BaseController
 
     /**
      * Asigna una tarea a una actividad
-     * @Rest\Post("/{id}/tareas")
+     * @Rest\Post("/{id}/tareas", name="post_tarea_actividad")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
      * @SWG\Response(
      *     response=200,
      *     description="La operación fue exitosa"
@@ -368,9 +418,19 @@ class ActividadesController extends BaseController
 
     /**
      * Lista las tareas de una actividad
-     * @Rest\Get("/{id}/tareas")
+     * @Rest\Get("/{id}/tareas", name="get_actividad_tareas")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
      * @SWG\Parameter(
      *     required=true,
      *     name="Authorization",
@@ -419,7 +479,7 @@ class ActividadesController extends BaseController
 
     /**
      * Lista todos los saltos de una actividad
-     * @Rest\Get("/{id}/saltos")
+     * @Rest\Get("/{id}/saltos", name="get_actividad_saltos")
      * @IsGranted("ROLE_AUTOR")
      *
      * @SWG\Parameter(
@@ -428,6 +488,16 @@ class ActividadesController extends BaseController
      *     in="header",
      *     type="string",
      *     description="Bearer token",
+     * )
+     * 
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
      * )
      * 
      * @SWG\Response(
@@ -470,7 +540,7 @@ class ActividadesController extends BaseController
 
     /**
      * Crea un salto para una actividad
-     * @Rest\Post("/{id}/saltos")
+     * @Rest\Post("/{id}/saltos", name="post_saltos_actividad")
      * @IsGranted("ROLE_AUTOR")
      *
      * @SWG\Parameter(
@@ -479,6 +549,16 @@ class ActividadesController extends BaseController
      *     in="header",
      *     type="string",
      *     description="Bearer token",
+     * )
+     * 
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
      * )
      * 
      * @SWG\Response(
@@ -591,6 +671,16 @@ class ActividadesController extends BaseController
      * @Rest\Delete("/{id}/saltos", name="delete_saltos")
      * @IsGranted("ROLE_AUTOR")
      * 
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
      * @SWG\Parameter(
      *     required=true,
      *     name="Authorization",
@@ -650,8 +740,18 @@ class ActividadesController extends BaseController
 
     /**
      * Desasigna todas las tareas de una actividad
-     * @Rest\Delete("/{id}/tareas")
+     * @Rest\Delete("/{id}/tareas", name="detach_tareas_actividad")
      * @IsGranted("ROLE_AUTOR")
+     * 
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
      * 
      * @SWG\Parameter(
      *     required=true,
@@ -718,9 +818,19 @@ class ActividadesController extends BaseController
 
     /**
      * Agrega una configuración de planifiación a una actividad
-     * @Rest\Post("/{id}/planificaciones")
+     * @Rest\Post("/{id}/planificaciones", name="post_planificacion_settings_actividad")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
      * @SWG\Parameter(
      *     required=true,
      *     name="Authorization",

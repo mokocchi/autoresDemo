@@ -34,6 +34,16 @@ class TareasController extends BaseController
      * )
      * 
      * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
+     * @SWG\Response(
      *     response=200,
      *     description="Operación exitosa"
      * )
@@ -58,6 +68,16 @@ class TareasController extends BaseController
      * 
      * @Rest\Get("/user", name="get_tareas_user")
      * @IsGranted("ROLE_AUTOR")
+     * 
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
      * 
      * @SWG\Parameter(
      *     name="Authorization",
@@ -93,6 +113,16 @@ class TareasController extends BaseController
      * @Rest\Post(name="post_tarea")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
      * @SWG\Response(
      *     response=200,
      *     description="La tarea ya existe"
@@ -222,6 +252,16 @@ class TareasController extends BaseController
      * @Rest\Get("/{id}", name="show_tarea")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
      * @SWG\Parameter(
      *     name="Authorization",
      *     in="header",
@@ -263,6 +303,16 @@ class TareasController extends BaseController
      * @Rest\Post("/{id}/extra", name="post_extra_tarea")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
      * @SWG\Response(
      *     response=200,
      *     description="Operación exitosa"
@@ -331,6 +381,16 @@ class TareasController extends BaseController
      * @Rest\Post("/{id}/plano", name="post_plano_tarea")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
      * @SWG\Response(
      *     response=200,
      *     description="Operación exitosa"
