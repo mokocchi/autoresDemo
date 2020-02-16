@@ -4,9 +4,13 @@ namespace App\Controller\v1;
 
 use App\Controller\BaseController;
 use App\Entity\Actividad;
+use App\Entity\Dominio;
+use App\Entity\Estado;
+use App\Entity\Idioma;
 use App\Entity\Planificacion;
 use App\Entity\Salto;
 use App\Entity\Tarea;
+use App\Entity\TipoPlanificacion;
 use App\Form\ActividadType;
 use Exception;
 use FOS\RestBundle\Controller\Annotations as Rest;
@@ -131,7 +135,7 @@ class ActividadesController extends BaseController
      * 
      * @SWG\Response(
      *     response=403,
-     *     description="Permisos insuficientes"
+     *     description="Permisos insuficientes o La actividad es privada"
      * )
      * 
      * @SWG\Parameter(
@@ -152,11 +156,6 @@ class ActividadesController extends BaseController
      *     description="Actividad no encontrada"
      * )
      *
-     * @SWG\Response(
-     *     response=403,
-     *     description="La actividad es privada"
-     * )
-     * 
      * @SWG\Response(
      *     response=500,
      *     description="Error en el servidor"
@@ -184,7 +183,7 @@ class ActividadesController extends BaseController
             }
             if ($actividad->getEstado()->getNombre() == "Privado" && $actividad->getAutor()->getId() !== $this->getUser()->getId()) {
                 return $this->handleView($this->view(['errors' => 'La actividad es privada'], Response::HTTP_UNAUTHORIZED));
-            }   
+            }
             return $this->handleView($this->getViewWithGroups($actividad, "autor"));
         } catch (Exception $e) {
             return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
@@ -324,12 +323,225 @@ class ActividadesController extends BaseController
                 $em->flush();
 
                 $url = $this->generateUrl('show_actividad', ['id' => $actividad->getId()]);
-                return $this->handleView($this->setGroupToView($this->view($actividad, Response::HTTP_CREATED, ["Location" => $url]),"autor"));
+                return $this->handleView($this->setGroupToView($this->view($actividad, Response::HTTP_CREATED, ["Location" => $url]), "autor"));
             } catch (Exception $e) {
                 return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
             }
         }
         return $this->handleView($this->view(["errors" => "Los datos no son válidos"]), Response::HTTP_BAD_REQUEST);
+    }
+
+    /**
+     * Actualiza una actividad
+     * @Rest\Put("/{id}",name="put_actividad")
+     * @IsGranted("ROLE_AUTOR")
+     *
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=404,
+     *     description="Actividad no encontrada"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     *
+     * @SWG\Response(
+     *     response=400,
+     *     description="Hubo un problema con la petición"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     *
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     *
+     * @SWG\Parameter(
+     *     name="nombre",
+     *     in="body",
+     *     type="string",
+     *     description="Nombre de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     name="objetivo",
+     *     in="body",
+     *     type="string",
+     *     description="Objetivo de la actividad",
+     *     schema={}
+     * )
+     *
+     * @SWG\Parameter(
+     *     name="dominio",
+     *     in="body",
+     *     type="integer",
+     *     description="Id del dominio de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     name="idioma",
+     *     in="body",
+     *     type="integer",
+     *     description="Id del idioma de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     name="tipoPlanificacion",
+     *     in="body",
+     *     type="integer",
+     *     description="Id del tipo de planificación de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     name="estado",
+     *     in="body",
+     *     type="integer",
+     *     description="Id del estado de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Tag(name="Actividad")
+     * 
+     * @return Response
+     */
+    public function putActividadAction(Request $request, $id)
+    {
+        try {
+            $em = $this->getDoctrine()->getManager();
+            $actividadRepository = $em->getRepository(Actividad::class);
+            /** @var Actividad $actividad */
+            $actividad = $actividadRepository->find($id);
+            if($actividad->getAutor() != $this->getUser()){
+                return $this->handleView($this->view(['errors' => 'La actividad no pertenece a este usuario'], Response::HTTP_UNAUTHORIZED));
+            }
+            $data = json_decode($request->getContent(), true);
+            if (is_null($data)) {
+                return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_BAD_REQUEST));
+            }
+            if (array_key_exists("nombre", $data) && !is_null($data["nombre"])) {
+                $actividad->setNombre($data["nombre"]);
+            }
+            if (array_key_exists("objetivo", $data) && !is_null($data["objetivo"])) {
+                $actividad->setObjetivo($data["objetivo"]);
+            }
+
+            if (array_key_exists("dominio", $data) && !is_null($data["dominio"])) {
+                $dominio = $em->getRepository(Dominio::class)->find($data["dominio"]);
+                $actividad->setDominio($dominio);
+            }
+
+            if (array_key_exists("idioma", $data) && !is_null($data["idioma"])) {
+                $idioma = $em->getRepository(Idioma::class)->find($data["idioma"]);
+                $actividad->setIdioma($idioma);
+            }
+
+            if (array_key_exists("tipoPlanificacion", $data) && !is_null($data["tipoPlanificacion"])) {
+                /** @var TipoPlanificacion */
+                $tipoPlanificacion = $em->getRepository(TipoPlanificacion::class)->find($data["tipoPlanificacion"]);
+                $actividad->setTipoPlanificacion($tipoPlanificacion);
+                if ($tipoPlanificacion->getNombre() != self::BIFURCADA_NAME) {
+                    $planificacion = $actividad->getPlanificacion();
+                    $saltos = $planificacion->getSaltos();
+                    foreach ($saltos as $salto) {
+                        $planificacion->removeSalto($salto);
+                    }
+                }
+            }
+
+            if (array_key_exists("estado", $data) && !is_null($data["estado"])) {
+                $estado = $em->getRepository(Estado::class)->find($data["estado"]);
+                $actividad->setEstado($estado);
+            }
+            $em->persist($actividad);
+            $em->flush();
+            return $this->handleView($this->getViewWithGroups($actividad, "autor"));
+        } catch (Exception $e) {
+            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    /**
+     * Actualiza una actividad
+     * @Rest\Delete("/{id}",name="delete_actividad")
+     * @IsGranted("ROLE_AUTOR")
+     *
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=404,
+     *     description="Actividad no encontrada"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=204,
+     *     description="La actividad fue borrada"
+     * )
+     *
+     * @SWG\Response(
+     *     response=400,
+     *     description="Hubo un problema con la petición"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     *
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     *
+     * @SWG\Tag(name="Actividad")
+     * 
+     * @return Response
+     */
+    public function deleteActividadAction($id) {
+        try{
+            $em = $this->getDoctrine()->getManager();
+            $actividad = $em->getRepository(Actividad::class)->find($id);
+            if($actividad->getAutor() != $this->getUser()){
+                return $this->handleView($this->view(['errors' => 'La actividad no pertenece a este usuario'], Response::HTTP_UNAUTHORIZED));
+            }
+            $em->remove($actividad);
+            $em->flush();
+            $this->handleView($this->view(null, Response::HTTP_NO_CONTENT));
+        } catch (Exception $e){
+            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+        }
     }
 
     /**
@@ -660,7 +872,7 @@ class ActividadesController extends BaseController
             $em->flush();
             $url = $this->generateUrl("show_salto", ["id" => $salto->getId()]);
             $view = $this->view($salto, Response::HTTP_CREATED, ["Location" => $url]);
-            return $this->handleView($this->setGroupToView($view,"autor"));
+            return $this->handleView($this->setGroupToView($view, "autor"));
         } catch (Exception $e) {
             return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }
