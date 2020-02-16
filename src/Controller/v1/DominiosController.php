@@ -20,7 +20,7 @@ use Swagger\Annotations as SWG;
 /**
  * @Route("/dominios")
  */
-class DominioController extends BaseController
+class DominiosController extends BaseController
 {
     /**
      * Crea un dominio.

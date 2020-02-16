@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * @Route("/me")
  */
-class UsuarioController extends BaseController
+class MeController extends BaseController
 {
     /**
      * @Rest\Get(name="get_me")

@@ -14,7 +14,7 @@ use Swagger\Annotations as SWG;
 /**
  * @Route("/estados")
  */
-class PublicEstadoController extends BaseController
+class PublicEstadosController extends BaseController
 {
 
     /**

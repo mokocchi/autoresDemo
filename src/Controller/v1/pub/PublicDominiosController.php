@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * @Route("/dominios")
  */
-class PublicDominioController extends BaseController
+class PublicDominiosController extends BaseController
 {
 
     /**

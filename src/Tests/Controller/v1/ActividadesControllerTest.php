@@ -15,7 +15,7 @@ use Doctrine\Persistence\ObjectManager;
 use GuzzleHttp\Exception\RequestException;
 use Symfony\Component\HttpFoundation\Response;
 
-class ActividadControllerTest extends ApiTestCase
+class ActividadesControllerTest extends ApiTestCase
 {
     private static $dominioName = "Test";
     private static $actividadCodigo = "actividadtest";
@@ -170,15 +170,16 @@ class ActividadControllerTest extends ApiTestCase
         $data = json_decode((string) $response->getBody(), true);
         //todo=sort keys
         $this->assertEquals([
+            "id",
             "nombre",
             "objetivo",
-            "dominio",
-            "codigo",
             "idioma",
-            "tipoPlanificacion",
-            "estado",
+            "dominio",
+            "tipo_planificacion",
+            "planificacion",
             "autor",
-            "id"
+            "estado",
+            "codigo"
         ], array_keys($data));
     }
 }
