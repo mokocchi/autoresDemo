@@ -18,13 +18,14 @@ class Idioma
      * @ORM\GeneratedValue()
      * @ORM\Column(type="integer")
      * @Expose
+     * @Groups({"select"})
      */
     private $id;
 
     /**
      * @ORM\Column(type="string", length=255)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "select"})
      */
     private $nombre;
 

@@ -18,13 +18,14 @@ class Estado
      * @ORM\GeneratedValue()
      * @ORM\Column(type="integer")
      * @Expose
+     * @Groups({"select"})
      */
     private $id;
 
     /**
      * @ORM\Column(type="string", length=255)
      * @Expose
-     * @Groups({"autor", "publico"})
+     * @Groups({"autor", "publico", "select"})
      */
     private $nombre;
 

@@ -2,6 +2,7 @@
 
 namespace App\Controller\v1\pub;
 
+use App\Controller\BaseController;
 use App\Entity\Estado;
 use App\Entity\Tarea;
 use Exception;
@@ -15,7 +16,7 @@ use Swagger\Annotations as SWG;
 /**
  * @Route("/tareas")
  */
-class PublicTareasController extends AbstractFOSRestController
+class PublicTareasController extends BaseController
 {
     /**
      * Lista todas las tareaas
@@ -41,12 +42,7 @@ class PublicTareasController extends AbstractFOSRestController
             $estadoRepository = $this->getDoctrine()->getRepository(Estado::class);
             $estado = $estadoRepository->findOneBy(["nombre" => "Público"]);
             $tareas = $repository->findBy(["estado" => $estado]);
-
-            $view = $this->view($tareas);
-            $context = new Context();
-            $context->addGroup('publico');
-            $view->setContext($context);
-            return $this->handleView($view);
+            return $this->handleView($this->getViewWithGroups($tareas, "publico"));
         } catch (Exception $e) {
             return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }
@@ -81,11 +77,7 @@ class PublicTareasController extends AbstractFOSRestController
                 return $this->handleView($this->view(['errors' => 'La tarea es privada'], Response::HTTP_UNAUTHORIZED));
             }
 
-            $view = $this->view($tarea);
-            $context = new Context();
-            $context->addGroup('publico');
-            $view->setContext($context);
-            return $this->handleView($view);
+            return $this->handleView($this->getViewWithGroups($tarea, "publico"));
         } catch (Exception $e) {
             return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }

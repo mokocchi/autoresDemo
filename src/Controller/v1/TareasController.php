@@ -2,13 +2,13 @@
 
 namespace App\Controller\v1;
 
+use App\Controller\BaseController;
 use App\Entity\Plano;
 use App\Entity\Tarea;
 use App\Form\TareaType;
 use App\Service\UploaderHelper;
 use Exception;
 use FOS\RestBundle\Context\Context;
-use FOS\RestBundle\Controller\AbstractFOSRestController;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,7 +20,7 @@ use Swagger\Annotations as SWG;
 /**
  * @Route("/tareas")
  */
-class TareasController extends AbstractFOSRestController
+class TareasController extends BaseController
 {
     /**
      * Lists all Tarea.
@@ -33,11 +33,7 @@ class TareasController extends AbstractFOSRestController
     {
         $repository = $this->getDoctrine()->getRepository(Tarea::class);
         $tareas = $repository->findall();
-        $view = $this->view($tareas);
-        $context = new Context();
-        $context->addGroup('autor');
-        $view->setContext($context);
-        return $this->handleView($view);
+        return $this->handleView($this->getViewWithGroups($tareas, "autor"));
     }
 
     /**
@@ -53,11 +49,7 @@ class TareasController extends AbstractFOSRestController
         $user = $this->getUser();
         $repository = $this->getDoctrine()->getRepository(Tarea::class);
         $tareas = $repository->findBy(["autor" => $user]);
-        $view = $this->view($tareas);
-        $context = new Context();
-        $context->addGroup('autor');
-        $view->setContext($context);
-        return $this->handleView($view);
+        return $this->handleView($this->getViewWithGroups($tareas, "autor"));
     }
 
 
@@ -149,7 +141,7 @@ class TareasController extends AbstractFOSRestController
         $tarea = new Tarea();
         $form = $this->createForm(TareaType::class, $tarea);
         $data = json_decode($request->getContent(), true);
-        if(is_null($data)) {
+        if (is_null($data)) {
             return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_BAD_REQUEST));
         }
         if (
@@ -181,7 +173,7 @@ class TareasController extends AbstractFOSRestController
                 $em->persist($tarea);
                 $em->flush();
                 $url = $this->generateUrl("show_tarea", ["id" => $tarea->getId()]);
-                return $this->handleView($this->view($tarea, Response::HTTP_CREATED,["Location" => $url]));
+                return $this->handleView($this->view($tarea, Response::HTTP_CREATED, ["Location" => $url]));
             } catch (Exception $e) {
                 return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
             }
@@ -223,15 +215,10 @@ class TareasController extends AbstractFOSRestController
             if (is_null($tarea)) {
                 return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
             }
-            $view = $this->view($tarea);
-            $context = new Context();
-            $context->addGroup('autor');
-            $view->setContext($context);
-            return $this->handleView($view);
+            return $this->handleView($this->getViewWithGroups($tarea, "autor"));
         } catch (Exception $e) {
             return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }
-        
     }
 
 
@@ -277,7 +264,6 @@ class TareasController extends AbstractFOSRestController
      */
     public function updateMapOnTareaAction(Request $request, $id, UploaderHelper $uploaderHelper, ValidatorInterface $validator)
     {
-        
         if (!$request->files->has('plano')) {
             return $this->handleView($this->view(['errors' => 'No se encontró el archivo'], Response::HTTP_BAD_REQUEST));
         }

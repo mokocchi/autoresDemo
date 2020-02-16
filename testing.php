@@ -22,7 +22,7 @@ try {
             'client_secret' => ''
         ]
     ];
-    $response = $client->post('/oauth/v2/token', $options);
+    $response = $client->post('/api/oauth/v2/token', $options);
 
     $data = json_decode((string) $response->getBody());
     $access_token = $data->access_token;

@@ -2,14 +2,13 @@
 
 namespace App\Controller\v1;
 
+use App\Controller\BaseController;
 use App\Entity\Actividad;
 use App\Entity\Planificacion;
 use App\Entity\Salto;
 use App\Entity\Tarea;
 use App\Form\ActividadType;
 use Exception;
-use FOS\RestBundle\Context\Context;
-use FOS\RestBundle\Controller\AbstractFOSRestController;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,59 +19,52 @@ use Swagger\Annotations as SWG;
 /**
  * @Route("/actividades")
  */
-class ActividadesController extends AbstractFOSRestController
+class ActividadesController extends BaseController
 {
     const BIFURCADA_NAME = "Bifurcada";
 
     /**
-     * Lists all Actividad.
+     * Lista todas las actividades del sistema
      * @Rest\Get
      * @IsGranted("ROLE_ADMIN")
      *
-     * @return Response
-     */
-    public function getActividadAction()
-    {
-        $repository = $this->getDoctrine()->getRepository(Actividad::class);
-        $actividades = $repository->findBy(["autor" => $this->getUser()]);
-        $view = $this->view($actividades);
-        $context = new Context();
-        $context->addGroup('autor');
-        $view->setContext($context);
-        return $this->handleView($view);
-    }
-
-    /**
-     * Lists actividades for the current user
-     * 
-     * @Rest\Get("/user")
-     * @IsGranted("ROLE_AUTOR")
-     * 
-     * @return Response
-     */
-    public function getActividadForUserAction()
-    {
-        $user = $this->getUser();
-        $repository = $this->getDoctrine()->getRepository(Actividad::class);
-        $actividades = $repository->findBy(["autor" => $user]);
-        $view = $this->view($actividades);
-        $context = new Context();
-        $context->addGroup('autor');
-        $view->setContext($context);
-        return $this->handleView($view);
-    }
-
-    /**
-     * Muestra una actividad
-     * @Rest\Get("/{id}", name="show_actividad")
-     * @IsGranted("ROLE_AUTOR")
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
      *
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     * 
      * @SWG\Parameter(
+     *     required=true,
      *     name="Authorization",
      *     in="header",
      *     type="string",
      *     description="Bearer token",
      * )
+     * 
+     * @SWG\Tag(name="Actividad")
+     * @return Response
+     */
+    public function getActividadesAction()
+    {
+        try {
+            $repository = $this->getDoctrine()->getRepository(Actividad::class);
+            $actividades = $repository->findBy(["autor" => $this->getUser()]);
+            return $this->handleView($this->getViewWithGroups($actividades, "autor"));
+        } catch (Exception $e) {
+            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    /**
+     * Lista las actividades del usuario actual
+     * 
+     * @Rest\Get("/user")
+     * @IsGranted("ROLE_AUTOR")
      * 
      * @SWG\Response(
      *     response=200,
@@ -84,24 +76,89 @@ class ActividadesController extends AbstractFOSRestController
      *     description="Error en el servidor"
      * )
      * 
+     * @SWG\Parameter(
+     *     name="Authorization",
+     *     required=true,
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     * 
+     * @SWG\Tag(name="Actividad")
+     * @return Response
+     */
+    public function getActividadesForUserAction()
+    {
+        try {
+            $user = $this->getUser();
+            $repository = $this->getDoctrine()->getRepository(Actividad::class);
+            $actividades = $repository->findBy(["autor" => $user]);
+            return $this->handleView($this->getViewWithGroups($actividades, "autor"));
+        } catch (Exception $e) {
+            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    /**
+     * Muestra una actividad
+     * @Rest\Get("/{id}", name="show_actividad")
+     * @IsGranted("ROLE_AUTOR")
+     *
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     * 
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=404,
+     *     description="Actividad no encontrada"
+     * )
+     *
+     * @SWG\Response(
+     *     response=403,
+     *     description="La actividad es privada"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="id",
+     *     in="path",
+     *     type="string",
+     *     description="Id de la actividad",
+     *     schema={}
+     * )
+     * 
      * @SWG\Tag(name="Actividad")
      * @return Response
      */
     public function showActividadAction($id)
     {
-        $repository = $this->getDoctrine()->getRepository(Actividad::class);
-        $actividad = $repository->find($id);
-        if (is_null($actividad)) {
-            return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+        try {
+            $repository = $this->getDoctrine()->getRepository(Actividad::class);
+            $actividad = $repository->find($id);
+            if (is_null($actividad)) {
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+            }
+            if ($actividad->getEstado()->getNombre() == "Privado" && $actividad->getAutor()->getId() !== $this->getUser()->getId()) {
+                return $this->handleView($this->view(['errors' => 'La actividad es privada'], Response::HTTP_UNAUTHORIZED));
+            }   
+            return $this->handleView($this->getViewWithGroups($actividad, "autor"));
+        } catch (Exception $e) {
+            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }
-        if ($actividad->getEstado()->getNombre() == "Privado" && $actividad->getAutor()->getId() !== $this->getUser()->getId()) {
-            return $this->handleView($this->view(['errors' => 'La actividad es privada'], Response::HTTP_UNAUTHORIZED));
-        }
-        $view = $this->view($actividad);
-        $context = new Context();
-        $context->addGroup('autor');
-        $view->setContext($context);
-        return $this->handleView($view);
     }
 
     /**
@@ -125,6 +182,7 @@ class ActividadesController extends AbstractFOSRestController
      * )
      *
      * @SWG\Parameter(
+     *     required=true,
      *     name="Authorization",
      *     in="header",
      *     type="string",
@@ -132,6 +190,7 @@ class ActividadesController extends AbstractFOSRestController
      * )
      *
      * @SWG\Parameter(
+     *     required=true,
      *     name="nombre",
      *     in="body",
      *     type="string",
@@ -140,6 +199,7 @@ class ActividadesController extends AbstractFOSRestController
      * )
      * 
      * @SWG\Parameter(
+     *     required=true,
      *     name="objetivo",
      *     in="body",
      *     type="string",
@@ -148,6 +208,7 @@ class ActividadesController extends AbstractFOSRestController
      * )
      *
      * @SWG\Parameter(
+     *     required=true,
      *     name="dominio",
      *     in="body",
      *     type="integer",
@@ -156,6 +217,7 @@ class ActividadesController extends AbstractFOSRestController
      * )
      * 
      * @SWG\Parameter(
+     *     required=true,
      *     name="idioma",
      *     in="body",
      *     type="integer",
@@ -164,6 +226,7 @@ class ActividadesController extends AbstractFOSRestController
      * )
      * 
      * @SWG\Parameter(
+     *     required=true,
      *     name="tipoPlanificacion",
      *     in="body",
      *     type="integer",
@@ -172,6 +235,7 @@ class ActividadesController extends AbstractFOSRestController
      * )
      * 
      * @SWG\Parameter(
+     *     required=true,
      *     name="estado",
      *     in="body",
      *     type="integer",
@@ -220,23 +284,61 @@ class ActividadesController extends AbstractFOSRestController
                 $em->flush();
 
                 $url = $this->generateUrl('show_actividad', ['id' => $actividad->getId()]);
-                $view = $this->view(null, Response::HTTP_CREATED, ["Location" => $url]);
-                $context = new Context();
-                $context->addGroup('autor');
-                $view->setContext($context);
-                return $this->handleView($view);
+                return $this->handleView($this->view(null, Response::HTTP_CREATED, ["Location" => $url]));
             } catch (Exception $e) {
                 return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
             }
         }
-        return $this->handleView($this->view($form->getErrors(), Response::HTTP_INTERNAL_SERVER_ERROR));
+        return $this->handleView($this->view(["errors" => "Los datos no son válidos"]), Response::HTTP_BAD_REQUEST);
     }
 
     /**
-     * Add a Tarea to an Activity.
+     * Agrega una tarea a una actividad
      * @Rest\Post("/{id}/tareas")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Response(
+     *     response=200,
+     *     description="La operación fue exitosa"
+     * )
+     *
+     * @SWG\Response(
+     *     response=400,
+     *     description="Hubo un problema con la petición"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     *
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     *
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="id",
+     *     in="path",
+     *     type="string",
+     *     description="Id de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="tarea",
+     *     in="body",
+     *     type="string",
+     *     description="Id de la tarea",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Tag(name="Actividad")
      * @return Response
      */
     public function addTareaToActividad(Request $request, $id)
@@ -255,11 +357,7 @@ class ActividadesController extends AbstractFOSRestController
                 $actividad->addTarea($tarea);
                 $em->persist($actividad);
                 $em->flush();
-                $view = $this->view(['status' => 'ok'], Response::HTTP_OK);
-                $context = new Context();
-                $context->addGroup('autor');
-                $view->setContext($context);
-                return $this->handleView($view);
+                return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
             } else {
                 return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
             }
@@ -269,56 +367,174 @@ class ActividadesController extends AbstractFOSRestController
     }
 
     /**
-     * List an Actividad's tareas.
+     * Lista las tareas de una actividad
      * @Rest\Get("/{id}/tareas")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     * 
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     *
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="id",
+     *     in="path",
+     *     type="string",
+     *     description="Id de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Tag(name="Actividad")
      * @return Response
      */
     public function getActividadTareasAction(Request $request, $id)
     {
-        $repository = $this->getDoctrine()->getRepository(Actividad::class);
-        $actividad = $repository->find($id);
-        if (!is_null($actividad)) {
-            $tareas = $actividad->getTareas();
-            $view = $this->view($tareas);
-            $context = new Context();
-            $context->addGroup('autor');
-            $view->setContext($context);
-            return $this->handleView($view);
-        } else {
-            return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+        try {
+            $repository = $this->getDoctrine()->getRepository(Actividad::class);
+            $actividad = $repository->find($id);
+            if (!is_null($actividad)) {
+                $tareas = $actividad->getTareas();
+                return $this->handleView($this->getViewWithGroups($tareas, "autor"));
+            } else {
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+            }
+        } catch (Exception $e) {
+            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }
     }
 
     /**
-     * Lists all Saltos from an Actividad.
+     * Lista todos los saltos de una actividad
      * @Rest\Get("/{id}/saltos")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     * 
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     *
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="id",
+     *     in="path",
+     *     type="string",
+     *     description="Id de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Tag(name="Actividad")
      * @return Response
      */
     public function getActividadSaltosAction($id)
     {
-        $repository = $this->getDoctrine()->getRepository(Actividad::class);
-        $actividad = $repository->find($id);
-        if (is_null($actividad)) {
-            return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+        try {
+            $repository = $this->getDoctrine()->getRepository(Actividad::class);
+            $actividad = $repository->find($id);
+            if (is_null($actividad)) {
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+            }
+            $planificacion = $actividad->getPlanificacion();
+            $saltos = $planificacion->getSaltos();
+            return $this->handleView($this->getViewWithGroups($saltos, "autor"));
+        } catch (Exception $e) {
+            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
         }
-        $planificacion = $actividad->getPlanificacion();
-        $saltos = $planificacion->getSaltos();
-        $view = $this->view($saltos);
-        $context = new Context();
-        $context->addGroup('autor');
-        $view->setContext($context);
-        return $this->handleView($view);
     }
 
     /**
-     * Create a Salto for an Actividad.
+     * Crea un salto para una actividad
      * @Rest\Post("/{id}/saltos")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     * 
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     *
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="id",
+     *     in="path",
+     *     type="string",
+     *     description="Id de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="origen",
+     *     in="body",
+     *     type="string",
+     *     description="Id de la tarea origen del salto",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="condicion",
+     *     in="body",
+     *     type="string",
+     *     description="Condición del salto",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     name="destinos",
+     *     in="body",
+     *     type="array",
+     *     description="Ids de las tareas destino del salto",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     name="respuesta",
+     *     in="body",
+     *     type="string",
+     *     description="Ids de las tareas destino del salto",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Tag(name="Actividad")
      * @return Response
      */
     public function postSaltoForActividadAction(Request $request, $id)
@@ -354,7 +570,7 @@ class ActividadesController extends AbstractFOSRestController
                     }
                     $salto->addDestino($tareaDb);
                 }
-            }
+            } //TODO: existen saltos sin destino? por qué esto no es required?
             $salto->setCondicion($data["condicion"]);
             if (array_key_exists("respuesta", $data) && !is_null($data["respuesta"])) {
                 $salto->setRespuesta($data["respuesta"]);
@@ -362,10 +578,8 @@ class ActividadesController extends AbstractFOSRestController
 
             $em->persist($salto);
             $em->flush();
-            $view = $this->view($salto, Response::HTTP_CREATED);
-            $context = new Context();
-            $context->addGroup('autor');
-            $view->setContext($context);
+            $url = $this->generateUrl("show_salto", ["id" => $salto->getId()]);
+            $view = $this->view(null, Response::HTTP_CREATED, ["Location" => $url]);
             return $this->handleView($view);
         } catch (Exception $e) {
             return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
@@ -376,6 +590,40 @@ class ActividadesController extends AbstractFOSRestController
      * Deletes all saltos from an Actividad
      * @Rest\Delete("/{id}/saltos")
      * @IsGranted("ROLE_AUTOR")
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     * 
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=404,
+     *     description="Actividad no encontrada"
+     * )
+     *
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="id",
+     *     in="path",
+     *     type="string",
+     *     description="Id de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Tag(name="Actividad")
      * @return Response
      */
     public function deleteSaltosAction($id)

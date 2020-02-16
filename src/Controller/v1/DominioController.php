@@ -2,6 +2,7 @@
 
 namespace App\Controller\v1;
 
+use App\Controller\BaseController;
 use App\Entity\Dominio;
 use App\Form\DominioType;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
@@ -15,7 +16,7 @@ use Swagger\Annotations as SWG;
 /**
  * @Route("/dominios")
  */
-class DominioController extends AbstractFOSRestController
+class DominioController extends BaseController
 {
     /**
      * Crea un dominio.
