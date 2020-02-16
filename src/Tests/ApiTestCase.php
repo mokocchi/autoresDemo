@@ -16,6 +16,10 @@ class ApiTestCase extends KernelTestCase
         return 'Bearer ' . self::$access_token;
     }
 
+    protected static function getDefaultOptions() {
+        return ["headers" => ['Authorization' => self::getAuthHeader()]];
+    }
+
     public static function setUpBeforeClass(): void
     {
         self::bootKernel();

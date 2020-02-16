@@ -146,11 +146,8 @@ class ActividadControllerTest extends ApiTestCase
     {
         $id = $this->createUsuario();
         $uri = self::$prefijo_api . "/actividades/" . $id; //TODO: id por codigos
-        $options = [
-            'headers' => ['Authorization' => self::getAuthHeader()],
-        ];
         try {
-            self::$client->put($uri, $options);
+            self::$client->put($uri, self::getDefaultOptions());
         } catch (RequestException $e) {
             $this->assertTrue($e->getResponse()->getStatusCode() == Response::HTTP_BAD_REQUEST);
         }
@@ -159,9 +156,29 @@ class ActividadControllerTest extends ApiTestCase
     public function testDelete()
     {
         $id = $this->createUsuario();
-        $options = ["headers" => ['Authorization' => self::getAuthHeader()]];
         $uri = self::$prefijo_api . "/actividades/" . $id;
-        $response = self::$client->delete($uri, $options);
+        $response = self::$client->delete($uri, self::getDefaultOptions());
         $this->assertTrue($response->getStatusCode() == Response::HTTP_NO_CONTENT);
+    }
+
+    public function testGetOne()
+    {
+        $id = $this->createUsuario();
+        $uri = self::$prefijo_api . "/actividades/" . $id;
+        $response = self::$client->get($uri, self::getDefaultOptions());
+        $this->assertTrue($response->getStatusCode() == Response::HTTP_OK);
+        $data = json_decode((string) $response->getBody(), true);
+        //todo=sort keys
+        $this->assertEquals([
+            "nombre",
+            "objetivo",
+            "dominio",
+            "codigo",
+            "idioma",
+            "tipoPlanificacion",
+            "estado",
+            "autor",
+            "id"
+        ], array_keys($data));
     }
 }

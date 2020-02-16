@@ -93,6 +93,7 @@ class Actividad
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Groups({"autor"})
      */
     private $codigo;
 
