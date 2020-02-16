@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace App\Controller\Tests;
 
+use App\Entity\AccessToken;
 use App\Entity\Actividad;
 use App\Entity\Dominio;
+use App\Entity\Estado;
+use App\Entity\Idioma;
+use App\Entity\TipoPlanificacion;
 use App\Test\ApiTestCase;
 use Doctrine\Persistence\ObjectManager;
 use GuzzleHttp\Exception\RequestException;
@@ -14,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
 class ActividadControllerTest extends ApiTestCase
 {
     private static $dominioName = "Test";
-    private static $actividadName = "actividadtest";
+    private static $actividadCodigo = "actividadtest";
     private static $dominioId;
 
     public static function setUpBeforeClass(): void
@@ -34,7 +38,7 @@ class ActividadControllerTest extends ApiTestCase
         parent::tearDown();
         /** @var ObjectManager $em */
         $em = self::getService("doctrine")->getManager();
-        $actividad = $em->getRepository(Actividad::class)->findOneBy(["codigo" => self::$actividadName]);
+        $actividad = $em->getRepository(Actividad::class)->findOneBy(["codigo" => self::$actividadCodigo]);;
         if ($actividad) {
             $em->remove($actividad);
             $em->flush();
@@ -47,7 +51,7 @@ class ActividadControllerTest extends ApiTestCase
         /** @var ObjectManager $em */
         $em = self::getService("doctrine")->getManager();
         $dominio = $em->getRepository(Dominio::class)->find(self::$dominioId);
-        if($dominio) {
+        if ($dominio) {
             $em->remove($dominio);
             $em->flush();
         }
@@ -100,37 +104,38 @@ class ActividadControllerTest extends ApiTestCase
         }
     }
 
+    private function createUsuario(): int
+    {
+        /** @var ObjectManager $em */
+        $em = self::getService("doctrine")->getManager();
+        $actividad = new Actividad();
+        $actividad->setNombre("Actividad test");
+        $actividad->setObjetivo("Probar crear una actividad");
+        $actividad->setCodigo(self::$actividadCodigo);
+        $dominio = $em->getRepository(Dominio::class)->find(self::$dominioId);
+        $actividad->setDominio($dominio);
+        $idioma = $em->getRepository(Idioma::class)->find(1);
+        $actividad->setIdioma($idioma);
+        $tipoPlanificacion = $em->getRepository(TipoPlanificacion::class)->find(1);
+        $actividad->setTipoPlanificacion($tipoPlanificacion);
+        $estado = $em->getRepository(Estado::class)->find(1);
+        $actividad->setEstado($estado);
+        $accessToken = $em->getRepository(AccessToken::class)->findOneBy(["token" => self::$access_token]);
+        $actividad->setAutor($accessToken->getUser());
+        $em->persist($actividad);
+        $em->flush();
+        return $actividad->getId();
+    }
     public function testPut()
     {
-        $uri = self::$prefijo_api . "/actividades";
-
-        $options = [
-            'headers' => ['Authorization' => self::getAuthHeader()],
-            'json' => [
-                "nombre" => "Actividad test",
-                "objetivo" => "Probar crear una actividad",
-                "codigo" => "actividadtest",
-                "dominio" => self::$dominioId,
-                "idioma" => 1,
-                "tipoPlanificacion" => 1,
-                "estado" => 1
-            ]
-        ];
-
-        $response = self::$client->post($uri, $options);
-        $data = json_decode((string) $response->getBody(), true);
-
-        $id = $data["id"];
-
-        $uri = self::$prefijo_api . "/actividades/" . $id; //TODO: id por codigos
-
+        $id = $this->createUsuario();
+        $uri = self::$prefijo_api . "/actividades/" . $id;
         $options = [
             'headers' => ['Authorization' => self::getAuthHeader()],
             'json' => [
                 "nombre" => "Actividad test 2"
             ]
         ];
-
         $response = self::$client->put($uri, $options);
         $data = json_decode((string) $response->getBody(), true);
         $this->assertArrayHasKey("nombre", $data);
@@ -139,33 +144,13 @@ class ActividadControllerTest extends ApiTestCase
 
     public function PutMissingJson()
     {
-        $uri = self::$prefijo_api . "/actividades";
-
-        $options = [
-            'headers' => ['Authorization' => self::getAuthHeader()],
-            'json' => [
-                "nombre" => "Actividad test",
-                "objetivo" => "Probar crear una actividad",
-                "codigo" => "actividadTest",
-                "dominio" => self::$dominioId,
-                "idioma" => 1,
-                "tipoPlanificacion" => 1,
-                "estado" => 1
-            ]
-        ];
-
-        $response = self::$client->post($uri, $options);
-        $data = json_decode((string) $response->getBody(), true);
-        $id = $data["id"];
-
+        $id = $this->createUsuario();
         $uri = self::$prefijo_api . "/actividades/" . $id; //TODO: id por codigos
-
         $options = [
             'headers' => ['Authorization' => self::getAuthHeader()],
         ];
-
         try {
-            $response = self::$client->put($uri, $options);
+            self::$client->put($uri, $options);
         } catch (RequestException $e) {
             $this->assertTrue($e->getResponse()->getStatusCode() == Response::HTTP_BAD_REQUEST);
         }
@@ -173,29 +158,9 @@ class ActividadControllerTest extends ApiTestCase
 
     public function testDelete()
     {
-        $uri = self::$prefijo_api . "/actividades";
-
-        $options = [
-            'headers' => ['Authorization' => self::getAuthHeader()],
-            'json' => [
-                "nombre" => "Actividad test",
-                "objetivo" => "Probar crear una actividad",
-                "codigo" => "actividadTest",
-                "dominio" => self::$dominioId,
-                "idioma" => 1,
-                "tipoPlanificacion" => 1,
-                "estado" => 1
-            ]
-        ];
-
-        $response = self::$client->post($uri, $options);
-        $data = json_decode((string) $response->getBody(), true);
-        $id = $data["id"];
-
+        $id = $this->createUsuario();
         $options = ["headers" => ['Authorization' => self::getAuthHeader()]];
-
         $uri = self::$prefijo_api . "/actividades/" . $id;
-
         $response = self::$client->delete($uri, $options);
         $this->assertTrue($response->getStatusCode() == Response::HTTP_NO_CONTENT);
     }
