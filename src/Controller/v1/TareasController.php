@@ -8,7 +8,6 @@ use App\Entity\Tarea;
 use App\Form\TareaType;
 use App\Service\UploaderHelper;
 use Exception;
-use FOS\RestBundle\Context\Context;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,10 +22,28 @@ use Swagger\Annotations as SWG;
 class TareasController extends BaseController
 {
     /**
-     * Lists all Tarea.
-     * @Rest\Get
+     * Lista todas las tareas del sistema
+     * @Rest\Get(name="get_tareas")
      * @IsGranted("ROLE_ADMIN")
      * 
+     * @SWG\Parameter(
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     * 
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     *
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     * 
+     * @SWG\Tag(name="Tarea")
      * @return Response
      */
     public function getTareasAction()
@@ -37,11 +54,29 @@ class TareasController extends BaseController
     }
 
     /**
-     * Lists tareas for the current user
+     * Lista las tareas del usuario actual
      * 
-     * @Rest\Get("/user")
+     * @Rest\Get("/user", name="get_tareas_user")
      * @IsGranted("ROLE_AUTOR")
      * 
+     * @SWG\Parameter(
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     * 
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     *
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     * 
+     * @SWG\Tag(name="Tarea")
      * @return Response
      */
     public function getActividadForUserAction()
@@ -55,7 +90,7 @@ class TareasController extends BaseController
 
     /**
      * Crear Tarea
-     * @Rest\Post
+     * @Rest\Post(name="post_tarea")
      * @IsGranted("ROLE_AUTOR")
      *
      * @SWG\Response(
@@ -224,10 +259,46 @@ class TareasController extends BaseController
 
 
     /**
-     * Update extra on Tarea.
-     * @Rest\Post("/{id}/extra")
+     * Agrega el extra a una tarea
+     * @Rest\Post("/{id}/extra", name="post_extra_tarea")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     *
+     * @SWG\Response(
+     *     response=400,
+     *     description="Hubo un problema con la petición"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=404,
+     *     description="No se encontró la tarea"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     *
+     * @SWG\Parameter(
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     *
+     * @SWG\Parameter(
+     *     name="extra",
+     *     in="body",
+     *     type="array",
+     *     description="Contenido extra de la tarea",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Tag(name="Tarea")
      * @return Response
      */
     public function updateExtraOnTareaAction(Request $request, $id)
@@ -256,10 +327,46 @@ class TareasController extends BaseController
     }
 
     /**
-     * Update plano on Tarea.
-     * @Rest\Post("/{id}/plano")
+     * Agregar plano a una tarea
+     * @Rest\Post("/{id}/plano", name="post_plano_tarea")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=400,
+     *     description="Hubo un problema con la petición"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=404,
+     *     description="No se encontró la tarea"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     *
+     * @SWG\Parameter(
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     *
+     * @SWG\Parameter(
+     *     name="extra",
+     *     in="formData",
+     *     type="file",
+     *     description="Plano de la tarea",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Tag(name="Tarea")
      * @return Response
      */
     public function updateMapOnTareaAction(Request $request, $id, UploaderHelper $uploaderHelper, ValidatorInterface $validator)

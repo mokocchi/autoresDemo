@@ -293,7 +293,7 @@ class ActividadesController extends BaseController
     }
 
     /**
-     * Agrega una tarea a una actividad
+     * Asigna una tarea a una actividad
      * @Rest\Post("/{id}/tareas")
      * @IsGranted("ROLE_AUTOR")
      *
@@ -587,8 +587,8 @@ class ActividadesController extends BaseController
     }
 
     /**
-     * Deletes all saltos from an Actividad
-     * @Rest\Delete("/{id}/saltos")
+     * Borra todos los saltos de una actividad
+     * @Rest\Delete("/{id}/saltos", name="delete_saltos")
      * @IsGranted("ROLE_AUTOR")
      * 
      * @SWG\Parameter(
@@ -649,9 +649,43 @@ class ActividadesController extends BaseController
     }
 
     /**
-     * Deletes all tareas from an Actividad
+     * Desasigna todas las tareas de una actividad
      * @Rest\Delete("/{id}/tareas")
      * @IsGranted("ROLE_AUTOR")
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     * 
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=404,
+     *     description="Actividad no encontrada"
+     * )
+     *
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="id",
+     *     in="path",
+     *     type="string",
+     *     description="Id de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Tag(name="Actividad")
      * @return Response
      */
     public function deleteTareasAction($id)
@@ -683,10 +717,61 @@ class ActividadesController extends BaseController
     }
 
     /**
-     * Create a Salto for an Actividad.
+     * Agrega una configuración de planifiación a una actividad
      * @Rest\Post("/{id}/planificaciones")
      * @IsGranted("ROLE_AUTOR")
      *
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     * 
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=404,
+     *     description="Actividad no encontrada"
+     * )
+     *
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="id",
+     *     in="path",
+     *     type="string",
+     *     description="Id de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="iniciales",
+     *     in="body",
+     *     type="array",
+     *     description="Ids de las tareas iniciales de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="opcionales",
+     *     in="body",
+     *     type="array",
+     *     description="Ids de las tareas opcionales de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Tag(name="Actividad")
      * @return Response
      */
     public function updatePlanificacionSettings(Request $request, $id)

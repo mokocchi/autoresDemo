@@ -5,7 +5,6 @@ namespace App\Controller\v1;
 use App\Controller\BaseController;
 use App\Entity\Dominio;
 use App\Form\DominioType;
-use FOS\RestBundle\Controller\AbstractFOSRestController;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
