@@ -2,6 +2,7 @@
 
 namespace App\Controller\v1;
 
+use App\ApiProblem;
 use App\Controller\BaseController;
 use App\Entity\Actividad;
 use App\Entity\Dominio;
@@ -70,7 +71,11 @@ class ActividadesController extends BaseController
             $actividades = $repository->findBy(["autor" => $this->getUser()]);
             return $this->handleView($this->getViewWithGroups($actividades, "autor"));
         } catch (Exception $e) {
-            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 
@@ -119,7 +124,11 @@ class ActividadesController extends BaseController
             $actividades = $repository->findBy(["autor" => $user]);
             return $this->handleView($this->getViewWithGroups($actividades, "autor"));
         } catch (Exception $e) {
-            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 
@@ -186,7 +195,11 @@ class ActividadesController extends BaseController
             }
             return $this->handleView($this->getViewWithGroups($actividad, "autor"));
         } catch (Exception $e) {
-            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 
@@ -288,31 +301,31 @@ class ActividadesController extends BaseController
      */
     public function postActividadAction(Request $request)
     {
-        $actividad = new Actividad();
-        $form = $this->createForm(ActividadType::class, $actividad);
-        $data = json_decode($request->getContent(), true);
-        if (is_null($data)) {
-            return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_BAD_REQUEST));
-        }
-        $form->submit($data);
-        if ($form->isSubmitted() && $form->isValid()) {
-            if (
-                !array_key_exists("nombre", $data) ||
-                is_null($data["nombre"]) ||
-                !array_key_exists("objetivo", $data) ||
-                is_null($data["objetivo"]) ||
-                !array_key_exists("dominio", $data) ||
-                is_null($data["dominio"]) ||
-                !array_key_exists("idioma", $data) ||
-                is_null($data["idioma"]) ||
-                !array_key_exists("tipoPlanificacion", $data) ||
-                is_null($data["tipoPlanificacion"]) ||
-                !array_key_exists("estado", $data) ||
-                is_null($data["objetivo"])
-            ) {
-                return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
+        try {
+            $actividad = new Actividad();
+            $form = $this->createForm(ActividadType::class, $actividad);
+            $data = json_decode($request->getContent(), true);
+            if (is_null($data)) {
+                return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_BAD_REQUEST));
             }
-            try {
+            $form->submit($data);
+            if ($form->isSubmitted() && $form->isValid()) {
+                if (
+                    !array_key_exists("nombre", $data) ||
+                    is_null($data["nombre"]) ||
+                    !array_key_exists("objetivo", $data) ||
+                    is_null($data["objetivo"]) ||
+                    !array_key_exists("dominio", $data) ||
+                    is_null($data["dominio"]) ||
+                    !array_key_exists("idioma", $data) ||
+                    is_null($data["idioma"]) ||
+                    !array_key_exists("tipoPlanificacion", $data) ||
+                    is_null($data["tipoPlanificacion"]) ||
+                    !array_key_exists("estado", $data) ||
+                    is_null($data["objetivo"])
+                ) {
+                    return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
+                }
                 $em = $this->getDoctrine()->getManager();
                 $planificacion = new Planificacion();
                 $em->persist($planificacion);
@@ -324,11 +337,15 @@ class ActividadesController extends BaseController
 
                 $url = $this->generateUrl('show_actividad', ['id' => $actividad->getId()]);
                 return $this->handleView($this->setGroupToView($this->view($actividad, Response::HTTP_CREATED, ["Location" => $url]), "autor"));
-            } catch (Exception $e) {
-                return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
             }
+            return $this->handleView($this->view(["errors" => "Los datos no son válidos"]), Response::HTTP_BAD_REQUEST);
+        } catch (Exception $e) {
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
-        return $this->handleView($this->view(["errors" => "Los datos no son válidos"]), Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -433,7 +450,7 @@ class ActividadesController extends BaseController
             $actividadRepository = $em->getRepository(Actividad::class);
             /** @var Actividad $actividad */
             $actividad = $actividadRepository->find($id);
-            if($actividad->getAutor() != $this->getUser()){
+            if ($actividad->getAutor() != $this->getUser()) {
                 return $this->handleView($this->view(['errors' => 'La actividad no pertenece a este usuario'], Response::HTTP_UNAUTHORIZED));
             }
             $data = json_decode($request->getContent(), true);
@@ -478,7 +495,11 @@ class ActividadesController extends BaseController
             $em->flush();
             return $this->handleView($this->getViewWithGroups($actividad, "autor"));
         } catch (Exception $e) {
-            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 
@@ -529,18 +550,23 @@ class ActividadesController extends BaseController
      * 
      * @return Response
      */
-    public function deleteActividadAction($id) {
-        try{
+    public function deleteActividadAction($id)
+    {
+        try {
             $em = $this->getDoctrine()->getManager();
             $actividad = $em->getRepository(Actividad::class)->find($id);
-            if($actividad->getAutor() != $this->getUser()){
+            if ($actividad->getAutor() != $this->getUser()) {
                 return $this->handleView($this->view(['errors' => 'La actividad no pertenece a este usuario'], Response::HTTP_UNAUTHORIZED));
             }
             $em->remove($actividad);
             $em->flush();
             $this->handleView($this->view(null, Response::HTTP_NO_CONTENT));
-        } catch (Exception $e){
-            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+        } catch (Exception $e) {
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 
@@ -624,7 +650,11 @@ class ActividadesController extends BaseController
                 return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
             }
         } catch (Exception $e) {
-            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 
@@ -685,7 +715,11 @@ class ActividadesController extends BaseController
                 return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
             }
         } catch (Exception $e) {
-            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 
@@ -746,7 +780,11 @@ class ActividadesController extends BaseController
             $saltos = $planificacion->getSaltos();
             return $this->handleView($this->getViewWithGroups($saltos, "autor"));
         } catch (Exception $e) {
-            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 
@@ -874,7 +912,11 @@ class ActividadesController extends BaseController
             $view = $this->view($salto, Response::HTTP_CREATED, ["Location" => $url]);
             return $this->handleView($this->setGroupToView($view, "autor"));
         } catch (Exception $e) {
-            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 
@@ -946,7 +988,11 @@ class ActividadesController extends BaseController
             $em->flush();
             return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
         } catch (Exception $e) {
-            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 
@@ -1024,7 +1070,11 @@ class ActividadesController extends BaseController
             $em->flush();
             return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
         } catch (Exception $e) {
-            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 
@@ -1144,7 +1194,11 @@ class ActividadesController extends BaseController
             $em->flush();
             return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
         } catch (Exception $e) {
-            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 }

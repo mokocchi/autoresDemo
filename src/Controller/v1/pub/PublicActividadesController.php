@@ -2,6 +2,7 @@
 
 namespace App\Controller\v1\pub;
 
+use App\ApiProblem;
 use App\Controller\BaseController;
 use App\Entity\Actividad;
 use App\Entity\Estado;
@@ -44,7 +45,11 @@ class PublicActividadesController extends BaseController
 
             return $this->handleView($this->getViewWithGroups($actividades, "publico"));
         } catch (Exception $e) {
-            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 
@@ -88,7 +93,11 @@ class PublicActividadesController extends BaseController
 
             return $this->handleView($this->getViewWithGroups($actividad, "publico"));
         } catch (Exception $e) {
-            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 
@@ -100,70 +109,78 @@ class PublicActividadesController extends BaseController
      */
     public function downloadActividadAction($id)
     {
-        $repository = $this->getDoctrine()->getRepository(Actividad::class);
-        $actividad = $repository->find($id);
-        if (is_null($actividad)) {
-            return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
-        }
-        $JSON = [];
-        $JSON["language"] = $actividad->getIdioma()->getCode();
-        $educationalActivity = [
-            "name" => $actividad->getNombre(),
-            "goal" => $actividad->getObjetivo(),
-            "sequential" => ($actividad->getTipoPlanificacion()->getNombre() != "Libre")
-        ];
-        $JSON["educationalActivity"] = $educationalActivity;
-        $planificacion = $actividad->getPlanificacion();
-        $jumps = [];
-        foreach ($actividad->getTareas() as $tarea) {
-            $jumps[$tarea->getId()] = [];
-        }
-        $saltos = $planificacion->getSaltos();
-        foreach ($saltos as $salto) {
-            $jump = [
-                "on" => $salto->getCondicion(),
-                "to" => count($salto->getDestinoCodes()) == 0 ?  ["END"] : $salto->getDestinoCodes(),
-                "answer" => $salto->getRespuesta()
-            ];
-            //multiple jumps for each tarea
-            $jumps[$salto->getOrigen()->getId()][] = $jump;
-        }
-        $iniciales = $planificacion->getIniciales()->map(function ($elem) {
-            return $elem->getId();
-        })->toArray();
-        $opcionales = $planificacion->getOpcionales()->map(function ($elem) {
-            return $elem->getId();
-        })->toArray();
-
-        $tasks = [];
-        foreach ($actividad->getTareas() as $tarea) {
-            $task = [
-                "code" => $tarea->getCodigo(),
-                "name" => $tarea->getNombre(),
-                "instruction" => $tarea->getConsigna(),
-                "initial" => in_array($tarea->getId(), $iniciales),
-                "optional" => in_array($tarea->getId(), $opcionales),
-                "type" => $tarea->getTipo()->getCodigo(),
-                "jumps" => count($jumps) == 0 ? [] : $jumps[$tarea->getId()]
-            ];
-            foreach ($tarea->getExtra() as $key => $value) {
-                $task[$key] = $value;
+        try {
+            $repository = $this->getDoctrine()->getRepository(Actividad::class);
+            $actividad = $repository->find($id);
+            if (is_null($actividad)) {
+                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
             }
-            $tasks[] = $task;
+            $JSON = [];
+            $JSON["language"] = $actividad->getIdioma()->getCode();
+            $educationalActivity = [
+                "name" => $actividad->getNombre(),
+                "goal" => $actividad->getObjetivo(),
+                "sequential" => ($actividad->getTipoPlanificacion()->getNombre() != "Libre")
+            ];
+            $JSON["educationalActivity"] = $educationalActivity;
+            $planificacion = $actividad->getPlanificacion();
+            $jumps = [];
+            foreach ($actividad->getTareas() as $tarea) {
+                $jumps[$tarea->getId()] = [];
+            }
+            $saltos = $planificacion->getSaltos();
+            foreach ($saltos as $salto) {
+                $jump = [
+                    "on" => $salto->getCondicion(),
+                    "to" => count($salto->getDestinoCodes()) == 0 ?  ["END"] : $salto->getDestinoCodes(),
+                    "answer" => $salto->getRespuesta()
+                ];
+                //multiple jumps for each tarea
+                $jumps[$salto->getOrigen()->getId()][] = $jump;
+            }
+            $iniciales = $planificacion->getIniciales()->map(function ($elem) {
+                return $elem->getId();
+            })->toArray();
+            $opcionales = $planificacion->getOpcionales()->map(function ($elem) {
+                return $elem->getId();
+            })->toArray();
+
+            $tasks = [];
+            foreach ($actividad->getTareas() as $tarea) {
+                $task = [
+                    "code" => $tarea->getCodigo(),
+                    "name" => $tarea->getNombre(),
+                    "instruction" => $tarea->getConsigna(),
+                    "initial" => in_array($tarea->getId(), $iniciales),
+                    "optional" => in_array($tarea->getId(), $opcionales),
+                    "type" => $tarea->getTipo()->getCodigo(),
+                    "jumps" => count($jumps) == 0 ? [] : $jumps[$tarea->getId()]
+                ];
+                foreach ($tarea->getExtra() as $key => $value) {
+                    $task[$key] = $value;
+                }
+                $tasks[] = $task;
+            }
+            $JSON["tasks"] = $tasks;
+            //return $this->handleView($this->view($JSON));
+
+
+            $fileContent = json_encode($JSON, JSON_PRETTY_PRINT);
+            $response = new Response($fileContent);
+
+            $disposition = HeaderUtils::makeDisposition(
+                HeaderUtils::DISPOSITION_ATTACHMENT,
+                iconv("UTF-8", "ASCII//TRANSLIT", $actividad->getNombre()) . '.json'
+            );
+
+            $response->headers->set('Content-Disposition', $disposition);
+            return $response;
+        } catch (Exception $e) {
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
-        $JSON["tasks"] = $tasks;
-        //return $this->handleView($this->view($JSON));
-
-
-        $fileContent = json_encode($JSON, JSON_PRETTY_PRINT);
-        $response = new Response($fileContent);
-
-        $disposition = HeaderUtils::makeDisposition(
-            HeaderUtils::DISPOSITION_ATTACHMENT,
-            iconv("UTF-8", "ASCII//TRANSLIT", $actividad->getNombre()) . '.json'
-        );
-
-        $response->headers->set('Content-Disposition', $disposition);
-        return $response;
     }
 }

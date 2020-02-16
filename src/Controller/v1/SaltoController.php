@@ -2,6 +2,7 @@
 
 namespace App\Controller\v1;
 
+use App\ApiProblem;
 use App\Controller\BaseController;
 use App\Entity\Salto;
 use Exception;
@@ -68,7 +69,11 @@ class SaltoController extends BaseController
             $salto = $saltoRepository->find($id);
             return $this->getViewWithGroups($salto, "autor");
         } catch (Exception $e) {
-            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 }

@@ -2,9 +2,11 @@
 
 namespace App\Controller\v1;
 
+use App\ApiProblem;
 use App\Controller\BaseController;
 use App\Entity\Dominio;
 use App\Form\DominioType;
+use Exception;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -72,29 +74,38 @@ class DominioController extends BaseController
      */
     public function postDominioAction(Request $request)
     {
-        $dominio = new Dominio();
-        $form = $this->createForm(DominioType::class, $dominio);
-        $data = json_decode($request->getContent(), true);
-        if(is_null($data)) {
-            return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_BAD_REQUEST));
-        }
-        if(!array_key_exists("nombre",$data) || is_null($data["nombre"])) {
-            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
-        }
-        $form->submit($data);
-        if ($form->isSubmitted() && $form->isValid()) {
-            $em = $this->getDoctrine()->getManager();
-            $dominioDb = $em->getRepository(Dominio::class)->findOneBy(["nombre" => $data["nombre"]]);
-            if (!is_null($dominioDb)) {
-            $url = $this->generateUrl("show_dominio", ["id" => $dominioDb->getId()]);
-                return $this->handleView($this->setGroupToView($this->view($dominio, Response::HTTP_OK, ["Location" => $url]), "autor"));
+        try {
+            $dominio = new Dominio();
+            $form = $this->createForm(DominioType::class, $dominio);
+            $data = json_decode($request->getContent(), true);
+            if (is_null($data)) {
+                return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_BAD_REQUEST));
             }
-            $em->persist($dominio);
-            $em->flush();
-            $url = $this->generateUrl("show_dominio", ["id" => $dominio->getId()]);
-            print_r($dominio); exit;
-            return $this->handleView($this->setGroupToView($this->view($dominio, Response::HTTP_CREATED, ["Location" => $url]),"autor"));
+            if (!array_key_exists("nombre", $data) || is_null($data["nombre"])) {
+                return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
+            }
+            $form->submit($data);
+            if ($form->isSubmitted() && $form->isValid()) {
+                $em = $this->getDoctrine()->getManager();
+                $dominioDb = $em->getRepository(Dominio::class)->findOneBy(["nombre" => $data["nombre"]]);
+                if (!is_null($dominioDb)) {
+                    $url = $this->generateUrl("show_dominio", ["id" => $dominioDb->getId()]);
+                    return $this->handleView($this->setGroupToView($this->view($dominio, Response::HTTP_OK, ["Location" => $url]), "autor"));
+                }
+                $em->persist($dominio);
+                $em->flush();
+                $url = $this->generateUrl("show_dominio", ["id" => $dominio->getId()]);
+                print_r($dominio);
+                exit;
+                return $this->handleView($this->setGroupToView($this->view($dominio, Response::HTTP_CREATED, ["Location" => $url]), "autor"));
+            }
+            return $this->handleView($this->view($form->getErrors()));
+        } catch (Exception $e) {
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
-        return $this->handleView($this->view($form->getErrors()));
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Controller\v1;
 
+use App\ApiProblem;
 use App\Controller\BaseController;
 use App\Entity\Plano;
 use App\Entity\Tarea;
@@ -58,9 +59,17 @@ class TareasController extends BaseController
      */
     public function getTareasAction()
     {
-        $repository = $this->getDoctrine()->getRepository(Tarea::class);
-        $tareas = $repository->findall();
-        return $this->handleView($this->getViewWithGroups($tareas, "autor"));
+        try {
+            $repository = $this->getDoctrine()->getRepository(Tarea::class);
+            $tareas = $repository->findall();
+            return $this->handleView($this->getViewWithGroups($tareas, "autor"));
+        } catch (Exception $e) {
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
+        }
     }
 
     /**
@@ -101,10 +110,18 @@ class TareasController extends BaseController
      */
     public function getActividadForUserAction()
     {
-        $user = $this->getUser();
-        $repository = $this->getDoctrine()->getRepository(Tarea::class);
-        $tareas = $repository->findBy(["autor" => $user]);
-        return $this->handleView($this->getViewWithGroups($tareas, "autor"));
+        try {
+            $user = $this->getUser();
+            $repository = $this->getDoctrine()->getRepository(Tarea::class);
+            $tareas = $repository->findBy(["autor" => $user]);
+            return $this->handleView($this->getViewWithGroups($tareas, "autor"));
+        } catch (Exception $e) {
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
+        }
     }
 
 
@@ -203,31 +220,32 @@ class TareasController extends BaseController
      */
     public function postTareaAction(Request $request)
     {
-        $tarea = new Tarea();
-        $form = $this->createForm(TareaType::class, $tarea);
-        $data = json_decode($request->getContent(), true);
-        if (is_null($data)) {
-            return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_BAD_REQUEST));
-        }
-        if (
-            !array_key_exists("nombre", $data) ||
-            is_null($data["nombre"]) ||
-            !array_key_exists("consigna", $data) ||
-            is_null($data["consigna"]) ||
-            !array_key_exists("codigo", $data) ||
-            is_null($data["codigo"]) ||
-            !array_key_exists("tipo", $data) ||
-            is_null($data["tipo"]) ||
-            !array_key_exists("dominio", $data) ||
-            is_null($data["dominio"]) ||
-            !array_key_exists("estado", $data) ||
-            is_null($data["estado"])
-        ) {
-            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
-        }
-        $form->submit($data);
-        if ($form->isSubmitted() && $form->isValid()) {
-            try {
+        try {
+
+            $tarea = new Tarea();
+            $form = $this->createForm(TareaType::class, $tarea);
+            $data = json_decode($request->getContent(), true);
+            if (is_null($data)) {
+                return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_BAD_REQUEST));
+            }
+            if (
+                !array_key_exists("nombre", $data) ||
+                is_null($data["nombre"]) ||
+                !array_key_exists("consigna", $data) ||
+                is_null($data["consigna"]) ||
+                !array_key_exists("codigo", $data) ||
+                is_null($data["codigo"]) ||
+                !array_key_exists("tipo", $data) ||
+                is_null($data["tipo"]) ||
+                !array_key_exists("dominio", $data) ||
+                is_null($data["dominio"]) ||
+                !array_key_exists("estado", $data) ||
+                is_null($data["estado"])
+            ) {
+                return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
+            }
+            $form->submit($data);
+            if ($form->isSubmitted() && $form->isValid()) {
                 $em = $this->getDoctrine()->getManager();
                 $tareaDb = $em->getRepository(Tarea::class)->findOneBy(["codigo" => $data["codigo"]]);
                 if (!is_null($tareaDb)) {
@@ -238,12 +256,16 @@ class TareasController extends BaseController
                 $em->persist($tarea);
                 $em->flush();
                 $url = $this->generateUrl("show_tarea", ["id" => $tarea->getId()]);
-                return $this->handleView($this->setGroupToView($this->view($tarea, Response::HTTP_CREATED, ["Location" => $url]),"autor"));
-            } catch (Exception $e) {
-                return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+                return $this->handleView($this->setGroupToView($this->view($tarea, Response::HTTP_CREATED, ["Location" => $url]), "autor"));
             }
+            return $this->handleView($this->view($form->getErrors(), Response::HTTP_INTERNAL_SERVER_ERROR));
+        } catch (Exception $e) {
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
-        return $this->handleView($this->view($form->getErrors(), Response::HTTP_INTERNAL_SERVER_ERROR));
     }
 
 
@@ -292,7 +314,11 @@ class TareasController extends BaseController
             }
             return $this->handleView($this->getViewWithGroups($tarea, "autor"));
         } catch (Exception $e) {
-            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 
@@ -353,14 +379,14 @@ class TareasController extends BaseController
      */
     public function updateExtraOnTareaAction(Request $request, $id)
     {
-        $data = json_decode($request->getContent(), true);
-        if (!array_key_exists("extra", $data)) {
-            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
-        }
-
-        $em = $this->getDoctrine()->getManager();
-
         try {
+            $data = json_decode($request->getContent(), true);
+            if (!array_key_exists("extra", $data)) {
+                return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
+            }
+
+            $em = $this->getDoctrine()->getManager();
+
             $extra = $data["extra"];
             $tarea = $em->getRepository(Tarea::class)->find($id);
             if (!is_null($extra) && !is_null($tarea)) {
@@ -372,7 +398,11 @@ class TareasController extends BaseController
                 return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
             }
         } catch (Exception $e) {
-            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 
@@ -431,19 +461,19 @@ class TareasController extends BaseController
      */
     public function updateMapOnTareaAction(Request $request, $id, UploaderHelper $uploaderHelper, ValidatorInterface $validator)
     {
-        if (!$request->files->has('plano')) {
-            return $this->handleView($this->view(['errors' => 'No se encontró el archivo'], Response::HTTP_BAD_REQUEST));
-        }
-        $plano = new Plano();
-        $uploadedFile = $request->files->get('plano');
-        $plano->setPlano($uploadedFile);
-
-        $errors = $validator->validate($plano);
-
-        if (count($errors) > 0) {
-            return $this->handleView($this->view(['errors' => "El archivo no es válido"], Response::HTTP_BAD_REQUEST));
-        }
         try {
+            if (!$request->files->has('plano')) {
+                return $this->handleView($this->view(['errors' => 'No se encontró el archivo'], Response::HTTP_BAD_REQUEST));
+            }
+            $plano = new Plano();
+            $uploadedFile = $request->files->get('plano');
+            $plano->setPlano($uploadedFile);
+
+            $errors = $validator->validate($plano);
+
+            if (count($errors) > 0) {
+                return $this->handleView($this->view(['errors' => "El archivo no es válido"], Response::HTTP_BAD_REQUEST));
+            }
             $em = $this->getDoctrine()->getManager();
             $tarea = $em->getRepository(Tarea::class)->find($id);
 
@@ -456,7 +486,11 @@ class TareasController extends BaseController
                 return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
             }
         } catch (Exception $e) {
-            return $this->handleView($this->view([$e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 }

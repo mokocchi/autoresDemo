@@ -2,6 +2,7 @@
 
 namespace App\Controller\v1\pub;
 
+use App\ApiProblem;
 use App\Controller\BaseController;
 use App\Entity\Estado;
 use App\Entity\Tarea;
@@ -42,7 +43,11 @@ class PublicTareasController extends BaseController
             $tareas = $repository->findBy(["estado" => $estado]);
             return $this->handleView($this->getViewWithGroups($tareas, "publico"));
         } catch (Exception $e) {
-            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 
@@ -77,7 +82,11 @@ class PublicTareasController extends BaseController
 
             return $this->handleView($this->getViewWithGroups($tarea, "publico"));
         } catch (Exception $e) {
-            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 }

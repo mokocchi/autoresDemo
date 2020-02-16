@@ -2,6 +2,7 @@
 
 namespace App\Controller\v1\pub;
 
+use App\ApiProblem;
 use App\Controller\BaseController;
 use App\Entity\Estado;
 use Exception;
@@ -40,7 +41,11 @@ class PublicEstadoController extends BaseController
             $estado = $repository->findall();
             return $this->handleView($this->getViewWithGroups($estado, "select"));
         } catch (Exception $e) {
-            return $this->handleView($this->view(["errors" => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR));
+            $this->logger->error($e->getMessage());
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            ));
         }
     }
 }
