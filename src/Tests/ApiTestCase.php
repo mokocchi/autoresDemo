@@ -1,0 +1,46 @@
+<?php
+
+namespace App\Test;
+
+use GuzzleHttp\Client;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+
+class ApiTestCase extends KernelTestCase
+{
+
+    protected static $client;
+    protected static $access_token;
+    protected static $prefijo_api = '/api/v1.0';
+    protected static function getAuthHeader()
+    {
+        return 'Bearer ' . self::$access_token;
+    }
+
+    public static function setUpBeforeClass(): void
+    {
+        self::bootKernel();
+        self::$client = new Client(
+            [
+                'base_uri' => 'http://localhost:8080/'
+            ]
+        );
+        $options = [
+            'headers' => ['X-AUTH-CREDENTIALS' => true],
+            'form_params' => [
+            ]
+        ];
+        $response = self::$client->post('/api/oauth/v2/token', $options);
+
+        $data = json_decode((string) $response->getBody());
+        self::$access_token = $data->access_token;
+    }
+
+    protected function tearDown(): void
+    {
+    }
+
+    protected function getService($id)
+    {
+        return self::$kernel->getContainer()->get($id);
+    }
+}
