@@ -85,10 +85,16 @@ class PublicActividadesController extends BaseController
             $repository = $this->getDoctrine()->getRepository(Actividad::class);
             $actividad = $repository->find($id);
             if (is_null($actividad)) {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
+                    Response::HTTP_NOT_FOUND
+                ));
             }
             if ($actividad->getEstado()->getNombre() == "Privado") {
-                return $this->handleView($this->view(['errors' => 'La actividad es privada'], Response::HTTP_UNAUTHORIZED));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_UNAUTHORIZED, "La actividad es privada", "No se puede acceder a la actividad"),
+                    Response::HTTP_UNAUTHORIZED
+                ));
             }
 
             return $this->handleView($this->getViewWithGroups($actividad, "publico"));
@@ -113,7 +119,10 @@ class PublicActividadesController extends BaseController
             $repository = $this->getDoctrine()->getRepository(Actividad::class);
             $actividad = $repository->find($id);
             if (is_null($actividad)) {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna tarea", "No se encontró la tarea"),
+                    Response::HTTP_NOT_FOUND
+                ));
             }
             $JSON = [];
             $JSON["language"] = $actividad->getIdioma()->getCode();

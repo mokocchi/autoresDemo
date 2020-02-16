@@ -2,6 +2,7 @@
 
 namespace App\Controller\auth;
 
+use App\ApiProblem;
 use App\Entity\AccessToken;
 use App\Entity\Client;
 use App\Entity\Role;
@@ -119,7 +120,10 @@ class TokenController extends BaseTokenController
     if (is_null($header)) {
       $header = $request->headers->get('X-AUTH-CREDENTIALS');
       if (is_null($header)) {
-        return new JsonResponse(['errors' => 'No se encontró el header'], Response::HTTP_BAD_REQUEST);
+        return new JsonResponse(
+          new ApiProblem(Response::HTTP_BAD_REQUEST, "No se encontró el header de autenticación", "Ocurrió un problema de autenticación"),
+          Response::HTTP_BAD_REQUEST
+        );
       }
       $request->headers->remove('X-AUTH-CREDENTIALS');
       $request->$property->set('grant_type', OAuth2::GRANT_TYPE_CLIENT_CREDENTIALS);
@@ -127,7 +131,7 @@ class TokenController extends BaseTokenController
       if ($response->getStatusCode() == Response::HTTP_OK) {
         $access_token = json_decode($response->getContent())->access_token;
         $token = $this->em->getRepository(AccessToken::class)->findOneBy(["token" => $access_token]);
-        $id = explode("_",$request->$property->get("client_id"))[0];
+        $id = explode("_", $request->$property->get("client_id"))[0];
         $client = $this->em->getRepository(Client::class)->find($id);
         $usuario = $this->em->getRepository(Usuario::class)->findOneBy(["oauthClient" => $client]);
         $token->setUser($usuario);
@@ -135,7 +139,10 @@ class TokenController extends BaseTokenController
         $this->em->flush();
         return $response;
       } else {
-        return new JsonResponse(['errors' => 'Credenciales inválidas o faltantes'], Response::HTTP_BAD_REQUEST);
+        return new JsonResponse(
+          new ApiProblem(Response::HTTP_BAD_REQUEST, "Credenciales inválidas o faltantes", "Ocurrió un error en la autenticación"),
+          Response::HTTP_BAD_REQUEST
+        );
       }
     }
 
@@ -145,11 +152,17 @@ class TokenController extends BaseTokenController
     $request->$property->remove('token');
 
     if (is_null($id_token)) {
-      return new JsonResponse(['errors' => 'No se encontró el token'], Response::HTTP_BAD_REQUEST);
+      return new JsonResponse(
+        new ApiProblem(Response::HTTP_BAD_REQUEST, "No se encontró el id_token de usuario", "Ocurrió un error en la autenticación"),
+        Response::HTTP_BAD_REQUEST
+      );
     }
 
     if (!(preg_match('/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.?[A-Za-z0-9-_]*$/', $id_token))) {
-      return new JsonResponse(['errors' => 'Formato de token inválido'], Response::HTTP_BAD_REQUEST);
+      return new JsonResponse(
+        new ApiProblem(Response::HTTP_BAD_REQUEST, "El id_token no es un JWT válido", "Ocurrió un error en la autenticación"),
+        Response::HTTP_BAD_REQUEST
+      );
     }
 
     $client = new Google_Client(['client_id' => $_ENV["GOOGLE_CLIENT_ID"]]);
@@ -164,10 +177,16 @@ class TokenController extends BaseTokenController
         }
         $oauthClient = $usuario->getOauthClient();
       } else {
-        return new JsonResponse(['errors' => 'Token inválido'], Response::HTTP_BAD_REQUEST);
+        return new JsonResponse(
+          new ApiProblem(Response::HTTP_BAD_REQUEST, "El id_token no fue emitido para esta aplicación", "Ocurrió un error en la autenticación"),
+          Response::HTTP_BAD_REQUEST
+        );
       }
     } else {
-      return new JsonResponse(['errors' => 'Token inválido'], Response::HTTP_BAD_REQUEST);
+      return new JsonResponse(
+        new ApiProblem(Response::HTTP_BAD_REQUEST, "El id_token no es válido", "Ocurrió un error con la autenticación"),
+        Response::HTTP_BAD_REQUEST
+      );
     }
 
     // build a standard client credentials request
@@ -185,7 +204,10 @@ class TokenController extends BaseTokenController
       $this->em->flush();
       return $response;
     } else {
-      return new JsonResponse(['errors' => 'Credenciales inválidas o faltantes'], Response::HTTP_BAD_REQUEST);
+      return new JsonResponse(
+        new ApiProblem(Response::HTTP_BAD_REQUEST, "Credenciales inválidas o faltantes", "Ocurrió un error en la autenticación"),
+        Response::HTTP_BAD_REQUEST
+      );
     }
   }
 }

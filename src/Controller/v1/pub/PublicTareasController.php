@@ -74,10 +74,16 @@ class PublicTareasController extends BaseController
             $repository = $this->getDoctrine()->getRepository(Tarea::class);
             $tarea = $repository->find($id);
             if (is_null($tarea)) {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna tarea", "No se encontró la tarea"),
+                    Response::HTTP_NOT_FOUND
+                ));
             }
             if ($tarea->getEstado()->getNombre() == "Privado") {
-                return $this->handleView($this->view(['errors' => 'La tarea es privada'], Response::HTTP_UNAUTHORIZED));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_UNAUTHORIZED, "La tarea es privada", "No se puede acceder a la actividad"),
+                    Response::HTTP_UNAUTHORIZED
+                ));
             }
 
             return $this->handleView($this->getViewWithGroups($tarea, "publico"));

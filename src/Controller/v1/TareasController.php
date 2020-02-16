@@ -226,7 +226,10 @@ class TareasController extends BaseController
             $form = $this->createForm(TareaType::class, $tarea);
             $data = json_decode($request->getContent(), true);
             if (is_null($data)) {
-                return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_BAD_REQUEST));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_BAD_REQUEST, "No hay campos json en el request", "No se puede crear una actividad con datos vacíos"),
+                    Response::HTTP_BAD_REQUEST
+                ));
             }
             if (
                 !array_key_exists("nombre", $data) ||
@@ -242,7 +245,10 @@ class TareasController extends BaseController
                 !array_key_exists("estado", $data) ||
                 is_null($data["estado"])
             ) {
-                return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos para crear la actividad"),
+                    Response::HTTP_BAD_REQUEST
+                ));
             }
             $form->submit($data);
             if ($form->isSubmitted() && $form->isValid()) {
@@ -257,8 +263,13 @@ class TareasController extends BaseController
                 $em->flush();
                 $url = $this->generateUrl("show_tarea", ["id" => $tarea->getId()]);
                 return $this->handleView($this->setGroupToView($this->view($tarea, Response::HTTP_CREATED, ["Location" => $url]), "autor"));
+            } else {
+                $this->logger->alert("Datos inválidos: " . json_decode($form->getErrors()));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_BAD_REQUEST, "Se recibieron datos inválidos", "Datos inválidos"),
+                    Response::HTTP_BAD_REQUEST
+                ));
             }
-            return $this->handleView($this->view($form->getErrors(), Response::HTTP_INTERNAL_SERVER_ERROR));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
             return $this->handleView($this->view(
@@ -310,7 +321,10 @@ class TareasController extends BaseController
             $repository = $this->getDoctrine()->getRepository(Tarea::class);
             $tarea = $repository->find($id);
             if (is_null($tarea)) {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna tarea", "No se encontró la tarea"),
+                    Response::HTTP_NOT_FOUND
+                ));
             }
             return $this->handleView($this->getViewWithGroups($tarea, "autor"));
         } catch (Exception $e) {
@@ -381,22 +395,27 @@ class TareasController extends BaseController
     {
         try {
             $data = json_decode($request->getContent(), true);
-            if (!array_key_exists("extra", $data)) {
-                return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
+            if (!array_key_exists("extra", $data) && !is_null($data["extra"])) {
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos"),
+                    Response::HTTP_BAD_REQUEST
+                ));
             }
 
             $em = $this->getDoctrine()->getManager();
 
             $extra = $data["extra"];
             $tarea = $em->getRepository(Tarea::class)->find($id);
-            if (!is_null($extra) && !is_null($tarea)) {
-                $tarea->setExtra($extra);
-                $em->persist($tarea);
-                $em->flush();
-                return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
-            } else {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+            if (is_null($tarea)) {
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna tarea", "No se encontró la tarea"),
+                    Response::HTTP_NOT_FOUND
+                ));
             }
+            $tarea->setExtra($extra);
+            $em->persist($tarea);
+            $em->flush();
+            return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
             return $this->handleView($this->view(
@@ -472,18 +491,23 @@ class TareasController extends BaseController
             $errors = $validator->validate($plano);
 
             if (count($errors) > 0) {
-                return $this->handleView($this->view(['errors' => "El archivo no es válido"], Response::HTTP_BAD_REQUEST));
+                $this->logger->alert("Archivo inválido: " . json_decode($errors));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_BAD_REQUEST, "Se recibió una imagen inválida", "Imagen inválida"),
+                    Response::HTTP_BAD_REQUEST
+                ));
             }
             $em = $this->getDoctrine()->getManager();
             $tarea = $em->getRepository(Tarea::class)->find($id);
 
             if (!is_null($tarea)) {
-
                 $uploaderHelper->uploadPlano($uploadedFile, $tarea->getCodigo(), false);
-
                 return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
             } else {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna tarea", "No se encontró la tarea"),
+                    Response::HTTP_NOT_FOUND
+                ));
             }
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());

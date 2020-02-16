@@ -188,10 +188,16 @@ class ActividadesController extends BaseController
             $repository = $this->getDoctrine()->getRepository(Actividad::class);
             $actividad = $repository->find($id);
             if (is_null($actividad)) {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
+                    Response::HTTP_NOT_FOUND
+                ));
             }
             if ($actividad->getEstado()->getNombre() == "Privado" && $actividad->getAutor()->getId() !== $this->getUser()->getId()) {
-                return $this->handleView($this->view(['errors' => 'La actividad es privada'], Response::HTTP_UNAUTHORIZED));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_UNAUTHORIZED, "La actividad es privada o no pertenece al usuario actual", "No se puede acceder a la actividad"),
+                    Response::HTTP_UNAUTHORIZED
+                ));
             }
             return $this->handleView($this->getViewWithGroups($actividad, "autor"));
         } catch (Exception $e) {
@@ -306,7 +312,10 @@ class ActividadesController extends BaseController
             $form = $this->createForm(ActividadType::class, $actividad);
             $data = json_decode($request->getContent(), true);
             if (is_null($data)) {
-                return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_BAD_REQUEST));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_BAD_REQUEST, "No hay campos json en el request", "No se puede crear una actividad con datos vacíos"),
+                    Response::HTTP_BAD_REQUEST
+                ));
             }
             $form->submit($data);
             if ($form->isSubmitted() && $form->isValid()) {
@@ -324,7 +333,10 @@ class ActividadesController extends BaseController
                     !array_key_exists("estado", $data) ||
                     is_null($data["objetivo"])
                 ) {
-                    return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
+                    return $this->handleView($this->view(
+                        new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos"),
+                        Response::HTTP_BAD_REQUEST
+                    ));
                 }
                 $em = $this->getDoctrine()->getManager();
                 $planificacion = new Planificacion();
@@ -337,8 +349,13 @@ class ActividadesController extends BaseController
 
                 $url = $this->generateUrl('show_actividad', ['id' => $actividad->getId()]);
                 return $this->handleView($this->setGroupToView($this->view($actividad, Response::HTTP_CREATED, ["Location" => $url]), "autor"));
+            } else {
+                $this->logger->alert("Datos inválidos: " . json_decode($form->getErrors()));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_BAD_REQUEST, "Se recibieron datos inválidos", "Datos inválidos"),
+                    Response::HTTP_BAD_REQUEST
+                ));
             }
-            return $this->handleView($this->view(["errors" => "Los datos no son válidos"]), Response::HTTP_BAD_REQUEST);
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
             return $this->handleView($this->view(
@@ -451,11 +468,17 @@ class ActividadesController extends BaseController
             /** @var Actividad $actividad */
             $actividad = $actividadRepository->find($id);
             if ($actividad->getAutor() != $this->getUser()) {
-                return $this->handleView($this->view(['errors' => 'La actividad no pertenece a este usuario'], Response::HTTP_UNAUTHORIZED));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_UNAUTHORIZED, "La actividad no pertenece al usuario actual", "No se puede acceder a la actividad"),
+                    Response::HTTP_UNAUTHORIZED
+                ));
             }
             $data = json_decode($request->getContent(), true);
             if (is_null($data)) {
-                return $this->handleView($this->view(['errors' => 'No hay campos en el request'], Response::HTTP_BAD_REQUEST));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_BAD_REQUEST, "No hay campos json en el request", "No se puede crear una actividad con datos vacíos"),
+                    Response::HTTP_BAD_REQUEST
+                ));
             }
             if (array_key_exists("nombre", $data) && !is_null($data["nombre"])) {
                 $actividad->setNombre($data["nombre"]);
@@ -556,7 +579,10 @@ class ActividadesController extends BaseController
             $em = $this->getDoctrine()->getManager();
             $actividad = $em->getRepository(Actividad::class)->find($id);
             if ($actividad->getAutor() != $this->getUser()) {
-                return $this->handleView($this->view(['errors' => 'La actividad no pertenece a este usuario'], Response::HTTP_UNAUTHORIZED));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_UNAUTHORIZED, "La actividad no pertenece al usuario actual", "No se puede acceder a la actividad"),
+                    Response::HTTP_UNAUTHORIZED
+                ));
             }
             $em->remove($actividad);
             $em->flush();
@@ -632,8 +658,11 @@ class ActividadesController extends BaseController
     public function addTareaToActividad(Request $request, $id)
     {
         $data = json_decode($request->getContent(), true);
-        if (!array_key_exists("tarea", $data)) {
-            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
+        if (!array_key_exists("tarea", $data) && !is_null($data["tarea"])) {
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos"),
+                Response::HTTP_BAD_REQUEST
+            ));
         }
 
         $em = $this->getDoctrine()->getManager();
@@ -641,14 +670,22 @@ class ActividadesController extends BaseController
         try {
             $tarea = $em->getRepository(Tarea::class)->find($data["tarea"]);
             $actividad = $em->getRepository(Actividad::class)->find($id);
-            if (!is_null($tarea) && !is_null($actividad)) {
-                $actividad->addTarea($tarea);
-                $em->persist($actividad);
-                $em->flush();
-                return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
-            } else {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+            if (is_null($tarea)) {
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna tarea", "No se encontró la tarea"),
+                    Response::HTTP_NOT_FOUND
+                ));
             }
+            if (is_null($actividad)) {
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
+                    Response::HTTP_NOT_FOUND
+                ));
+            }
+            $actividad->addTarea($tarea);
+            $em->persist($actividad);
+            $em->flush();
+            return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
             return $this->handleView($this->view(
@@ -712,7 +749,10 @@ class ActividadesController extends BaseController
                 $tareas = $actividad->getTareas();
                 return $this->handleView($this->getViewWithGroups($tareas, "autor"));
             } else {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
+                    Response::HTTP_NOT_FOUND
+                ));
             }
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
@@ -774,7 +814,10 @@ class ActividadesController extends BaseController
             $repository = $this->getDoctrine()->getRepository(Actividad::class);
             $actividad = $repository->find($id);
             if (is_null($actividad)) {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
+                    Response::HTTP_NOT_FOUND
+                ));
             }
             $planificacion = $actividad->getPlanificacion();
             $saltos = $planificacion->getSaltos();
@@ -872,31 +915,41 @@ class ActividadesController extends BaseController
         $salto = new Salto();
         $data = json_decode($request->getContent(), true);
 
-        if (
-            !array_key_exists("origen", $data) || !array_key_exists("condicion", $data)
-        ) {
-            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
+        if (!array_key_exists("origen", $data) || !array_key_exists("condicion", $data)) {
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos"),
+                Response::HTTP_BAD_REQUEST
+            ));
         }
 
         try {
             $em = $this->getDoctrine()->getManager();
             $actividad = $em->getRepository(Actividad::class)->find($id);
             if (is_null($actividad)) {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado:actividad'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
+                    Response::HTTP_NOT_FOUND
+                ));
             }
             $planificacion = $actividad->getPlanificacion();
             $salto->setPlanificacion($planificacion);
             $tareaRepository = $em->getRepository(Tarea::class);
             $origen = $tareaRepository->find($data["origen"]);
             if (is_null($origen)) {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado: tarea origen'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id de tarea origen no corresponde a ninguna tarea", "No se encontró la tarea origen"),
+                    Response::HTTP_NOT_FOUND
+                ));
             }
             $salto->setOrigen($origen);
             if (array_key_exists("destinos", $data) && !is_null($data["destinos"])) {
                 foreach ($data["destinos"] as $destino_id) {
                     $tareaDb = $tareaRepository->find($destino_id);
                     if (is_null($tareaDb)) {
-                        return $this->handleView($this->view(['errors' => 'Objeto no encontrado: tarea destino'], Response::HTTP_NOT_FOUND));
+                        return $this->handleView($this->view(
+                            new ApiProblem(Response::HTTP_NOT_FOUND, "El id de la tarea destino no corresponde a ninguna tarea", "No se encontró la tarea destino"),
+                            Response::HTTP_NOT_FOUND
+                        ));
                     }
                     $salto->addDestino($tareaDb);
                 }
@@ -976,7 +1029,10 @@ class ActividadesController extends BaseController
             $repository = $this->getDoctrine()->getRepository(Actividad::class);
             $actividad = $repository->find($id);
             if (is_null($actividad)) {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado: actividad'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
+                    Response::HTTP_NOT_FOUND
+                ));
             }
             $planificacion = $actividad->getPlanificacion();
             $saltos = $planificacion->getSaltos();
@@ -1052,7 +1108,10 @@ class ActividadesController extends BaseController
             $repository = $this->getDoctrine()->getRepository(Actividad::class);
             $actividad = $repository->find($id);
             if (is_null($actividad)) {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado: actividad'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
+                    Response::HTTP_NOT_FOUND
+                ));
             }
             $tareas = $actividad->getTareas();
             foreach ($tareas as $tarea) {
@@ -1153,14 +1212,20 @@ class ActividadesController extends BaseController
         if (
             !array_key_exists("iniciales", $data) || !array_key_exists("opcionales", $data)
         ) {
-            return $this->handleView($this->view(['errors' => 'Faltan campos en el request'], Response::HTTP_BAD_REQUEST));
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos"),
+                Response::HTTP_BAD_REQUEST
+            ));
         }
 
         try {
             $repository = $this->getDoctrine()->getRepository(Actividad::class);
             $actividad = $repository->find($id);
             if (is_null($actividad)) {
-                return $this->handleView($this->view(['errors' => 'Objeto no encontrado: actividad'], Response::HTTP_NOT_FOUND));
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
+                    Response::HTTP_NOT_FOUND
+                ));
             }
             $planificacion = $actividad->getPlanificacion();
             $prevOpcionales = $planificacion->getOpcionales();
@@ -1177,7 +1242,10 @@ class ActividadesController extends BaseController
             foreach ($iniciales as $inicial) {
                 $tareaInicial = $tareaRepository->find($inicial);
                 if (is_null($tareaInicial)) {
-                    return $this->handleView($this->view(['errors' => 'Objeto no encontrado: tarea inicial'], Response::HTTP_NOT_FOUND));
+                    return $this->handleView($this->view(
+                        new ApiProblem(Response::HTTP_NOT_FOUND, "El id de una tarea inicial no corresponde a ninguna tarea", "No se encontró una tarea inicial"),
+                        Response::HTTP_NOT_FOUND
+                    ));
                 }
                 $planificacion->addInicial($tareaInicial);
             }
@@ -1185,7 +1253,10 @@ class ActividadesController extends BaseController
             foreach ($opcionales as $opcional) {
                 $tareaOpcional = $tareaRepository->find($opcional);
                 if (is_null($tareaOpcional)) {
-                    return $this->handleView($this->view(['errors' => 'Objeto no encontrado: tarea opcional'], Response::HTTP_NOT_FOUND));
+                    return $this->handleView($this->view(
+                        new ApiProblem(Response::HTTP_NOT_FOUND, "El id de una tarea opcional no corresponde a ninguna tarea", "No se encontró una tarea opcional"),
+                        Response::HTTP_NOT_FOUND
+                    ));
                 }
                 $planificacion->addOpcional($tareaOpcional);
             }
