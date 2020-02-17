@@ -43,11 +43,6 @@ class DominiosController extends BaseController
      * )
      * 
      * @SWG\Response(
-     *     response=201,
-     *     description="El dominio fue creado"
-     * )
-     *
-     * @SWG\Response(
      *     response=400,
      *     description="Hubo un problema con la petición"
      * )

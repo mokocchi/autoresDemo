@@ -16,7 +16,6 @@ class ApiTestCase extends KernelTestCase
     protected static $client;
     protected static $access_token;
     protected static $prefijo_api = '/api/v1.0';
-    protected static $autor_id;
     protected static function getAuthHeader()
     {
         return 'Bearer ' . self::$access_token;
@@ -27,16 +26,30 @@ class ApiTestCase extends KernelTestCase
         return ["headers" => ['Authorization' => self::getAuthHeader()]];
     }
 
-    protected static function createAutor() {
+    protected static function createAutor()
+    {
         return self::createUsuario([
             "email" => "autor@test.com",
             "nombre" => "Pedro",
             "apellido" => "Sánchez",
-            "googleid" => "2000"
+            "googleid" => "2000",
+            "role" => "ROLE_AUTOR"
         ]);
     }
 
-    protected static function createUsuario(array $usuarioArray) {
+    protected static function createUsuarioApp()
+    {
+        return self::createUsuario([
+            "email" => "usuario@test.com",
+            "nombre" => "María",
+            "apellido" => "Del Carril",
+            "googleid" => "3000",
+            "role" => "ROLE_USUARIO_APP"
+        ]);
+    }
+
+    protected static function createUsuario(array $usuarioArray)
+    {
         /** @var ObjectManager $em */
         $em = self::getService('doctrine')->getManager();
         $user = new Usuario();
@@ -44,9 +57,9 @@ class ApiTestCase extends KernelTestCase
         $user->setNombre($usuarioArray["nombre"]);
         $user->setApellido($usuarioArray["apellido"]);
         $user->setGoogleid($usuarioArray["googleid"]);
-        $role = $em->getRepository(Role::class)->findOneBy(["name" => "ROLE_AUTOR"]);
+        $role = $em->getRepository(Role::class)->findOneBy(["name" => $usuarioArray["role"]]);
         $user->addRole($role);
-       
+
         $client = new EntityClient();
         $client->setAllowedGrantTypes(array(OAuth2::GRANT_TYPE_CLIENT_CREDENTIALS));
         $user->setOAuthClient($client);
@@ -57,18 +70,8 @@ class ApiTestCase extends KernelTestCase
         return $user;
     }
 
-    public static function setUpBeforeClass(): void
-    {
-        self::bootKernel();
-        self::$client = new Client(
-            [
-                'base_uri' => 'http://localhost:80/'
-            ]
-        );
-
-        $autor = self::createAutor();
-        self::$autor_id = $autor->getId();
-        $client = $autor->getOauthClient();
+    protected static function getNewAccessToken(Usuario $usuario) {
+        $client = $usuario->getOauthClient();
         $client_id = $client->getPublicId();
         $secret = $client->getSecret();
 
@@ -82,31 +85,23 @@ class ApiTestCase extends KernelTestCase
         $response = self::$client->post('/api/oauth/v2/token', $options);
 
         $data = json_decode((string) $response->getBody());
-        self::$access_token = $data->access_token;
-
-        $options = [
-            'headers' => ['X-AUTH-CREDENTIALS' => true],
-            'form_params' => [
-                'client_id' => '',
-                'client_secret' => ''
-            ]
-        ];
-        $response = self::$client->post('/api/oauth/v2/token', $options);
+        return $data->access_token;
     }
 
-    public static function tearDownAfterClass() : void
+    public static function setUpBeforeClass(): void
     {
-        parent::tearDownAfterClass();
-        /** @var ObjectManager $em */
-        $em = self::getService('doctrine')->getManager();
-        $autor = $em->getRepository(Usuario::class)->find(self::$autor_id);
-        self::removeUsuario($autor);
+        self::bootKernel();
+        self::$client = new Client(
+            [
+                'base_uri' => 'http://localhost:80/'
+            ]
+        );
     }
 
-    protected static function removeUsuario($usuario) {
-        //TODO: cascade delete
+    protected static function removeUsuario($usuario)
+    {
         $em = self::getService('doctrine')->getManager();
-        if(!is_null($usuario)){
+        if (!is_null($usuario)) {
             $access_tokens = $em->getRepository(AccessToken::class)->findBy(["user" => $usuario->getId()]);
             foreach ($access_tokens as $token) {
                 $em->remove($token);

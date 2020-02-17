@@ -4,11 +4,14 @@ namespace App\EventListener;
 
 use App\ApiProblem;
 use JMS\Serializer\SerializerInterface;
+use OAuth2\OAuth2;
+use OAuth2\OAuth2AuthenticateException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
+use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -73,14 +76,40 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
-        // $response = new JsonResponse("hola");
         $event->setResponse($response);
+    }
+
+    public function onKernelResponse(ResponseEvent $e)
+    {
+        /** @var Response $response */
+        $response = $e->getResponse();
+        $data = json_decode($response->getContent(), true);
+        if ($data) {
+            if (array_key_exists("error", $data)) {
+                $this->logger->error(implode(",", $data));
+                if ($data["error"] == OAuth2::ERROR_INVALID_GRANT) {
+                    $devMessage = "El token expiró o es inválido";
+                    $usrMessage = "Ocurrió un error de autenticación";
+                } else {
+                    $devMessage = "Error desconocido";
+                    $usrMessage = "Ocurrió un error";
+                }
+
+                $apiProblem = new ApiProblem($response->getStatusCode(), $devMessage, $usrMessage);
+                $response = new JsonResponse(
+                    json_decode($this->serializer->serialize($apiProblem, "json")),
+                    $response->getStatusCode()
+                );
+                $e->setResponse($response);
+            }
+        }
     }
 
     public static function getSubscribedEvents()
     {
         return array(
-            KernelEvents::EXCEPTION => 'onKernelException'
+            KernelEvents::EXCEPTION => 'onKernelException',
+            KernelEvents::RESPONSE => 'onKernelResponse'
         );
     }
 }

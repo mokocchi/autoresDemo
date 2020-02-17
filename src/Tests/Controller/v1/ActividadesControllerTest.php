@@ -9,6 +9,7 @@ use App\Entity\Actividad;
 use App\Entity\Dominio;
 use App\Entity\Estado;
 use App\Entity\Idioma;
+use App\Entity\Planificacion;
 use App\Entity\TipoPlanificacion;
 use App\Entity\Usuario;
 use App\Test\ApiTestCase;
@@ -21,6 +22,7 @@ class ActividadesControllerTest extends ApiTestCase
     private static $dominioName = "Test";
     private static $actividadCodigo = "actividadtest";
     private static $dominioId;
+    private static $resourceUri;
 
     public static function setUpBeforeClass(): void
     {
@@ -32,6 +34,9 @@ class ActividadesControllerTest extends ApiTestCase
         $em->persist($dominio);
         $em->flush();
         self::$dominioId = $dominio->getId();
+        self::$resourceUri = self::$prefijo_api . "/actividades";
+        $usuario = self::createAutor();
+        self::$access_token = self::getNewAccessToken($usuario);
     }
 
     protected function tearDown(): void
@@ -39,9 +44,12 @@ class ActividadesControllerTest extends ApiTestCase
         parent::tearDown();
         /** @var ObjectManager $em */
         $em = self::getService("doctrine")->getManager();
-        $actividad = $em->getRepository(Actividad::class)->findOneBy(["codigo" => self::$actividadCodigo]);;
-        if ($actividad) {
+        $actividades = $em->getRepository(Actividad::class)->findBy(["codigo" => self::$actividadCodigo]);;
+        foreach ($actividades as $actividad) {
+            $planificacion = $actividad->getPlanificacion();
             $em->remove($actividad);
+            $em->flush();
+            $em->remove($planificacion);
             $em->flush();
         }
     }
@@ -72,6 +80,7 @@ class ActividadesControllerTest extends ApiTestCase
         $actividad->setIdioma($idioma);
         $tipoPlanificacion = $em->getRepository(TipoPlanificacion::class)->findOneBy(["nombre" => "Secuencial"]);
         $actividad->setTipoPlanificacion($tipoPlanificacion);
+        $actividad->setPlanificacion(new Planificacion());
         $estado = $em->getRepository(Estado::class)->findOneBy(["nombre" => "Privado"]);
         $actividad->setEstado($estado);
         if (!array_key_exists("autor", $actividad_array)) {
@@ -97,8 +106,6 @@ class ActividadesControllerTest extends ApiTestCase
 
     public function testPost()
     {
-        $uri = self::$prefijo_api . "/actividades";
-
         $options = [
             'headers' => ['Authorization' => self::getAuthHeader()],
             'json' => [
@@ -112,7 +119,7 @@ class ActividadesControllerTest extends ApiTestCase
             ]
         ];
 
-        $response = self::$client->post($uri, $options);
+        $response = self::$client->post(self::$resourceUri, $options);
         $this->assertTrue($response->hasHeader("Location"));
         $data = json_decode((string) $response->getBody(), true);
         $this->assertEquals([
@@ -141,8 +148,6 @@ class ActividadesControllerTest extends ApiTestCase
 
     public function testPostMissingFields()
     {
-        $uri = self::$prefijo_api . "/actividades";
-
         $options = [
             'headers' => ['Authorization' => self::getAuthHeader()],
             'json' => [
@@ -156,7 +161,7 @@ class ActividadesControllerTest extends ApiTestCase
         ];
 
         try {
-            self::$client->post($uri, $options);
+            self::$client->post(self::$resourceUri, $options);
         } catch (RequestException $e) {
             $this->assertEquals(Response::HTTP_BAD_REQUEST, $e->getResponse()->getStatusCode());
             $data = json_decode((string) $e->getResponse()->getBody(), true);
@@ -173,7 +178,7 @@ class ActividadesControllerTest extends ApiTestCase
     public function testPatch()
     {
         $id = $this->createDefaultActividad();
-        $uri = self::$prefijo_api . "/actividades/" . $id;
+        $uri = self::$resourceUri . "/" . $id;
         $options = [
             'headers' => ['Authorization' => self::getAuthHeader()],
             'json' => [
@@ -208,7 +213,7 @@ class ActividadesControllerTest extends ApiTestCase
     public function testPatchModifyCodigo()
     {
         $id = $this->createDefaultActividad();
-        $uri = self::$prefijo_api . "/actividades/" . $id;
+        $uri = self::$resourceUri . "/" . $id;
         $options = [
             "headers" => ["Authorization" => self::getAuthHeader()],
             "json" => [
@@ -233,14 +238,14 @@ class ActividadesControllerTest extends ApiTestCase
     public function testDelete()
     {
         $id = $this->createDefaultActividad();
-        $uri = self::$prefijo_api . "/actividades/" . $id;
+        $uri = self::$resourceUri . "/" . $id;
         $response = self::$client->delete($uri, self::getDefaultOptions());
         $this->assertEquals(Response::HTTP_NO_CONTENT, $response->getStatusCode());
     }
 
     public function testDeleteNotFound()
     {
-        $uri = self::$prefijo_api . "/actividades/" . 0;
+        $uri = self::$resourceUri . "/" . 0;
         $response = self::$client->delete($uri, self::getDefaultOptions());
         $this->assertEquals(Response::HTTP_NO_CONTENT, $response->getStatusCode());
     }
@@ -248,7 +253,7 @@ class ActividadesControllerTest extends ApiTestCase
     public function testGetOne()
     {
         $id = $this->createDefaultActividad();
-        $uri = self::$prefijo_api . "/actividades/" . $id;
+        $uri = self::$resourceUri . "/" . $id;
         $response = self::$client->get($uri, self::getDefaultOptions());
         $this->assertTrue($response->getStatusCode() == Response::HTTP_OK);
         $data = json_decode((string) $response->getBody(), true);
@@ -284,7 +289,7 @@ class ActividadesControllerTest extends ApiTestCase
             "autor" => "jp805313@gmail.com"
         ]);
 
-        $uri = self::$prefijo_api . "/actividades/" . $id;
+        $uri = self::$resourceUri . "/" . $id;
         try {
             self::$client->get($uri, self::getDefaultOptions());
         } catch (RequestException $e) {
@@ -302,7 +307,7 @@ class ActividadesControllerTest extends ApiTestCase
 
     public function testNotFoundGet()
     {
-        $uri = self::$prefijo_api . "/actividades/" . 0;
+        $uri = self::$resourceUri . "/" . 0;
         try {
             self::$client->get($uri, self::getDefaultOptions());
         } catch (RequestException $e) {

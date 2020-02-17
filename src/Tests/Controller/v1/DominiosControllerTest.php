@@ -3,6 +3,7 @@
 namespace App\Controller\Tests;
 
 use App\Entity\Dominio;
+use App\Entity\Usuario;
 use App\Test\ApiTestCase;
 use Doctrine\Persistence\ObjectManager;
 use GuzzleHttp\Exception\RequestException;
@@ -17,9 +18,11 @@ class DominioControllerTest extends ApiTestCase
     {
         parent::setUpBeforeClass();
         self::$resourceUri = self::$prefijo_api . "/dominios";
+        $usuario = self::createAutor();
+        self::$access_token = self::getNewAccessToken($usuario);
     }
 
-    protected function tearDown(): void
+    public function tearDown(): void
     {
         parent::tearDown();
         /** @var ObjectManager $em */
@@ -29,6 +32,16 @@ class DominioControllerTest extends ApiTestCase
             $em->remove($dominio);
             $em->flush();
         }
+        $usuario = $em->getRepository(Usuario::class)->findOneBy(["email" => "usuario@test.com"]);
+        self::removeUsuario($usuario);
+    }
+
+    public static function tearDownAfterClass(): void
+    {
+        /** @var ObjectManager $em */
+        $em = self::getService("doctrine")->getManager();
+        $autor = $em->getRepository(Usuario::class)->findOneBy(["email" => "autor@test.com"]);
+        self::removeUsuario($autor);
     }
 
     private function createDominio(?string $nombre = null): int
@@ -81,6 +94,11 @@ class DominioControllerTest extends ApiTestCase
                 "error_code",
                 "more_info"
             ], array_keys($data));
+
+            /** @var ObjectManager $em */
+            $em = self::getService("doctrine")->getManager();
+            $dominios = $em->getRepository(Dominio::class)->findBy(["nombre" => self::$dominioName]);
+            $this->assertEquals(1, count($dominios));
         }
     }
 
@@ -103,6 +121,50 @@ class DominioControllerTest extends ApiTestCase
 
     public function testPostForbidden()
     {
-        
+        $usuario = self::createUsuarioApp();
+        $access_token = self::getNewAccessToken($usuario);
+
+        $options = [
+            "headers" => ["Authorization" => "Bearer " . $access_token],
+            "json" => [
+                "nombre" => self::$dominioName
+            ]
+        ];
+        try {
+            self::$client->post(self::$resourceUri, $options);
+        } catch (RequestException $e) {
+            $this->assertEquals(Response::HTTP_FORBIDDEN, $e->getResponse()->getStatusCode());
+            $data = json_decode((string) $e->getResponse()->getBody(), true);
+            $this->assertEquals([
+                "status",
+                "developer_message",
+                "user_message",
+                "error_code",
+                "more_info"
+            ], array_keys($data));
+        }
+    }
+
+    public function testPostWrongToken()
+    {
+        $options = [
+            "headers" => ["Authorization" => "Bearer %token%"],
+            "json" => [
+                "nombre" => self::$dominioName
+            ]
+        ];
+        try {
+            self::$client->post(self::$resourceUri, $options);
+        } catch (RequestException $e) {
+            $data = json_decode((string) $e->getResponse()->getBody(), true);
+            $this->assertEquals(Response::HTTP_UNAUTHORIZED, $e->getResponse()->getStatusCode());
+            $this->assertEquals([
+                "status",
+                "developer_message",
+                "user_message",
+                "error_code",
+                "more_info"
+            ], array_keys($data));
+        }
     }
 }
