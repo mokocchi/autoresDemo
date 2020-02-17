@@ -200,8 +200,8 @@ class ActividadesController extends BaseController
             }
             if ($actividad->getEstado()->getNombre() == "Privado" && $actividad->getAutor()->getId() !== $this->getUser()->getId()) {
                 return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_UNAUTHORIZED, "La actividad es privada o no pertenece al usuario actual", "No se puede acceder a la actividad"),
-                    Response::HTTP_UNAUTHORIZED
+                    new ApiProblem(Response::HTTP_FORBIDDEN, "La actividad es privada o no pertenece al usuario actual", "No se puede acceder a la actividad"),
+                    Response::HTTP_FORBIDDEN
                 ));
             }
             return $this->handleView($this->getViewWithGroups($actividad, "autor"));
@@ -494,8 +494,8 @@ class ActividadesController extends BaseController
             $actividad = $actividadRepository->find($id);
             if ($actividad->getAutor() != $this->getUser()) {
                 return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_UNAUTHORIZED, "La actividad no pertenece al usuario actual", "No se puede acceder a la actividad"),
-                    Response::HTTP_UNAUTHORIZED
+                    new ApiProblem(Response::HTTP_FORBIDDEN, "La actividad no pertenece al usuario actual", "No se puede acceder a la actividad"),
+                    Response::HTTP_FORBIDDEN
                 ));
             }
             $data = json_decode($request->getContent(), true);
@@ -605,8 +605,8 @@ class ActividadesController extends BaseController
             $actividad = $em->getRepository(Actividad::class)->find($id);
             if ($actividad->getAutor() != $this->getUser()) {
                 return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_UNAUTHORIZED, "La actividad no pertenece al usuario actual", "No se puede acceder a la actividad"),
-                    Response::HTTP_UNAUTHORIZED
+                    new ApiProblem(Response::HTTP_FORBIDDEN, "La actividad no pertenece al usuario actual", "No se puede acceder a la actividad"),
+                    Response::HTTP_FORBIDDEN
                 ));
             }
             $em->remove($actividad);

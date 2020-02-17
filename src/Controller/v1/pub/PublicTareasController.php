@@ -81,8 +81,8 @@ class PublicTareasController extends BaseController
             }
             if ($tarea->getEstado()->getNombre() == "Privado") {
                 return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_UNAUTHORIZED, "La tarea es privada", "No se puede acceder a la actividad"),
-                    Response::HTTP_UNAUTHORIZED
+                    new ApiProblem(Response::HTTP_FORBIDDEN, "La tarea es privada", "No se puede acceder a la actividad"),
+                    Response::HTTP_FORBIDDEN
                 ));
             }
 
