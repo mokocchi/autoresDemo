@@ -11,6 +11,13 @@ use Symfony\Component\HttpFoundation\Response;
 class DominioControllerTest extends ApiTestCase
 {
     private static $dominioName = "Test";
+    private static $resourceUri;
+
+    public static function setUpBeforeClass(): void
+    {
+        parent::setUpBeforeClass();
+        self::$resourceUri = self::$prefijo_api . "/dominios";
+    }
 
     protected function tearDown(): void
     {
@@ -24,7 +31,7 @@ class DominioControllerTest extends ApiTestCase
         }
     }
 
-    private function createDominio(?string $nombre=null): int
+    private function createDominio(?string $nombre = null): int
     {
         /** @var ObjectManager $em */
         $em = self::getService("doctrine")->getManager();
@@ -35,10 +42,8 @@ class DominioControllerTest extends ApiTestCase
         return $dominio->getId();
     }
 
-    public function testpost()
+    public function testPostDominioAction()
     {
-        $uri = self::$prefijo_api . "/dominios";
-
         $options = [
             'headers' => ['Authorization' => self::getAuthHeader()],
             'json' => [
@@ -46,7 +51,7 @@ class DominioControllerTest extends ApiTestCase
             ]
         ];
 
-        $response = self::$client->post($uri, $options);
+        $response = self::$client->post(self::$resourceUri, $options);
         $this->assertTrue($response->hasHeader("Location"));
         $data = json_decode((string) $response->getBody(), true);
         $this->assertArrayHasKey("nombre", $data);
@@ -56,7 +61,6 @@ class DominioControllerTest extends ApiTestCase
     public function testPostTwice()
     {
         $this->createDominio();
-        $uri = self::$prefijo_api . "/dominios";
 
         $options = [
             'headers' => ['Authorization' => self::getAuthHeader()],
@@ -66,7 +70,7 @@ class DominioControllerTest extends ApiTestCase
         ];
 
         try {
-            self::$client->post($uri, $options);
+            self::$client->post(self::$resourceUri, $options);
         } catch (RequestException $e) {
             $this->assertEquals(Response::HTTP_BAD_REQUEST, $e->getResponse()->getStatusCode());
             $data = json_decode((string) $e->getResponse()->getBody(), true);
@@ -76,7 +80,29 @@ class DominioControllerTest extends ApiTestCase
                 "user_message",
                 "error_code",
                 "more_info"
-            ],array_keys($data));
+            ], array_keys($data));
         }
+    }
+
+    public function testPostUnauthorized()
+    {
+        try {
+            self::$client->post(self::$resourceUri);
+        } catch (RequestException $e) {
+            $this->assertEquals(Response::HTTP_UNAUTHORIZED, $e->getResponse()->getStatusCode());
+            $data = json_decode((string) $e->getResponse()->getBody(), true);
+            $this->assertEquals([
+                "status",
+                "developer_message",
+                "user_message",
+                "error_code",
+                "more_info"
+            ], array_keys($data));
+        }
+    }
+
+    public function testPostForbidden()
+    {
+        
     }
 }

@@ -46,7 +46,7 @@ class ActividadesControllerTest extends ApiTestCase
         }
     }
 
-    public static function tearDownAfterClass()
+    public static function tearDownAfterClass(): void
     {
         parent::tearDownAfterClass();
         /** @var ObjectManager $em */
@@ -135,7 +135,7 @@ class ActividadesControllerTest extends ApiTestCase
         $this->assertEquals("es", $data["idioma"]["code"]);
         $this->assertEquals("Secuencial", $data["tipo_planificacion"]["nombre"]);
         $this->assertEquals("Privado", $data["estado"]["nombre"]);
-        $this->assertEquals("Ana", $data["autor"]["nombre"]);
+        $this->assertEquals("Pedro", $data["autor"]["nombre"]);
     }
 
 
@@ -166,7 +166,7 @@ class ActividadesControllerTest extends ApiTestCase
                 "user_message",
                 "error_code",
                 "more_info"
-            ],array_keys($data));
+            ], array_keys($data));
         }
     }
 
@@ -201,7 +201,7 @@ class ActividadesControllerTest extends ApiTestCase
                 "user_message",
                 "error_code",
                 "more_info"
-            ],array_keys($data));
+            ], array_keys($data));
         }
     }
 
@@ -226,7 +226,7 @@ class ActividadesControllerTest extends ApiTestCase
                 "user_message",
                 "error_code",
                 "more_info"
-            ],array_keys($data));
+            ], array_keys($data));
         }
     }
 
@@ -272,7 +272,7 @@ class ActividadesControllerTest extends ApiTestCase
         $this->assertEquals("es", $data["idioma"]["code"]);
         $this->assertEquals("Secuencial", $data["tipo_planificacion"]["nombre"]);
         $this->assertEquals("Privado", $data["estado"]["nombre"]);
-        $this->assertEquals("Ana", $data["autor"]["nombre"]);
+        $this->assertEquals("Pedro", $data["autor"]["nombre"]);
     }
 
     public function testAccessDeniedGet()
@@ -296,7 +296,7 @@ class ActividadesControllerTest extends ApiTestCase
                 "user_message",
                 "error_code",
                 "more_info"
-            ],array_keys($data));
+            ], array_keys($data));
         }
     }
 
@@ -314,7 +314,7 @@ class ActividadesControllerTest extends ApiTestCase
                 "user_message",
                 "error_code",
                 "more_info"
-            ],array_keys($data));
+            ], array_keys($data));
         }
     }
 }
