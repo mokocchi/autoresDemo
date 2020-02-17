@@ -516,9 +516,6 @@
     "symfony/stopwatch": {
         "version": "v4.4.1"
     },
-    "symfony/templating": {
-        "version": "v4.4.4"
-    },
     "symfony/test-pack": {
         "version": "v1.0.6"
     },
