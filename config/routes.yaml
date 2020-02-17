@@ -4,13 +4,19 @@
 v1_controllers:
     resource: ../src/Controller/v1
     type: annotation
-    prefix: '/api/v1.0'
+    prefix: "/api/v1.0"
+    defaults:
+        _format: json
 auth_controllers:
     resource: ../src/Controller/auth
     type: annotation
-    prefix: '/api'
+    prefix: "/api"
+    defaults:
+        _format: json
 
 v1_public_controllers:
     resource: ../src/Controller/v1/pub
     type: annotation
-    prefix: '/api/v1.0/public'
+    prefix: "/api/v1.0/public"
+    defaults:
+        _format: json

@@ -83,7 +83,7 @@ class DominiosController extends BaseController
             $data = json_decode($request->getContent(), true);
             if (is_null($data)) {
                 return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_BAD_REQUEST, "No hay campos json en el request", "No se puede crear una actividad con datos vacíos"),
+                    new ApiProblem(Response::HTTP_BAD_REQUEST, "JSON inválido", "Hubo un problema con la petición"),
                     Response::HTTP_BAD_REQUEST
                 ));
             }

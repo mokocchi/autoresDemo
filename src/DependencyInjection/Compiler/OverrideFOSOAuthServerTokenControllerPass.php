@@ -4,6 +4,7 @@ namespace App\DependencyInjection\Compiler;
 
 use App\Controller\auth\TokenController as AuthTokenController;
 use App\Security\OAuthEntryPoint;
+use JMS\Serializer\SerializerInterface;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
@@ -19,5 +20,6 @@ class OverrideFOSOAuthServerTokenControllerPass implements CompilerPassInterface
 
     $definition = $container->getDefinition('fos_oauth_server.security.entry_point');
     $definition->setClass(OAuthEntryPoint::class);
+    $definition->addArgument(new Reference('jms_serializer'));
   }
 }

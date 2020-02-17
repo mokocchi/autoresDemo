@@ -1,10 +1,12 @@
 <?php
+
 namespace App\Form;
 
 use App\Entity\Actividad;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class ActividadType extends AbstractType
@@ -14,19 +16,20 @@ class ActividadType extends AbstractType
     $builder
       ->add('nombre')
       ->add('objetivo')
-      ->add('codigo')
+      ->add('codigo', TextType::class, [
+        'disabled' => $options['is_edit']
+      ])
       ->add('dominio')
       ->add('idioma')
       ->add('tipoPlanificacion')
-      ->add('estado')
-      ->add('save', SubmitType::class)
-    ;
+      ->add('estado');
   }
   public function configureOptions(OptionsResolver $resolver)
   {
     $resolver->setDefaults(array(
       'data_class' => Actividad::class,
-      'csrf_protection' => false
+      'csrf_protection' => false,
+      'is_edit' => false
     ));
   }
 }

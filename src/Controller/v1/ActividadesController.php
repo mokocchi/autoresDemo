@@ -69,7 +69,7 @@ class ActividadesController extends BaseController
         try {
             $repository = $this->getDoctrine()->getRepository(Actividad::class);
             $codigo = $request->query->get("codigo");
-            if(is_null($codigo)){
+            if (is_null($codigo)) {
                 $actividades = $repository->findAll();
             } else {
                 $actividades = $repository->findBy(["codigo" => $codigo]);
@@ -269,7 +269,7 @@ class ActividadesController extends BaseController
      *     description="Objetivo de la actividad",
      *     schema={}
      * )
-     *
+     * 
      * @SWG\Parameter(
      *     required=true,
      *     name="codigo",
@@ -327,7 +327,7 @@ class ActividadesController extends BaseController
             $data = json_decode($request->getContent(), true);
             if (is_null($data)) {
                 return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_BAD_REQUEST, "No hay campos json en el request", "No se puede crear una actividad con datos vacíos"),
+                    new ApiProblem(Response::HTTP_BAD_REQUEST, "JSON inválido", "Hubo un problema con la petición"),
                     Response::HTTP_BAD_REQUEST
                 ));
             }
@@ -375,7 +375,8 @@ class ActividadesController extends BaseController
                 return $this->handleView($this->setGroupToView($this->view($actividad, Response::HTTP_CREATED, ["Location" => $url]), "autor"));
             } else {
                 $this->logger->alert("Datos inválidos: ");
-                $this->logger->alert($form->getErrors(true)); exit;
+                $this->logger->alert($form->getErrors(true));
+                exit;
                 return $this->handleView($this->view(
                     new ApiProblem(Response::HTTP_BAD_REQUEST, "Se recibieron datos inválidos", "Datos inválidos"),
                     Response::HTTP_BAD_REQUEST
@@ -392,7 +393,7 @@ class ActividadesController extends BaseController
 
     /**
      * Actualiza una actividad
-     * @Rest\Put("/{id}",name="put_actividad")
+     * @Rest\Patch("/{id}",name="put_actividad")
      * @IsGranted("ROLE_AUTOR")
      *
      * @SWG\Response(
@@ -485,7 +486,7 @@ class ActividadesController extends BaseController
      * 
      * @return Response
      */
-    public function putActividadAction(Request $request, $id)
+    public function patchActividadAction(Request $request, $id)
     {
         try {
             $em = $this->getDoctrine()->getManager();
@@ -501,7 +502,14 @@ class ActividadesController extends BaseController
             $data = json_decode($request->getContent(), true);
             if (is_null($data)) {
                 return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_BAD_REQUEST, "No hay campos json en el request", "No se puede crear una actividad con datos vacíos"),
+                    new ApiProblem(Response::HTTP_BAD_REQUEST, "JSON inválido", "Hubo un problema con la petición"),
+                    Response::HTTP_BAD_REQUEST
+                ));
+            }
+
+            if (array_key_exists("codigo", $data)) {
+                return $this->handleView($this->view(
+                    new ApiProblem(Response::HTTP_BAD_REQUEST, "No se puede modificar el código de una actividad", "No se puede modificar el código de una actividad"),
                     Response::HTTP_BAD_REQUEST
                 ));
             }
@@ -603,6 +611,9 @@ class ActividadesController extends BaseController
         try {
             $em = $this->getDoctrine()->getManager();
             $actividad = $em->getRepository(Actividad::class)->find($id);
+            if (is_null($actividad)) {
+                return $this->handleView($this->view(null, Response::HTTP_NO_CONTENT));
+            }
             if ($actividad->getAutor() != $this->getUser()) {
                 return $this->handleView($this->view(
                     new ApiProblem(Response::HTTP_FORBIDDEN, "La actividad no pertenece al usuario actual", "No se puede acceder a la actividad"),
@@ -611,7 +622,7 @@ class ActividadesController extends BaseController
             }
             $em->remove($actividad);
             $em->flush();
-            $this->handleView($this->view(null, Response::HTTP_NO_CONTENT));
+            return $this->handleView($this->view(null, Response::HTTP_NO_CONTENT));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
             return $this->handleView($this->view(

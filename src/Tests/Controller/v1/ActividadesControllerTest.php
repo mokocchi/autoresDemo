@@ -159,10 +159,18 @@ class ActividadesControllerTest extends ApiTestCase
             self::$client->post($uri, $options);
         } catch (RequestException $e) {
             $this->assertEquals(Response::HTTP_BAD_REQUEST, $e->getResponse()->getStatusCode());
+            $data = json_decode((string) $e->getResponse()->getBody(), true);
+            $this->assertEquals([
+                "status",
+                "developer_message",
+                "user_message",
+                "error_code",
+                "more_info"
+            ],array_keys($data));
         }
     }
 
-    public function testPut()
+    public function testPatch()
     {
         $id = $this->createDefaultActividad();
         $uri = self::$prefijo_api . "/actividades/" . $id;
@@ -172,20 +180,53 @@ class ActividadesControllerTest extends ApiTestCase
                 "nombre" => "Actividad test 2"
             ]
         ];
-        $response = self::$client->put($uri, $options);
+        $response = self::$client->patch($uri, $options);
         $data = json_decode((string) $response->getBody(), true);
         $this->assertArrayHasKey("nombre", $data);
         $this->assertTrue($data["nombre"] == "Actividad test 2");
     }
 
-    public function PutMissingJson()
+    public function testPatchMissingJson()
     {
         $id = $this->createDefaultActividad();
         $uri = self::$prefijo_api . "/actividades/" . $id; //TODO: id por codigos
         try {
-            self::$client->put($uri, self::getDefaultOptions());
+            self::$client->patch($uri, self::getDefaultOptions());
         } catch (RequestException $e) {
             $this->assertEquals(Response::HTTP_BAD_REQUEST, $e->getResponse()->getStatusCode());
+            $data = json_decode((string) $e->getResponse()->getBody(), true);
+            $this->assertEquals([
+                "status",
+                "developer_message",
+                "user_message",
+                "error_code",
+                "more_info"
+            ],array_keys($data));
+        }
+    }
+
+    public function testPatchModifyCodigo()
+    {
+        $id = $this->createDefaultActividad();
+        $uri = self::$prefijo_api . "/actividades/" . $id;
+        $options = [
+            "headers" => ["Authorization" => self::getAuthHeader()],
+            "json" => [
+                "codigo" => "codigonuevo"
+            ]
+        ];
+        try {
+            self::$client->patch($uri, $options);
+        } catch (RequestException $e) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $e->getResponse()->getStatusCode());
+            $data = json_decode((string) $e->getResponse()->getBody(), true);
+            $this->assertEquals([
+                "status",
+                "developer_message",
+                "user_message",
+                "error_code",
+                "more_info"
+            ],array_keys($data));
         }
     }
 
@@ -193,6 +234,13 @@ class ActividadesControllerTest extends ApiTestCase
     {
         $id = $this->createDefaultActividad();
         $uri = self::$prefijo_api . "/actividades/" . $id;
+        $response = self::$client->delete($uri, self::getDefaultOptions());
+        $this->assertEquals(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+    }
+
+    public function testDeleteNotFound()
+    {
+        $uri = self::$prefijo_api . "/actividades/" . 0;
         $response = self::$client->delete($uri, self::getDefaultOptions());
         $this->assertEquals(Response::HTTP_NO_CONTENT, $response->getStatusCode());
     }
@@ -241,6 +289,14 @@ class ActividadesControllerTest extends ApiTestCase
             self::$client->get($uri, self::getDefaultOptions());
         } catch (RequestException $e) {
             $this->assertEquals(Response::HTTP_FORBIDDEN, $e->getResponse()->getStatusCode());
+            $data = json_decode((string) $e->getResponse()->getBody(), true);
+            $this->assertEquals([
+                "status",
+                "developer_message",
+                "user_message",
+                "error_code",
+                "more_info"
+            ],array_keys($data));
         }
     }
 
@@ -251,6 +307,14 @@ class ActividadesControllerTest extends ApiTestCase
             self::$client->get($uri, self::getDefaultOptions());
         } catch (RequestException $e) {
             $this->assertEquals(Response::HTTP_NOT_FOUND, $e->getResponse()->getStatusCode());
+            $data = json_decode((string) $e->getResponse()->getBody(), true);
+            $this->assertEquals([
+                "status",
+                "developer_message",
+                "user_message",
+                "error_code",
+                "more_info"
+            ],array_keys($data));
         }
     }
 }
