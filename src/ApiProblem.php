@@ -22,5 +22,6 @@ class ApiProblem
         $this->developerMessage = $developerMessage;
         $this->userMessage = $userMessage;
         $this->errorCode = 1;
+        $this->moreInfo = $_ENV["SITE_BASE_URL"] . '/api/doc';
     }
 }

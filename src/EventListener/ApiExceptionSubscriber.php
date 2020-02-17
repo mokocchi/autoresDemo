@@ -14,6 +14,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 class ApiExceptionSubscriber implements EventSubscriberInterface
@@ -39,6 +40,9 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
             } elseif ($e instanceof AccessDeniedHttpException) {
                 $devMessage = "No tenés los permisos suficientes para acceder al recurso";
                 $usrMessage = "Acceso denegado";
+            } elseif ($e instanceof UnauthorizedHttpException) {
+                $devMessage = "No se recibió información de autorización";
+                $usrMessage = "No autorizado";
             } elseif ($e instanceof BadRequestHttpException) {
                 $devMessage = "Hubo un problema con el request";
                 $usrMessage = "Datos inválidos";
