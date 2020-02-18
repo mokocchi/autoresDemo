@@ -33,7 +33,7 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
     public function onKernelException(ExceptionEvent $event)
     {
         $e = $event->getThrowable();
-        $this->logger->error($e->getMessage());
+        $this->logger->error($e->getMessage() . "\n" . $e->getLine() . "\n" . $e->getFile() . "\n" . $e->getTraceAsString());
 
         if ($e instanceof HttpException) {
             if ($e instanceof ApiProblemException) {
@@ -119,7 +119,7 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
         $response = $e->getResponse();
         $data = json_decode($response->getContent(), true);
         if ($data) {
-            if (array_key_exists("error", $data)) {
+            if (is_array($data) && array_key_exists("error", $data)) {
                 $this->logger->error(implode(",", $data));
                 if ($data["error"] == OAuth2::ERROR_INVALID_GRANT) {
                     $devMessage = "El token expiró o es inválido";

@@ -32,6 +32,7 @@ class TokenControllerTest extends ApiTestCase
         self::removeUsuario($autor);
     }
 
+    /** @group failing */
     public function testTokenAction()
     {
         $client = self::$usuario->getOauthClient();
@@ -47,7 +48,11 @@ class TokenControllerTest extends ApiTestCase
         ];
         $response = self::$client->post(self::$token_uri, $options);
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+        dd((string) $response->getBody());
         $data = json_decode((string) $response->getBody(), true);
+        if(is_null($data)) {
+            $data = [];
+        }
         $this->assertEquals(
             [
                 "access_token",
