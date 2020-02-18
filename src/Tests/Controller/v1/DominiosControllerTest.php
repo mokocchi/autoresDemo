@@ -13,12 +13,16 @@ class DominioControllerTest extends ApiTestCase
 {
     private static $dominioName = "Test";
     private static $resourceUri;
+    private static $publicResourceUri;
+    private static $autorEmail = "autor@test.com";
+    private static $usuarioEmail = "usuario@test.com";
 
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
         self::$resourceUri = self::$prefijo_api . "/dominios";
-        $usuario = self::createAutor();
+        self::$publicResourceUri = self::$prefijo_api . "/public/dominios";
+        $usuario = self::createAutor(self::$autorEmail);
         self::$access_token = self::getNewAccessToken($usuario);
     }
 
@@ -32,16 +36,13 @@ class DominioControllerTest extends ApiTestCase
             $em->remove($dominio);
             $em->flush();
         }
-        $usuario = $em->getRepository(Usuario::class)->findOneBy(["email" => "usuario@test.com"]);
-        self::removeUsuario($usuario);
+        self::removeUsuario(self::$usuarioEmail);
     }
 
     public static function tearDownAfterClass(): void
     {
         /** @var ObjectManager $em */
-        $em = self::getService("doctrine")->getManager();
-        $autor = $em->getRepository(Usuario::class)->findOneBy(["email" => "autor@test.com"]);
-        self::removeUsuario($autor);
+        self::removeUsuario(self::$autorEmail);
     }
 
     private function createDominio(?string $nombre = null): int
@@ -84,6 +85,7 @@ class DominioControllerTest extends ApiTestCase
 
         try {
             self::$client->post(self::$resourceUri, $options);
+            $this->fail("No se detectó el dominio repetido");
         } catch (RequestException $e) {
             self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
 
@@ -96,44 +98,19 @@ class DominioControllerTest extends ApiTestCase
 
     public function testPostUnauthorized()
     {
-        try {
-            self::$client->post(self::$resourceUri);
-        } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_UNAUTHORIZED);
-        }
+        $this->assertUnauthorized(self::POST, self::$resourceUri);
     }
 
     public function testPostForbidden()
     {
-        $usuario = self::createUsuarioApp();
+        $usuario = self::createUsuarioApp(self::$usuarioEmail);
         $access_token = self::getNewAccessToken($usuario);
-
-        $options = [
-            "headers" => ["Authorization" => "Bearer " . $access_token],
-            "json" => [
-                "nombre" => self::$dominioName
-            ]
-        ];
-        try {
-            self::$client->post(self::$resourceUri, $options);
-        } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_FORBIDDEN);
-        }
+        $this->assertForbidden(self::POST, self::$resourceUri, $access_token);
     }
 
     public function testPostWrongToken()
     {
-        $options = [
-            "headers" => ["Authorization" => "Bearer %token%"],
-            "json" => [
-                "nombre" => self::$dominioName
-            ]
-        ];
-        try {
-            self::$client->post(self::$resourceUri, $options);
-        } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_UNAUTHORIZED);
-        }
+        $this->assertWrongToken(self::POST, self::$resourceUri);
     }
 
     public function testPostNoJson()
@@ -153,11 +130,11 @@ class DominioControllerTest extends ApiTestCase
     {
         $options = [
             "headers" => ["Authorization" => "Bearer " . self::$access_token],
-            "json" => [
-            ]
+            "json" => []
         ];
         try {
             self::$client->post(self::$resourceUri, $options);
+            $this->fail("No se detectó que no se envió un nombre");
         } catch (RequestException $e) {
             self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
         }

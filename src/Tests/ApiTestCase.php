@@ -7,12 +7,18 @@ use App\Entity\Client as EntityClient;
 use App\Entity\Role;
 use App\Entity\Usuario;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 use OAuth2\OAuth2;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
 class ApiTestCase extends KernelTestCase
 {
+    protected const GET = "GET";
+    protected const POST = "POST";
+    protected const PATCH = "PATCH";
+    protected const PUT = "PUT";
+    protected const DELETE = "DELETE";
 
     protected static $client;
     protected static $access_token;
@@ -24,6 +30,7 @@ class ApiTestCase extends KernelTestCase
         "error_code",
         "more_info"
     ];
+
     protected static function getAuthHeader()
     {
         return 'Bearer ' . self::$access_token;
@@ -46,10 +53,16 @@ class ApiTestCase extends KernelTestCase
         $this->assertApiProblemResponse($response);
     }
 
-    protected static function createAutor()
+    protected function dumpError(RequestException $e)
+    {
+        $data = json_decode((string) $e->getResponse()->getBody(), true);
+        dd($data["user_message"]);
+    }
+
+    protected static function createAutor(string $email)
     {
         return self::createUsuario([
-            "email" => "autor@test.com",
+            "email" => $email,
             "nombre" => "Pedro",
             "apellido" => "Sánchez",
             "googleid" => "2000",
@@ -57,10 +70,10 @@ class ApiTestCase extends KernelTestCase
         ]);
     }
 
-    protected static function createUsuarioApp()
+    protected static function createUsuarioApp($email)
     {
         return self::createUsuario([
-            "email" => "usuario@test.com",
+            "email" => "$email",
             "nombre" => "María",
             "apellido" => "Del Carril",
             "googleid" => "3000",
@@ -119,9 +132,10 @@ class ApiTestCase extends KernelTestCase
         );
     }
 
-    protected static function removeUsuario($usuario)
+    protected static function removeUsuario($email)
     {
         $em = self::getService('doctrine')->getManager();
+        $usuario = $em->getRepository(Usuario::class)->findOneBy(["email" => $email]);
         if (!is_null($usuario)) {
             $access_tokens = $em->getRepository(AccessToken::class)->findBy(["user" => $usuario->getId()]);
             foreach ($access_tokens as $token) {
@@ -129,6 +143,9 @@ class ApiTestCase extends KernelTestCase
             }
             $em->flush();
             $em->remove($usuario);
+            $em->flush();
+            $client = $usuario->getOauthClient();
+            $em->remove($client);
             $em->flush();
         }
     }
@@ -140,5 +157,89 @@ class ApiTestCase extends KernelTestCase
     protected static function getService($id)
     {
         return self::$kernel->getContainer()->get($id);
+    }
+
+    protected function assertUnauthorized($method, $uri)
+    {
+        try {
+            switch ($method) {
+                case self::GET:
+                    self::$client->get($uri);
+                    break;
+                case self::POST:
+                    self::$client->post($uri);
+                    break;
+                case self::PUT:
+                    self::$client->put($uri);
+                    break;
+                case self::PATCH:
+                    self::$client->patch($uri);
+                    break;
+                case self::DELETE:
+                    self::$client->delete($uri);
+                default:
+                    break;
+            }
+        } catch (RequestException $e) {
+            self::assertErrorResponse($e->getResponse(), Response::HTTP_UNAUTHORIZED);
+        }
+    }
+
+    protected function assertForbidden($method, $uri, $access_token)
+    {
+        $options = [
+            "headers" => ["Authorization" => "Bearer " . $access_token]
+        ];
+        try {
+            switch ($method) {
+                case self::GET:
+                    self::$client->get($uri, $options);
+                    break;
+                case self::POST:
+                    self::$client->post($uri, $options);
+                    break;
+                case self::PUT:
+                    self::$client->put($uri, $options);
+                    break;
+                case self::PATCH:
+                    self::$client->patch($uri, $options);
+                    break;
+                case self::DELETE:
+                    self::$client->delete($uri, $options);
+                default:
+                    break;
+            }
+        } catch (RequestException $e) {
+            self::assertErrorResponse($e->getResponse(), Response::HTTP_FORBIDDEN);
+        }
+    }
+
+    protected function assertWrongToken($method, $uri)
+    {
+        $options = [
+            "headers" => ["Authorization" => "Bearer %token%"]
+        ];
+        try {
+            switch ($method) {
+                case self::GET:
+                    self::$client->get($uri, $options);
+                    break;
+                case self::POST:
+                    self::$client->post($uri, $options);
+                    break;
+                case self::PUT:
+                    self::$client->put($uri, $options);
+                    break;
+                case self::PATCH:
+                    self::$client->patch($uri, $options);
+                    break;
+                case self::DELETE:
+                    self::$client->delete($uri, $options);
+                default:
+                    break;
+            }
+        } catch (RequestException $e) {
+            self::assertErrorResponse($e->getResponse(), Response::HTTP_UNAUTHORIZED);
+        }
     }
 }

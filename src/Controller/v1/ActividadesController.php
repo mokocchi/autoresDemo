@@ -3,6 +3,7 @@
 namespace App\Controller\v1;
 
 use App\ApiProblem;
+use App\ApiProblemException;
 use App\Controller\BaseController;
 use App\Entity\Actividad;
 use App\Entity\Dominio;
@@ -13,7 +14,6 @@ use App\Entity\Salto;
 use App\Entity\Tarea;
 use App\Entity\TipoPlanificacion;
 use App\Form\ActividadType;
-use Exception;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -66,22 +66,14 @@ class ActividadesController extends BaseController
      */
     public function getActividadesAction(Request $request)
     {
-        try {
-            $repository = $this->getDoctrine()->getRepository(Actividad::class);
-            $codigo = $request->query->get("codigo");
-            if (is_null($codigo)) {
-                $actividades = $repository->findAll();
-            } else {
-                $actividades = $repository->findBy(["codigo" => $codigo]);
-            }
-            return $this->handleView($this->getViewWithGroups(["results" => $actividades], "autor"));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
+        $repository = $this->getDoctrine()->getRepository(Actividad::class);
+        $codigo = $request->query->get("codigo");
+        if (is_null($codigo)) {
+            $actividades = $repository->findAll();
+        } else {
+            $actividades = $repository->findBy(["codigo" => $codigo]);
         }
+        return $this->handleView($this->getViewWithGroups(["results" => $actividades], "autor"));
     }
 
     /**
@@ -123,19 +115,65 @@ class ActividadesController extends BaseController
      */
     public function getActividadesForUserAction()
     {
-        try {
-            $user = $this->getUser();
-            $repository = $this->getDoctrine()->getRepository(Actividad::class);
-            $actividades = $repository->findBy(["autor" => $user]);
-            return $this->handleView($this->getViewWithGroups(["results" => $actividades], "autor"));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
+        $user = $this->getUser();
+        $repository = $this->getDoctrine()->getRepository(Actividad::class);
+        $actividades = $repository->findBy(["autor" => $user]);
+        return $this->handleView($this->getViewWithGroups(["results" => $actividades], "autor"));
+    }
+
+    private function checkRequiredParameters(array $parameters, array $data)
+    {
+        foreach ($parameters as $parameter) {
+            if (!array_key_exists($parameter, $data) || is_null($data[$parameter])) {
+                throw new ApiProblemException(
+                    new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos")
+                );
+            }
         }
     }
+
+    private function checkAccessActividad($actividad)
+    {
+        if ($actividad->getEstado()->getNombre() == "Privado" && $actividad->getAutor()->getId() !== $this->getUser()->getId()) {
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_FORBIDDEN, "La actividad es privada o no pertenece al usuario actual", "No se puede acceder a la actividad")
+            );
+        }
+    }
+
+    private function checkOwnActividad($actividad)
+    {
+        if ($actividad->getAutor()->getId() !== $this->getUser()->getId()) {
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_FORBIDDEN, "La actividad no pertenece al usuario actual", "No se puede acceder a la actividad"),
+            );
+        }
+    }
+
+    private function checkCodigoNotUsed($codigo)
+    {
+        $actividadDb = $this->getDoctrine()->getRepository(Actividad::class)->findOneBy(["codigo" => $codigo]);
+
+        if (!is_null($actividadDb)) {
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_BAD_REQUEST, "Ya existe una actividad con el mismo código", "Ya existe una actividad con el mismo código")
+            );
+        }
+    }
+
+    private function checkActividadFound($id)
+    {
+        $em = $this->getDoctrine()->getManager();
+        $actividadRepository = $em->getRepository(Actividad::class);
+        $actividad = $actividadRepository->find($id);
+        if (is_null($actividad)) {
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_NOT_FOUND, "No se encontró ninguna actividad con ese id", "No se encontró la actividad")
+            );
+        }
+        return $actividad;
+    }
+
 
     /**
      * Muestra una actividad
@@ -189,29 +227,15 @@ class ActividadesController extends BaseController
      */
     public function showActividadAction($id)
     {
-        try {
-            $repository = $this->getDoctrine()->getRepository(Actividad::class);
-            $actividad = $repository->find($id);
-            if (is_null($actividad)) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
-                    Response::HTTP_NOT_FOUND
-                ));
-            }
-            if ($actividad->getEstado()->getNombre() == "Privado" && $actividad->getAutor()->getId() !== $this->getUser()->getId()) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_FORBIDDEN, "La actividad es privada o no pertenece al usuario actual", "No se puede acceder a la actividad"),
-                    Response::HTTP_FORBIDDEN
-                ));
-            }
-            return $this->handleView($this->getViewWithGroups($actividad, "autor"));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
+        $repository = $this->getDoctrine()->getRepository(Actividad::class);
+        $actividad = $repository->find($id);
+        if (is_null($actividad)) {
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad")
+            );
         }
+        $this->checkAccessActividad($actividad);
+        return $this->handleView($this->getViewWithGroups($actividad, "autor"));
     }
 
     /**
@@ -321,73 +345,30 @@ class ActividadesController extends BaseController
      */
     public function postActividadAction(Request $request)
     {
-        try {
-            $actividad = new Actividad();
-            $form = $this->createForm(ActividadType::class, $actividad);
-            $data = json_decode($request->getContent(), true);
-            if (is_null($data)) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_BAD_REQUEST, "JSON inválido", "Hubo un problema con la petición"),
-                    Response::HTTP_BAD_REQUEST
-                ));
-            }
-            $form->submit($data);
-            $this->logger->alert(json_encode($data));
-            if ($form->isSubmitted() && $form->isValid()) {
-                if (
-                    !array_key_exists("nombre", $data) ||
-                    is_null($data["nombre"]) ||
-                    !array_key_exists("objetivo", $data) ||
-                    is_null($data["objetivo"]) ||
-                    !array_key_exists("codigo", $data) ||
-                    is_null($data["codigo"]) ||
-                    !array_key_exists("dominio", $data) ||
-                    is_null($data["dominio"]) ||
-                    !array_key_exists("idioma", $data) ||
-                    is_null($data["idioma"]) ||
-                    !array_key_exists("tipoPlanificacion", $data) ||
-                    is_null($data["tipoPlanificacion"]) ||
-                    !array_key_exists("estado", $data) ||
-                    is_null($data["objetivo"])
-                ) {
-                    return $this->handleView($this->view(
-                        new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos"),
-                        Response::HTTP_BAD_REQUEST
-                    ));
-                }
-                $em = $this->getDoctrine()->getManager();
-                $actividadDb = $em->getRepository(Actividad::class)->findOneBy(["codigo" => $data["codigo"]]);
-                if (!is_null($actividadDb)) {
-                    return $this->handleView($this->view(
-                        new ApiProblem(Response::HTTP_BAD_REQUEST, "Ya existe una actividad con el mismo código", "Ya existe una actividad con el mismo código"),
-                        Response::HTTP_BAD_REQUEST
-                    ));
-                }
-                $planificacion = new Planificacion();
-                $em->persist($planificacion);
-                $em->flush();
-                $actividad->setPlanificacion($planificacion);
-                $actividad->setAutor($this->getUser());
-                $em->persist($actividad);
-                $em->flush();
+        $actividad = new Actividad();
+        $form = $this->createForm(ActividadType::class, $actividad);
+        $data = $this->getJsonData($request);
+        $this->checkRequiredParameters(["nombre", "objetivo", "codigo", "dominio", "idioma", "tipoPlanificacion", "estado"], $data);
+        $this->checkCodigoNotUsed($data["codigo"]);
+        $form->submit($data);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $em = $this->getDoctrine()->getManager();
+            $planificacion = new Planificacion();
+            $em->persist($planificacion);
+            $em->flush();
+            $actividad->setPlanificacion($planificacion);
+            $actividad->setAutor($this->getUser());
+            $em->persist($actividad);
+            $em->flush();
 
-                $url = $this->generateUrl('show_actividad', ['id' => $actividad->getId()]);
-                return $this->handleView($this->setGroupToView($this->view($actividad, Response::HTTP_CREATED, ["Location" => $url]), "autor"));
-            } else {
-                $this->logger->alert("Datos inválidos: ");
-                $this->logger->alert($form->getErrors(true));
-                exit;
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_BAD_REQUEST, "Se recibieron datos inválidos", "Datos inválidos"),
-                    Response::HTTP_BAD_REQUEST
-                ));
-            }
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
+            $url = $this->generateUrl('show_actividad', ['id' => $actividad->getId()]);
+            return $this->handleView($this->setGroupToView($this->view($actividad, Response::HTTP_CREATED, ["Location" => $url]), "autor"));
+        } else {
+            $this->logger->alert("Datos inválidos: ");
+            $this->logger->alert($form->getErrors(true));
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_BAD_REQUEST, "Se recibieron datos inválidos", "Datos inválidos")
+            );
         }
     }
 
@@ -488,75 +469,55 @@ class ActividadesController extends BaseController
      */
     public function patchActividadAction(Request $request, $id)
     {
-        try {
-            $em = $this->getDoctrine()->getManager();
-            $actividadRepository = $em->getRepository(Actividad::class);
-            /** @var Actividad $actividad */
-            $actividad = $actividadRepository->find($id);
-            if ($actividad->getAutor() != $this->getUser()) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_FORBIDDEN, "La actividad no pertenece al usuario actual", "No se puede acceder a la actividad"),
-                    Response::HTTP_FORBIDDEN
-                ));
-            }
-            $data = json_decode($request->getContent(), true);
-            if (is_null($data)) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_BAD_REQUEST, "JSON inválido", "Hubo un problema con la petición"),
-                    Response::HTTP_BAD_REQUEST
-                ));
-            }
+        /** @var Actividad $actividad */
+        $actividad = $this->checkActividadFound($id);
+        $this->checkOwnActividad($actividad);
+        $data = $this->getJsonData($request);
 
-            if (array_key_exists("codigo", $data)) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_BAD_REQUEST, "No se puede modificar el código de una actividad", "No se puede modificar el código de una actividad"),
-                    Response::HTTP_BAD_REQUEST
-                ));
-            }
-            if (array_key_exists("nombre", $data) && !is_null($data["nombre"])) {
-                $actividad->setNombre($data["nombre"]);
-            }
-            if (array_key_exists("objetivo", $data) && !is_null($data["objetivo"])) {
-                $actividad->setObjetivo($data["objetivo"]);
-            }
+        if (array_key_exists("codigo", $data)) {
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_BAD_REQUEST, "No se puede modificar el código de una actividad", "No se puede modificar el código de una actividad")
+            );
+        }
+        if (array_key_exists("nombre", $data) && !is_null($data["nombre"])) {
+            $actividad->setNombre($data["nombre"]);
+        }
+        if (array_key_exists("objetivo", $data) && !is_null($data["objetivo"])) {
+            $actividad->setObjetivo($data["objetivo"]);
+        }
 
-            if (array_key_exists("dominio", $data) && !is_null($data["dominio"])) {
-                $dominio = $em->getRepository(Dominio::class)->find($data["dominio"]);
-                $actividad->setDominio($dominio);
-            }
+        $em = $this->getDoctrine()->getManager();
 
-            if (array_key_exists("idioma", $data) && !is_null($data["idioma"])) {
-                $idioma = $em->getRepository(Idioma::class)->find($data["idioma"]);
-                $actividad->setIdioma($idioma);
-            }
+        if (array_key_exists("dominio", $data) && !is_null($data["dominio"])) {
+            $dominio = $em->getRepository(Dominio::class)->find($data["dominio"]);
+            $actividad->setDominio($dominio);
+        }
 
-            if (array_key_exists("tipoPlanificacion", $data) && !is_null($data["tipoPlanificacion"])) {
-                /** @var TipoPlanificacion */
-                $tipoPlanificacion = $em->getRepository(TipoPlanificacion::class)->find($data["tipoPlanificacion"]);
-                $actividad->setTipoPlanificacion($tipoPlanificacion);
-                if ($tipoPlanificacion->getNombre() != self::BIFURCADA_NAME) {
-                    $planificacion = $actividad->getPlanificacion();
-                    $saltos = $planificacion->getSaltos();
-                    foreach ($saltos as $salto) {
-                        $planificacion->removeSalto($salto);
-                    }
+        if (array_key_exists("idioma", $data) && !is_null($data["idioma"])) {
+            $idioma = $em->getRepository(Idioma::class)->find($data["idioma"]);
+            $actividad->setIdioma($idioma);
+        }
+
+        if (array_key_exists("tipoPlanificacion", $data) && !is_null($data["tipoPlanificacion"])) {
+            /** @var TipoPlanificacion */
+            $tipoPlanificacion = $em->getRepository(TipoPlanificacion::class)->find($data["tipoPlanificacion"]);
+            $actividad->setTipoPlanificacion($tipoPlanificacion);
+            if ($tipoPlanificacion->getNombre() != self::BIFURCADA_NAME) {
+                $planificacion = $actividad->getPlanificacion();
+                $saltos = $planificacion->getSaltos();
+                foreach ($saltos as $salto) {
+                    $planificacion->removeSalto($salto);
                 }
             }
-
-            if (array_key_exists("estado", $data) && !is_null($data["estado"])) {
-                $estado = $em->getRepository(Estado::class)->find($data["estado"]);
-                $actividad->setEstado($estado);
-            }
-            $em->persist($actividad);
-            $em->flush();
-            return $this->handleView($this->getViewWithGroups($actividad, "autor"));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
         }
+
+        if (array_key_exists("estado", $data) && !is_null($data["estado"])) {
+            $estado = $em->getRepository(Estado::class)->find($data["estado"]);
+            $actividad->setEstado($estado);
+        }
+        $em->persist($actividad);
+        $em->flush();
+        return $this->handleView($this->getViewWithGroups($actividad, "autor"));
     }
 
     /**
@@ -608,28 +569,16 @@ class ActividadesController extends BaseController
      */
     public function deleteActividadAction($id)
     {
-        try {
-            $em = $this->getDoctrine()->getManager();
-            $actividad = $em->getRepository(Actividad::class)->find($id);
-            if (is_null($actividad)) {
-                return $this->handleView($this->view(null, Response::HTTP_NO_CONTENT));
-            }
-            if ($actividad->getAutor() != $this->getUser()) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_FORBIDDEN, "La actividad no pertenece al usuario actual", "No se puede acceder a la actividad"),
-                    Response::HTTP_FORBIDDEN
-                ));
-            }
+        $em = $this->getDoctrine()->getManager();
+        $actividadRepository = $em->getRepository(Actividad::class);
+        $actividad = $actividadRepository->find($id);
+        if (!is_null($actividad)) {
+            $actividad = $this->checkActividadFound($id);
+            $this->checkOwnActividad($actividad);
             $em->remove($actividad);
             $em->flush();
-            return $this->handleView($this->view(null, Response::HTTP_NO_CONTENT));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
         }
+        return $this->handleView($this->view(null, Response::HTTP_NO_CONTENT));
     }
 
     /**
@@ -694,41 +643,20 @@ class ActividadesController extends BaseController
     public function addTareaToActividad(Request $request, $id)
     {
         $data = json_decode($request->getContent(), true);
-        if (!array_key_exists("tarea", $data) && !is_null($data["tarea"])) {
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos"),
-                Response::HTTP_BAD_REQUEST
-            ));
-        }
-
+        $this->checkRequiredParameters(["tarea"], $data);
         $em = $this->getDoctrine()->getManager();
 
-        try {
-            $tarea = $em->getRepository(Tarea::class)->find($data["tarea"]);
-            $actividad = $em->getRepository(Actividad::class)->find($id);
-            if (is_null($tarea)) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna tarea", "No se encontró la tarea"),
-                    Response::HTTP_NOT_FOUND
-                ));
-            }
-            if (is_null($actividad)) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
-                    Response::HTTP_NOT_FOUND
-                ));
-            }
-            $actividad->addTarea($tarea);
-            $em->persist($actividad);
-            $em->flush();
-            return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
+        $actividad = $this->checkActividadFound($id);
+        $tarea = $em->getRepository(Tarea::class)->find($data["tarea"]);
+        if (is_null($tarea)) {
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna tarea", "No se encontró la tarea")
+            );
         }
+        $actividad->addTarea($tarea);
+        $em->persist($actividad);
+        $em->flush();
+        return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
     }
 
     /**
@@ -778,25 +706,9 @@ class ActividadesController extends BaseController
      */
     public function getActividadTareasAction(Request $request, $id)
     {
-        try {
-            $repository = $this->getDoctrine()->getRepository(Actividad::class);
-            $actividad = $repository->find($id);
-            if (!is_null($actividad)) {
-                $tareas = $actividad->getTareas();
-                return $this->handleView($this->getViewWithGroups(["results" => $tareas], "autor"));
-            } else {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
-                    Response::HTTP_NOT_FOUND
-                ));
-            }
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
-        }
+        $actividad = $this->checkActividadFound($id);
+        $tareas = $actividad->getTareas();
+        return $this->handleView($this->getViewWithGroups(["results" => $tareas], "autor"));
     }
 
     /**
@@ -846,25 +758,11 @@ class ActividadesController extends BaseController
      */
     public function getActividadSaltosAction($id)
     {
-        try {
-            $repository = $this->getDoctrine()->getRepository(Actividad::class);
-            $actividad = $repository->find($id);
-            if (is_null($actividad)) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
-                    Response::HTTP_NOT_FOUND
-                ));
-            }
-            $planificacion = $actividad->getPlanificacion();
-            $saltos = $planificacion->getSaltos();
-            return $this->handleView($this->getViewWithGroups(["results" => $saltos], "autor"));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
-        }
+        $repository = $this->getDoctrine()->getRepository(Actividad::class);
+        $actividad = $this->checkActividadFound($id);
+        $planificacion = $actividad->getPlanificacion();
+        $saltos = $planificacion->getSaltos();
+        return $this->handleView($this->getViewWithGroups(["results" => $saltos], "autor"));
     }
 
     /**
@@ -951,62 +849,41 @@ class ActividadesController extends BaseController
         $salto = new Salto();
         $data = json_decode($request->getContent(), true);
 
-        if (!array_key_exists("origen", $data) || !array_key_exists("condicion", $data)) {
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos"),
-                Response::HTTP_BAD_REQUEST
-            ));
-        }
+        $this->checkRequiredParameters(["origen", "condicion", "destinos"], $data);
 
-        try {
-            $em = $this->getDoctrine()->getManager();
-            $actividad = $em->getRepository(Actividad::class)->find($id);
-            if (is_null($actividad)) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
-                    Response::HTTP_NOT_FOUND
-                ));
-            }
-            $planificacion = $actividad->getPlanificacion();
-            $salto->setPlanificacion($planificacion);
-            $tareaRepository = $em->getRepository(Tarea::class);
-            $origen = $tareaRepository->find($data["origen"]);
-            if (is_null($origen)) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id de tarea origen no corresponde a ninguna tarea", "No se encontró la tarea origen"),
-                    Response::HTTP_NOT_FOUND
-                ));
-            }
-            $salto->setOrigen($origen);
-            if (array_key_exists("destinos", $data) && !is_null($data["destinos"])) {
-                foreach ($data["destinos"] as $destino_id) {
-                    $tareaDb = $tareaRepository->find($destino_id);
-                    if (is_null($tareaDb)) {
-                        return $this->handleView($this->view(
-                            new ApiProblem(Response::HTTP_NOT_FOUND, "El id de la tarea destino no corresponde a ninguna tarea", "No se encontró la tarea destino"),
-                            Response::HTTP_NOT_FOUND
-                        ));
-                    }
-                    $salto->addDestino($tareaDb);
+        $em = $this->getDoctrine()->getManager();
+        $actividad = $this->checkActividadFound($id);
+        $planificacion = $actividad->getPlanificacion();
+        $salto->setPlanificacion($planificacion);
+        $tareaRepository = $em->getRepository(Tarea::class);
+        $origen = $tareaRepository->find($data["origen"]);
+        if (is_null($origen)) {
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_NOT_FOUND, "El id de tarea origen no corresponde a ninguna tarea", "No se encontró la tarea origen")
+            );
+        }
+        $salto->setOrigen($origen);
+        if (array_key_exists("destinos", $data) && !is_null($data["destinos"])) {
+            foreach ($data["destinos"] as $destino_id) {
+                $tareaDb = $tareaRepository->find($destino_id);
+                if (is_null($tareaDb)) {
+                    throw new ApiProblemException(
+                        new ApiProblem(Response::HTTP_NOT_FOUND, "El id de la tarea destino no corresponde a ninguna tarea", "No se encontró la tarea destino")
+                    );
                 }
-            } //TODO: existen saltos sin destino? por qué esto no es required?
-            $salto->setCondicion($data["condicion"]);
-            if (array_key_exists("respuesta", $data) && !is_null($data["respuesta"])) {
-                $salto->setRespuesta($data["respuesta"]);
+                $salto->addDestino($tareaDb);
             }
-
-            $em->persist($salto);
-            $em->flush();
-            $url = $this->generateUrl("show_salto", ["id" => $salto->getId()]);
-            $view = $this->view($salto, Response::HTTP_CREATED, ["Location" => $url]);
-            return $this->handleView($this->setGroupToView($view, "autor"));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
+        } //TODO: existen saltos sin destino? por qué esto no es required?
+        $salto->setCondicion($data["condicion"]);
+        if (array_key_exists("respuesta", $data) && !is_null($data["respuesta"])) {
+            $salto->setRespuesta($data["respuesta"]);
         }
+
+        $em->persist($salto);
+        $em->flush();
+        $url = $this->generateUrl("show_salto", ["id" => $salto->getId()]);
+        $view = $this->view($salto, Response::HTTP_CREATED, ["Location" => $url]);
+        return $this->handleView($this->setGroupToView($view, "autor"));
     }
 
     /**
@@ -1061,31 +938,16 @@ class ActividadesController extends BaseController
      */
     public function deleteSaltosAction($id)
     {
-        try {
-            $repository = $this->getDoctrine()->getRepository(Actividad::class);
-            $actividad = $repository->find($id);
-            if (is_null($actividad)) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
-                    Response::HTTP_NOT_FOUND
-                ));
-            }
-            $planificacion = $actividad->getPlanificacion();
-            $saltos = $planificacion->getSaltos();
-            $em = $this->getDoctrine()->getManager();
-            foreach ($saltos as $salto) {
-                $em->remove($salto);
-            }
-            $em->persist($planificacion);
-            $em->flush();
-            return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
+        $actividad = $this->checkActividadFound($id);
+        $planificacion = $actividad->getPlanificacion();
+        $saltos = $planificacion->getSaltos();
+        $em = $this->getDoctrine()->getManager();
+        foreach ($saltos as $salto) {
+            $em->remove($salto);
         }
+        $em->persist($planificacion);
+        $em->flush();
+        return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
     }
 
     /**
@@ -1140,37 +1002,22 @@ class ActividadesController extends BaseController
      */
     public function deleteTareasAction($id)
     {
-        try {
-            $repository = $this->getDoctrine()->getRepository(Actividad::class);
-            $actividad = $repository->find($id);
-            if (is_null($actividad)) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
-                    Response::HTTP_NOT_FOUND
-                ));
-            }
-            $tareas = $actividad->getTareas();
-            foreach ($tareas as $tarea) {
-                $actividad->removeTarea($tarea);
-            }
-            $em = $this->getDoctrine()->getManager();
-            $em->persist($actividad);
-            $planificacion = $actividad->getPlanificacion();
-            $saltos = $planificacion->getSaltos();
-            $em = $this->getDoctrine()->getManager();
-            foreach ($saltos as $salto) {
-                $em->remove($salto);
-            }
-            $em->persist($planificacion);
-            $em->flush();
-            return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
+        $actividad = $this->checkActividadFound($id);
+        $tareas = $actividad->getTareas();
+        foreach ($tareas as $tarea) {
+            $actividad->removeTarea($tarea);
         }
+        $em = $this->getDoctrine()->getManager();
+        $em->persist($actividad);
+        $planificacion = $actividad->getPlanificacion();
+        $saltos = $planificacion->getSaltos();
+        $em = $this->getDoctrine()->getManager();
+        foreach ($saltos as $salto) {
+            $em->remove($salto);
+        }
+        $em->persist($planificacion);
+        $em->flush();
+        return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
     }
 
     /**
@@ -1243,69 +1090,56 @@ class ActividadesController extends BaseController
      */
     public function updatePlanificacionSettings(Request $request, $id)
     {
-        $data = json_decode($request->getContent(), true);
-
+        $data = $this->getJsonData($request);
         if (
             !array_key_exists("iniciales", $data) || !array_key_exists("opcionales", $data)
         ) {
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos"),
-                Response::HTTP_BAD_REQUEST
-            ));
+            new ApiProblemException(
+                new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos")
+            );
         }
 
-        try {
-            $repository = $this->getDoctrine()->getRepository(Actividad::class);
-            $actividad = $repository->find($id);
-            if (is_null($actividad)) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad"),
-                    Response::HTTP_NOT_FOUND
-                ));
-            }
-            $planificacion = $actividad->getPlanificacion();
-            $prevOpcionales = $planificacion->getOpcionales();
-            foreach ($prevOpcionales as $opcional) {
-                $planificacion->removeOpcional($opcional);
-            }
-            $prevIniciales = $planificacion->getIniciales();
-            foreach ($prevIniciales as $inicial) {
-                $planificacion->removeInicial($inicial);
-            }
-
-            $iniciales = $data["iniciales"];
-            $tareaRepository = $this->getDoctrine()->getRepository(Tarea::class);
-            foreach ($iniciales as $inicial) {
-                $tareaInicial = $tareaRepository->find($inicial);
-                if (is_null($tareaInicial)) {
-                    return $this->handleView($this->view(
-                        new ApiProblem(Response::HTTP_NOT_FOUND, "El id de una tarea inicial no corresponde a ninguna tarea", "No se encontró una tarea inicial"),
-                        Response::HTTP_NOT_FOUND
-                    ));
-                }
-                $planificacion->addInicial($tareaInicial);
-            }
-            $opcionales = $data["opcionales"];
-            foreach ($opcionales as $opcional) {
-                $tareaOpcional = $tareaRepository->find($opcional);
-                if (is_null($tareaOpcional)) {
-                    return $this->handleView($this->view(
-                        new ApiProblem(Response::HTTP_NOT_FOUND, "El id de una tarea opcional no corresponde a ninguna tarea", "No se encontró una tarea opcional"),
-                        Response::HTTP_NOT_FOUND
-                    ));
-                }
-                $planificacion->addOpcional($tareaOpcional);
-            }
-            $em = $this->getDoctrine()->getManager();
-            $em->persist($planificacion);
-            $em->flush();
-            return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
+        $repository = $this->getDoctrine()->getRepository(Actividad::class);
+        $actividad = $repository->find($id);
+        if (is_null($actividad)) {
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad")
+            );
         }
+        $planificacion = $actividad->getPlanificacion();
+        $prevOpcionales = $planificacion->getOpcionales();
+        foreach ($prevOpcionales as $opcional) {
+            $planificacion->removeOpcional($opcional);
+        }
+        $prevIniciales = $planificacion->getIniciales();
+        foreach ($prevIniciales as $inicial) {
+            $planificacion->removeInicial($inicial);
+        }
+
+        $iniciales = $data["iniciales"];
+        $tareaRepository = $this->getDoctrine()->getRepository(Tarea::class);
+        foreach ($iniciales as $inicial) {
+            $tareaInicial = $tareaRepository->find($inicial);
+            if (is_null($tareaInicial)) {
+                throw new ApiProblemException(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id de una tarea inicial no corresponde a ninguna tarea", "No se encontró una tarea inicial")
+                );
+            }
+            $planificacion->addInicial($tareaInicial);
+        }
+        $opcionales = $data["opcionales"];
+        foreach ($opcionales as $opcional) {
+            $tareaOpcional = $tareaRepository->find($opcional);
+            if (is_null($tareaOpcional)) {
+                throw new ApiProblemException(
+                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id de una tarea opcional no corresponde a ninguna tarea", "No se encontró una tarea opcional"),
+                );
+            }
+            $planificacion->addOpcional($tareaOpcional);
+        }
+        $em = $this->getDoctrine()->getManager();
+        $em->persist($planificacion);
+        $em->flush();
+        return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Controller\auth;
 
 use App\ApiProblem;
+use App\ApiProblemException;
 use App\Entity\AccessToken;
 use App\Entity\Client;
 use App\Entity\Role;
@@ -44,6 +45,14 @@ class TokenController extends BaseTokenController
     // make an HTTP request
     $response = $httpClient->get('https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=' . $id_token);
     $data = json_decode((string) $response->getBody());
+
+    $usuarioDb = $this->em->getRepository(Usuario::class)->findOneBy(["email" => $data->email]);
+    if(!is_null($usuarioDb)){
+      throw new ApiProblemException(
+        new ApiProblem(Response::HTTP_BAD_REQUEST, "Ya existe un usuario con este email", "Ya existe un usuario con este email")
+      );
+    }
+
     $user = new Usuario();
     $user->setEmail($data->email);
     $user->setNombre($data->given_name);
@@ -123,14 +132,14 @@ class TokenController extends BaseTokenController
     if (is_null($header)) {
       $header = $request->headers->get('X-AUTH-CREDENTIALS');
       if (is_null($header)) {
-        $apiProblem = new ApiProblem(Response::HTTP_BAD_REQUEST, "No se encontró el header de autenticación", "Ocurrió un problema de autenticación");
-        return new Response(
-          $this->serializer->serialize($apiProblem, "json"),
-          Response::HTTP_BAD_REQUEST
+        throw new ApiProblemException(
+          new ApiProblem(Response::HTTP_BAD_REQUEST, "No se encontró el header de autenticación", "Ocurrió un problema de autenticación")
         );
       }
       $request->headers->remove('X-AUTH-CREDENTIALS');
       $request->$property->set('grant_type', OAuth2::GRANT_TYPE_CLIENT_CREDENTIALS);
+
+
       $response = parent::tokenAction($request);
       if ($response->getStatusCode() == Response::HTTP_OK) {
         $access_token = json_decode($response->getContent())->access_token;
@@ -143,21 +152,17 @@ class TokenController extends BaseTokenController
         $this->em->flush();
         return $response;
       } else {
-        $apiProblem = new ApiProblem(Response::HTTP_BAD_REQUEST, "Credenciales inválidas o faltantes", "Ocurrió un error en la autenticación");
-        return new Response(
-          $this->serializer->serialize($apiProblem, "json"),
-          Response::HTTP_BAD_REQUEST
+        throw new ApiProblemException(
+          new ApiProblem(Response::HTTP_BAD_REQUEST, "Credenciales inválidas o faltantes", "Ocurrió un error en la autenticación")
         );
       }
     }
 
     $data = json_decode($request->getContent(), true);
 
-    if(!array_key_exists('token', $data)) {
-      $apiProblem = new ApiProblem(Response::HTTP_BAD_REQUEST, "No se encontró el id_token de usuario", "Ocurrió un error en la autenticación");
-      return new Response(
-        $this->serializer->serialize($apiProblem, "json"),
-        Response::HTTP_BAD_REQUEST
+    if (!array_key_exists('token', $data)) {
+      throw new ApiProblemException(
+        new ApiProblem(Response::HTTP_BAD_REQUEST, "No se encontró el id_token de usuario", "Ocurrió un error en la autenticación")
       );
     }
 
@@ -165,18 +170,14 @@ class TokenController extends BaseTokenController
     $request->$property->remove('token');
 
     if (is_null($id_token)) {
-      $apiProblem = new ApiProblem(Response::HTTP_BAD_REQUEST, "No se encontró el id_token de usuario", "Ocurrió un error en la autenticación");
-      return new Response(
-        $this->serializer->serialize($apiProblem, "json"),
-        Response::HTTP_BAD_REQUEST
+      throw new ApiProblemException(
+        new ApiProblem(Response::HTTP_BAD_REQUEST, "No se encontró el id_token de usuario", "Ocurrió un error en la autenticación")
       );
     }
 
     if (!(preg_match('/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.?[A-Za-z0-9-_]*$/', $id_token))) {
-      $apiProblem = new ApiProblem(Response::HTTP_BAD_REQUEST, "El id_token no es un JWT válido", "Ocurrió un error en la autenticación");
-      return new Response(
-        $this->serializer->serialize($apiProblem, "json"),
-        Response::HTTP_BAD_REQUEST
+      throw new ApiProblemException(
+        new ApiProblem(Response::HTTP_BAD_REQUEST, "El id_token no es un JWT válido", "Ocurrió un error en la autenticación")
       );
     }
 
@@ -192,17 +193,13 @@ class TokenController extends BaseTokenController
         }
         $oauthClient = $usuario->getOauthClient();
       } else {
-        $apiProblem = new ApiProblem(Response::HTTP_BAD_REQUEST, "El id_token no fue emitido para esta aplicación", "Ocurrió un error en la autenticación");
-        return new Response(
-          $this->serializer->serialize($apiProblem, "json"),
-          Response::HTTP_BAD_REQUEST
+        throw new ApiProblemException(
+          new ApiProblem(Response::HTTP_BAD_REQUEST, "El id_token no fue emitido para esta aplicación", "Ocurrió un error en la autenticación")
         );
       }
     } else {
-      $apiProblem = new ApiProblem(Response::HTTP_BAD_REQUEST, "El id_token no es válido", "Ocurrió un error con la autenticación");
-      return new Response(
-        $this->serializer->serialize($apiProblem, "json"),
-        Response::HTTP_BAD_REQUEST
+      throw new ApiProblemException(
+        new ApiProblem(Response::HTTP_BAD_REQUEST, "El id_token no es válido", "Ocurrió un error con la autenticación")
       );
     }
 
@@ -221,10 +218,8 @@ class TokenController extends BaseTokenController
       $this->em->flush();
       return $response;
     } else {
-      $apiProblem = new ApiProblem(Response::HTTP_BAD_REQUEST, "Credenciales inválidas o faltantes", "Ocurrió un error en la autenticación");
-      return new Response(
-        $this->serializer->serialize($apiProblem, "json"),
-        Response::HTTP_BAD_REQUEST
+      throw new ApiProblemException(
+        new ApiProblem(Response::HTTP_BAD_REQUEST, "Credenciales inválidas o faltantes", "Ocurrió un error en la autenticación")
       );
     }
   }

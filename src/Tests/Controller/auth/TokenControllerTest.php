@@ -32,7 +32,6 @@ class TokenControllerTest extends ApiTestCase
         self::removeUsuario($autor);
     }
 
-    /** @group failing */
     public function testTokenAction()
     {
         $client = self::$usuario->getOauthClient();
@@ -48,11 +47,7 @@ class TokenControllerTest extends ApiTestCase
         ];
         $response = self::$client->post(self::$token_uri, $options);
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        dd((string) $response->getBody());
         $data = json_decode((string) $response->getBody(), true);
-        if(is_null($data)) {
-            $data = [];
-        }
         $this->assertEquals(
             [
                 "access_token",
@@ -74,7 +69,7 @@ class TokenControllerTest extends ApiTestCase
             self::$client->post(self::$token_uri);
             $this->fail("No se detectó el header faltante");
         } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
         }
     }
 
@@ -87,7 +82,7 @@ class TokenControllerTest extends ApiTestCase
             self::$client->post(self::$token_uri, $options);
             $this->fail("No se detectó que no hay credenciales");
         } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
         }
     }
     public function testTokenActionInvalidCredentials()
@@ -103,7 +98,7 @@ class TokenControllerTest extends ApiTestCase
             self::$client->post(self::$token_uri, $options);
             $this->fail("No se detectaron credenciales inválidas");
         } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
         }
     }
 
@@ -124,7 +119,7 @@ class TokenControllerTest extends ApiTestCase
             self::$client->post(self::$token_uri, $options);
             $this->fail("No se detectó el JSON inválido");
         } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
         }
     }
 
@@ -140,7 +135,7 @@ class TokenControllerTest extends ApiTestCase
             self::$client->post(self::$token_uri, $options);
             $this->fail("No se detectó el id_token faltante");
         } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
         }
     }
 
@@ -157,7 +152,7 @@ class TokenControllerTest extends ApiTestCase
             self::$client->post(self::$token_uri, $options);
             $this->fail("No se detectó el id_token null");
         } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
         }   
     }
 
@@ -174,7 +169,7 @@ class TokenControllerTest extends ApiTestCase
             self::$client->post(self::$token_uri, $options);
             $this->fail("No se detectó el formato erróneo de id_token");
         } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
         }
     }
 
@@ -191,7 +186,7 @@ class TokenControllerTest extends ApiTestCase
             self::$client->post(self::$token_uri, $options);
             $this->fail("No se detectó el id_token inválido");
         } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
         }
     }
 }
