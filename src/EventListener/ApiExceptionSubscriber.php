@@ -3,6 +3,7 @@
 namespace App\EventListener;
 
 use App\ApiProblem;
+use App\ApiProblemException;
 use JMS\Serializer\SerializerInterface;
 use OAuth2\OAuth2;
 use Psr\Log\LoggerInterface;
@@ -35,15 +36,36 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
         $this->logger->error($e->getMessage());
 
         if ($e instanceof HttpException) {
-            if ($e instanceof NotFoundHttpException) {
+            if ($e instanceof ApiProblemException) {
+                $apiProblem = $e->getApiProblem();
+                $response = new Response(
+                    $this->serializer->serialize($apiProblem, "json"),
+                    $e->getStatusCode()
+                );
+            } elseif ($e instanceof NotFoundHttpException) {
                 $devMessage = "Recurso no encontrado";
                 $usrMessage = "Recuro no encontrado";
+                $apiProblem = new ApiProblem(
+                    $e->getStatusCode(),
+                    $devMessage,
+                    $usrMessage
+                );
             } elseif ($e instanceof AccessDeniedHttpException) {
                 $devMessage = "No tenés los permisos suficientes para acceder al recurso";
                 $usrMessage = "Acceso denegado";
+                $apiProblem = new ApiProblem(
+                    $e->getStatusCode(),
+                    $devMessage,
+                    $usrMessage
+                );
             } elseif ($e instanceof UnauthorizedHttpException) {
                 $devMessage = "No se recibió información de autorización";
                 $usrMessage = "No autorizado";
+                $apiProblem = new ApiProblem(
+                    $e->getStatusCode(),
+                    $devMessage,
+                    $usrMessage
+                );
             } elseif ($e instanceof BadRequestHttpException) {
                 if ($e->getMessage() == "Invalid json message received") {
                     $devMessage = "JSON inválido";
@@ -51,18 +73,28 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
                     $devMessage = "Hubo un problema con el request";
                 }
                 $usrMessage = "Datos inválidos";
+                $apiProblem = new ApiProblem(
+                    $e->getStatusCode(),
+                    $devMessage,
+                    $usrMessage
+                );
             } elseif ($e instanceof MethodNotAllowedHttpException) {
                 $devMessage = "Método no permitido";
                 $usrMessage = "Ocurrió un error";
+                $apiProblem = new ApiProblem(
+                    $e->getStatusCode(),
+                    $devMessage,
+                    $usrMessage
+                );
             } else {
                 $devMessage = "Ocurrió un error";
                 $usrMessage = "Ocurrió un error";
+                $apiProblem = new ApiProblem(
+                    $e->getStatusCode(),
+                    $devMessage,
+                    $usrMessage
+                );
             }
-            $apiProblem = new ApiProblem(
-                $e->getStatusCode(),
-                $devMessage,
-                $usrMessage
-            );
             $response = new Response(
                 $this->serializer->serialize($apiProblem, "json"),
                 $e->getStatusCode()

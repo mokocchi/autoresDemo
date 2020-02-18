@@ -3,6 +3,7 @@
 namespace App\Controller\v1;
 
 use App\ApiProblem;
+use App\ApiProblemException;
 use App\Controller\BaseController;
 use App\Entity\Actividad;
 use App\Entity\Dominio;
@@ -72,49 +73,37 @@ class DominiosController extends BaseController
      */
     public function postDominioAction(Request $request)
     {
-        try {
-            $dominio = new Dominio();
-            $form = $this->createForm(DominioType::class, $dominio);
-            $data = json_decode($request->getContent(), true);
-            if (is_null($data)) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_BAD_REQUEST, "JSON inválido", "Hubo un problema con la petición"),
-                    Response::HTTP_BAD_REQUEST
-                ));
+        $dominio = new Dominio();
+        $form = $this->createForm(DominioType::class, $dominio);
+        $data = json_decode($request->getContent(), true);
+        if (is_null($data)) {
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_BAD_REQUEST, "No hay campos en el request", "Hubo un problema con la petición")
+            );
+        }
+        if (!array_key_exists("nombre", $data) || is_null($data["nombre"])) {
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos para crear la actividad")
+            );
+        }
+        $form->submit($data);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $em = $this->getDoctrine()->getManager();
+            $dominioDb = $em->getRepository(Dominio::class)->findOneBy(["nombre" => $data["nombre"]]);
+            if (!is_null($dominioDb)) {
+                throw new ApiProblemException(
+                    new ApiProblem(Response::HTTP_BAD_REQUEST, "Ya existe un dominio con el mismo nombre", "Ya existe un dominio con el mismo nombre")
+                );
             }
-            if (!array_key_exists("nombre", $data) || is_null($data["nombre"])) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos para crear la actividad"),
-                    Response::HTTP_BAD_REQUEST
-                ));
-            }
-            $form->submit($data);
-            if ($form->isSubmitted() && $form->isValid()) {
-                $em = $this->getDoctrine()->getManager();
-                $dominioDb = $em->getRepository(Dominio::class)->findOneBy(["nombre" => $data["nombre"]]);
-                if (!is_null($dominioDb)) {
-                    return $this->handleView($this->view(
-                        new ApiProblem(Response::HTTP_BAD_REQUEST, "Ya existe un dominio con el mismo nombre", "Ya existe un dominio con el mismo nombre"),
-                        Response::HTTP_BAD_REQUEST
-                    ));
-                }
-                $em->persist($dominio);
-                $em->flush();
-                $url = $this->generateUrl("show_dominio", ["id" => $dominio->getId()]);
-                return $this->handleView($this->setGroupToView($this->view($dominio, Response::HTTP_CREATED, ["Location" => $url]), "select"));
-            } else {
-                $this->logger->alert("Datos inválidos: " . json_decode($form->getErrors()));
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_BAD_REQUEST, "Se recibieron datos inválidos", "Datos inválidos"),
-                    Response::HTTP_BAD_REQUEST
-                ));
-            }
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
+            $em->persist($dominio);
+            $em->flush();
+            $url = $this->generateUrl("show_dominio", ["id" => $dominio->getId()]);
+            return $this->handleView($this->setGroupToView($this->view($dominio, Response::HTTP_CREATED, ["Location" => $url]), "select"));
+        } else {
+            $this->logger->alert("Datos inválidos: " . json_decode($form->getErrors()));
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_BAD_REQUEST, "Se recibieron datos inválidos", "Datos inválidos"),
+            );
         }
     }
 

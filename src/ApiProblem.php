@@ -24,4 +24,12 @@ class ApiProblem
         $this->errorCode = 1;
         $this->moreInfo = $_ENV["SITE_BASE_URL"] . '/api/doc';
     }
+
+    public function getStatusCode() {
+        return $this->status;
+    }
+
+    public function getDeveloperMessage() {
+        return $this->developerMessage;
+    }
 }

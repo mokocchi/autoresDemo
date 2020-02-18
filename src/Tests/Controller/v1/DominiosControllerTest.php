@@ -135,4 +135,31 @@ class DominioControllerTest extends ApiTestCase
             self::assertErrorResponse($e->getResponse(), Response::HTTP_UNAUTHORIZED);
         }
     }
+
+    public function testPostNoJson()
+    {
+        $options = [
+            'headers' => ['Authorization' => 'Bearer ' . self::$access_token]
+        ];
+        try {
+            self::$client->post(self::$resourceUri, $options);
+            $this->fail("No se detectó que no hay json en el request");
+        } catch (RequestException $e) {
+            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    public function testPostNoNombre()
+    {
+        $options = [
+            "headers" => ["Authorization" => "Bearer " . self::$access_token],
+            "json" => [
+            ]
+        ];
+        try {
+            self::$client->post(self::$resourceUri, $options);
+        } catch (RequestException $e) {
+            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+        }
+    }
 }
