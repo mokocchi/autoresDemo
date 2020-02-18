@@ -6,7 +6,6 @@ use App\ApiProblem;
 use FOS\OAuthServerBundle\Security\EntryPoint\OAuthEntryPoint as BaseOAuthEntryPoint;
 use JMS\Serializer\SerializerInterface;
 use OAuth2\OAuth2;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
@@ -21,8 +20,8 @@ class OAuthEntryPoint extends BaseOAuthEntryPoint
     public function start(Request $request, AuthenticationException $authException = null)
     {
         $apiProblem = new ApiProblem(Response::HTTP_UNAUTHORIZED, "Se requiere autenticación OAuth", "Se requiere autenticación");
-        return new JsonResponse(
-            json_decode($this->serializer->serialize($apiProblem, "json")),
+        return new Response(
+            $this->serializer->serialize($apiProblem, "json"),
             Response::HTTP_UNAUTHORIZED
         );
     }

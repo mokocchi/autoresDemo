@@ -163,15 +163,7 @@ class ActividadesControllerTest extends ApiTestCase
         try {
             self::$client->post(self::$resourceUri, $options);
         } catch (RequestException $e) {
-            $this->assertEquals(Response::HTTP_BAD_REQUEST, $e->getResponse()->getStatusCode());
-            $data = json_decode((string) $e->getResponse()->getBody(), true);
-            $this->assertEquals([
-                "status",
-                "developer_message",
-                "user_message",
-                "error_code",
-                "more_info"
-            ], array_keys($data));
+            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
         }
     }
 
@@ -198,15 +190,7 @@ class ActividadesControllerTest extends ApiTestCase
         try {
             self::$client->patch($uri, self::getDefaultOptions());
         } catch (RequestException $e) {
-            $this->assertEquals(Response::HTTP_BAD_REQUEST, $e->getResponse()->getStatusCode());
-            $data = json_decode((string) $e->getResponse()->getBody(), true);
-            $this->assertEquals([
-                "status",
-                "developer_message",
-                "user_message",
-                "error_code",
-                "more_info"
-            ], array_keys($data));
+            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
         }
     }
 
@@ -223,15 +207,7 @@ class ActividadesControllerTest extends ApiTestCase
         try {
             self::$client->patch($uri, $options);
         } catch (RequestException $e) {
-            $this->assertEquals(Response::HTTP_BAD_REQUEST, $e->getResponse()->getStatusCode());
-            $data = json_decode((string) $e->getResponse()->getBody(), true);
-            $this->assertEquals([
-                "status",
-                "developer_message",
-                "user_message",
-                "error_code",
-                "more_info"
-            ], array_keys($data));
+            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
         }
     }
 
@@ -293,15 +269,7 @@ class ActividadesControllerTest extends ApiTestCase
         try {
             self::$client->get($uri, self::getDefaultOptions());
         } catch (RequestException $e) {
-            $this->assertEquals(Response::HTTP_FORBIDDEN, $e->getResponse()->getStatusCode());
-            $data = json_decode((string) $e->getResponse()->getBody(), true);
-            $this->assertEquals([
-                "status",
-                "developer_message",
-                "user_message",
-                "error_code",
-                "more_info"
-            ], array_keys($data));
+            self::assertErrorResponse($e->getResponse(), Response::HTTP_FORBIDDEN);
         }
     }
 
@@ -311,15 +279,7 @@ class ActividadesControllerTest extends ApiTestCase
         try {
             self::$client->get($uri, self::getDefaultOptions());
         } catch (RequestException $e) {
-            $this->assertEquals(Response::HTTP_NOT_FOUND, $e->getResponse()->getStatusCode());
-            $data = json_decode((string) $e->getResponse()->getBody(), true);
-            $this->assertEquals([
-                "status",
-                "developer_message",
-                "user_message",
-                "error_code",
-                "more_info"
-            ], array_keys($data));
+            self::assertErrorResponse($e->getResponse(), Response::HTTP_NOT_FOUND);
         }
     }
 }

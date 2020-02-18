@@ -13,7 +13,6 @@ use FOS\OAuthServerBundle\Model\ClientManagerInterface;
 use FOS\RestBundle\Controller\Annotations\Route;
 use Google_Client;
 use OAuth2\OAuth2;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use FOS\RestBundle\Controller\Annotations as Rest;
@@ -125,8 +124,8 @@ class TokenController extends BaseTokenController
       $header = $request->headers->get('X-AUTH-CREDENTIALS');
       if (is_null($header)) {
         $apiProblem = new ApiProblem(Response::HTTP_BAD_REQUEST, "No se encontró el header de autenticación", "Ocurrió un problema de autenticación");
-        return new JsonResponse(
-          json_decode($this->serializer->serialize($apiProblem, "json")),
+        return new Response(
+          $this->serializer->serialize($apiProblem, "json"),
           Response::HTTP_BAD_REQUEST
         );
       }
@@ -145,8 +144,8 @@ class TokenController extends BaseTokenController
         return $response;
       } else {
         $apiProblem = new ApiProblem(Response::HTTP_BAD_REQUEST, "Credenciales inválidas o faltantes", "Ocurrió un error en la autenticación");
-        return new JsonResponse(
-          json_decode($this->serializer->serialize($apiProblem, "json")),
+        return new Response(
+          $this->serializer->serialize($apiProblem, "json"),
           Response::HTTP_BAD_REQUEST
         );
       }
@@ -154,21 +153,29 @@ class TokenController extends BaseTokenController
 
     $data = json_decode($request->getContent(), true);
 
+    if(!array_key_exists('token', $data)) {
+      $apiProblem = new ApiProblem(Response::HTTP_BAD_REQUEST, "No se encontró el id_token de usuario", "Ocurrió un error en la autenticación");
+      return new Response(
+        $this->serializer->serialize($apiProblem, "json"),
+        Response::HTTP_BAD_REQUEST
+      );
+    }
+
     $id_token = $data['token'];
     $request->$property->remove('token');
 
     if (is_null($id_token)) {
       $apiProblem = new ApiProblem(Response::HTTP_BAD_REQUEST, "No se encontró el id_token de usuario", "Ocurrió un error en la autenticación");
-      return new JsonResponse(
-        json_decode($this->serializer->serialize($apiProblem, "json")),
+      return new Response(
+        $this->serializer->serialize($apiProblem, "json"),
         Response::HTTP_BAD_REQUEST
       );
     }
 
     if (!(preg_match('/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.?[A-Za-z0-9-_]*$/', $id_token))) {
       $apiProblem = new ApiProblem(Response::HTTP_BAD_REQUEST, "El id_token no es un JWT válido", "Ocurrió un error en la autenticación");
-      return new JsonResponse(
-        json_decode($this->serializer->serialize($apiProblem, "json")),
+      return new Response(
+        $this->serializer->serialize($apiProblem, "json"),
         Response::HTTP_BAD_REQUEST
       );
     }
@@ -186,15 +193,15 @@ class TokenController extends BaseTokenController
         $oauthClient = $usuario->getOauthClient();
       } else {
         $apiProblem = new ApiProblem(Response::HTTP_BAD_REQUEST, "El id_token no fue emitido para esta aplicación", "Ocurrió un error en la autenticación");
-        return new JsonResponse(
-          json_decode($this->serializer->serialize($apiProblem, "json")),
+        return new Response(
+          $this->serializer->serialize($apiProblem, "json"),
           Response::HTTP_BAD_REQUEST
         );
       }
     } else {
       $apiProblem = new ApiProblem(Response::HTTP_BAD_REQUEST, "El id_token no es válido", "Ocurrió un error con la autenticación");
-      return new JsonResponse(
-        json_decode($this->serializer->serialize($apiProblem, "json")),
+      return new Response(
+        $this->serializer->serialize($apiProblem, "json"),
         Response::HTTP_BAD_REQUEST
       );
     }
@@ -215,8 +222,8 @@ class TokenController extends BaseTokenController
       return $response;
     } else {
       $apiProblem = new ApiProblem(Response::HTTP_BAD_REQUEST, "Credenciales inválidas o faltantes", "Ocurrió un error en la autenticación");
-      return new JsonResponse(
-        json_decode($this->serializer->serialize($apiProblem, "json")),
+      return new Response(
+        $this->serializer->serialize($apiProblem, "json"),
         Response::HTTP_BAD_REQUEST
       );
     }

@@ -5,10 +5,8 @@ namespace App\EventListener;
 use App\ApiProblem;
 use JMS\Serializer\SerializerInterface;
 use OAuth2\OAuth2;
-use OAuth2\OAuth2AuthenticateException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
@@ -47,7 +45,11 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
                 $devMessage = "No se recibió información de autorización";
                 $usrMessage = "No autorizado";
             } elseif ($e instanceof BadRequestHttpException) {
-                $devMessage = "Hubo un problema con el request";
+                if ($e->getMessage() == "Invalid json message received") {
+                    $devMessage = "JSON inválido";
+                } else {
+                    $devMessage = "Hubo un problema con el request";
+                }
                 $usrMessage = "Datos inválidos";
             } elseif ($e instanceof MethodNotAllowedHttpException) {
                 $devMessage = "Método no permitido";
@@ -61,8 +63,8 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
                 $devMessage,
                 $usrMessage
             );
-            $response = new JsonResponse(
-                json_decode($this->serializer->serialize($apiProblem, "json")),
+            $response = new Response(
+                $this->serializer->serialize($apiProblem, "json"),
                 $e->getStatusCode()
             );
         } else {
@@ -71,8 +73,8 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
                 "Error interno del servidor",
                 "Ocurrió un error"
             );
-            $response = new JsonResponse(
-                json_decode($this->serializer->serialize($apiProblem, "json")),
+            $response = new Response(
+                $this->serializer->serialize($apiProblem, "json"),
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -96,8 +98,8 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
                 }
 
                 $apiProblem = new ApiProblem($response->getStatusCode(), $devMessage, $usrMessage);
-                $response = new JsonResponse(
-                    json_decode($this->serializer->serialize($apiProblem, "json")),
+                $response = new Response(
+                    $this->serializer->serialize($apiProblem, "json"),
                     $response->getStatusCode()
                 );
                 $e->setResponse($response);

@@ -9,6 +9,7 @@ use App\Entity\Usuario;
 use GuzzleHttp\Client;
 use OAuth2\OAuth2;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\HttpFoundation\Response;
 
 class ApiTestCase extends KernelTestCase
 {
@@ -16,6 +17,13 @@ class ApiTestCase extends KernelTestCase
     protected static $client;
     protected static $access_token;
     protected static $prefijo_api = '/api/v1.0';
+    protected static $apiProblemArray = [
+        "status",
+        "developer_message",
+        "user_message",
+        "error_code",
+        "more_info"
+    ];
     protected static function getAuthHeader()
     {
         return 'Bearer ' . self::$access_token;
@@ -24,6 +32,18 @@ class ApiTestCase extends KernelTestCase
     protected static function getDefaultOptions()
     {
         return ["headers" => ['Authorization' => self::getAuthHeader()]];
+    }
+
+    protected function assertApiProblemResponse($response)
+    {
+        $data = json_decode((string) $response->getBody(), true);
+        $this->assertEquals(self::$apiProblemArray, array_keys($data));
+    }
+
+    protected function assertErrorResponse($response, $statusCode)
+    {
+        $this->assertEquals($statusCode, $response->getStatusCode());
+        $this->assertApiProblemResponse($response);
     }
 
     protected static function createAutor()
@@ -70,7 +90,8 @@ class ApiTestCase extends KernelTestCase
         return $user;
     }
 
-    protected static function getNewAccessToken(Usuario $usuario) {
+    protected static function getNewAccessToken(Usuario $usuario)
+    {
         $client = $usuario->getOauthClient();
         $client_id = $client->getPublicId();
         $secret = $client->getSecret();
