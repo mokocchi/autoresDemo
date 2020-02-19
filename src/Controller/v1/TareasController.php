@@ -3,6 +3,7 @@
 namespace App\Controller\v1;
 
 use App\ApiProblem;
+use App\ApiProblemException;
 use App\Controller\BaseController;
 use App\Entity\Plano;
 use App\Entity\Tarea;
@@ -22,6 +23,34 @@ use Swagger\Annotations as SWG;
  */
 class TareasController extends BaseController
 {
+    private function checkAccessTarea($tarea)
+    {
+        if ($tarea->getEstado()->getNombre() == "Privado" && $tarea->getAutor()->getId() !== $this->getUser()->getId()) {
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_FORBIDDEN, "La tarea es privada o no pertenece al usuario actual", "No se puede acceder a la tarea")
+            );
+        }
+    }
+
+    public function checkOwnTarea($tarea)
+    {
+        if ($tarea->getAutor()->getId() !== $this->getUser()->getId()) {
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_FORBIDDEN, "La tarea no pertenece al usuario actual", "No se puede acceder a la tarea"),
+            );
+        }
+    }
+
+    public function checkCodigoNotUsed($codigo)
+    {
+        $this->checkPropertyNotUsed(Tarea::class, "codigo", $codigo, "Ya existe una tarea con el mismo código");
+    }
+
+    private function checkTareaFound($id)
+    {
+        return $this->checkEntityFound(Tarea::class, $id);
+    }
+
     /**
      * Lista todas las tareas del sistema
      * @Rest\Get(name="get_tareas")
@@ -59,17 +88,9 @@ class TareasController extends BaseController
      */
     public function getTareasAction()
     {
-        try {
-            $repository = $this->getDoctrine()->getRepository(Tarea::class);
-            $tareas = $repository->findall();
-            return $this->handleView($this->getViewWithGroups(["results" => $tareas], "autor"));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
-        }
+        $repository = $this->getDoctrine()->getRepository(Tarea::class);
+        $tareas = $repository->findall();
+        return $this->handleView($this->getViewWithGroups(["results" => $tareas], "autor"));
     }
 
     /**
@@ -110,18 +131,10 @@ class TareasController extends BaseController
      */
     public function getActividadForUserAction()
     {
-        try {
-            $user = $this->getUser();
-            $repository = $this->getDoctrine()->getRepository(Tarea::class);
-            $tareas = $repository->findBy(["autor" => $user]);
-            return $this->handleView($this->getViewWithGroups(["results" => $tareas], "autor"));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
-        }
+        $user = $this->getUser();
+        $repository = $this->getDoctrine()->getRepository(Tarea::class);
+        $tareas = $repository->findBy(["autor" => $user]);
+        return $this->handleView($this->getViewWithGroups(["results" => $tareas], "autor"));
     }
 
 
@@ -220,68 +233,28 @@ class TareasController extends BaseController
      */
     public function postTareaAction(Request $request)
     {
-        try {
+        $tarea = new Tarea();
+        $form = $this->createForm(TareaType::class, $tarea);
+        $data = $this->getJsonData($request);
+        $this->checkRequiredParameters([
+            "nombre",
+            "consigna",
+            "codigo",
+            "tipo",
+            "dominio",
+            "estado"
+        ], $data);
+        $form->submit($data);
+        $this->checkFormValidity($form);
+        $this->checkCodigoNotUsed($data["codigo"]);
 
-            $tarea = new Tarea();
-            $form = $this->createForm(TareaType::class, $tarea);
-            $data = json_decode($request->getContent(), true);
-            if (is_null($data)) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_BAD_REQUEST, "JSON inválido", "Hubo un problema con la petición"),
-                    Response::HTTP_BAD_REQUEST
-                ));
-            }
-            if (
-                !array_key_exists("nombre", $data) ||
-                is_null($data["nombre"]) ||
-                !array_key_exists("consigna", $data) ||
-                is_null($data["consigna"]) ||
-                !array_key_exists("codigo", $data) ||
-                is_null($data["codigo"]) ||
-                !array_key_exists("tipo", $data) ||
-                is_null($data["tipo"]) ||
-                !array_key_exists("dominio", $data) ||
-                is_null($data["dominio"]) ||
-                !array_key_exists("estado", $data) ||
-                is_null($data["estado"])
-            ) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos para crear la actividad"),
-                    Response::HTTP_BAD_REQUEST
-                ));
-            }
-            $form->submit($data);
-            if ($form->isSubmitted() && $form->isValid()) {
-                $em = $this->getDoctrine()->getManager();
-                $tareaDb = $em->getRepository(Tarea::class)->findOneBy(["codigo" => $data["codigo"]]);
-                if (!is_null($tareaDb)) {
-                    return $this->handleView($this->view(
-                        new ApiProblem(Response::HTTP_BAD_REQUEST, "Ya existe una tarea con el mismo código", "Ya existe una tarea con el mismo código"),
-                        Response::HTTP_BAD_REQUEST
-                    ));
-                }
-
-                $tarea->setAutor($this->getUser());
-                $em->persist($tarea);
-                $em->flush();
-                $url = $this->generateUrl("show_tarea", ["id" => $tarea->getId()]);
-                return $this->handleView($this->setGroupToView($this->view($tarea, Response::HTTP_CREATED, ["Location" => $url]), "autor"));
-            } else {
-                $this->logger->alert("Datos inválidos: " . json_decode($form->getErrors()));
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_BAD_REQUEST, "Se recibieron datos inválidos", "Datos inválidos"),
-                    Response::HTTP_BAD_REQUEST
-                ));
-            }
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
-        }
+        $tarea->setAutor($this->getUser());
+        $em = $this->getDoctrine()->getManager();
+        $em->persist($tarea);
+        $em->flush();
+        $url = $this->generateUrl("show_tarea", ["id" => $tarea->getId()]);
+        return $this->handleView($this->setGroupToView($this->view($tarea, Response::HTTP_CREATED, ["Location" => $url]), "autor"));
     }
-
 
     /**
      * Muestra una tarea
@@ -321,14 +294,7 @@ class TareasController extends BaseController
     public function showTareaAction($id)
     {
         try {
-            $repository = $this->getDoctrine()->getRepository(Tarea::class);
-            $tarea = $repository->find($id);
-            if (is_null($tarea)) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna tarea", "No se encontró la tarea"),
-                    Response::HTTP_NOT_FOUND
-                ));
-            }
+            $tarea = $this->checkTareaFound($id);
             return $this->handleView($this->getViewWithGroups($tarea, "autor"));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
