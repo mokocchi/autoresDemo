@@ -62,14 +62,13 @@ class TokenControllerTest extends ApiTestCase
         $this->assertEquals("api_client", $data["scope"]);
     }
 
-
     public function testTokenActionWithoutHeader()
     {
         try {
             self::$client->post(self::$token_uri);
             $this->fail("No se detectó el header faltante");
         } catch (RequestException $e) {
-            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "No se encontró el header de autenticación", "Ocurrió un problema de autenticación");
         }
     }
 
@@ -82,7 +81,7 @@ class TokenControllerTest extends ApiTestCase
             self::$client->post(self::$token_uri, $options);
             $this->fail("No se detectó que no hay credenciales");
         } catch (RequestException $e) {
-            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "Credenciales inválidas o faltantes");
         }
     }
     public function testTokenActionInvalidCredentials()
@@ -98,17 +97,17 @@ class TokenControllerTest extends ApiTestCase
             self::$client->post(self::$token_uri, $options);
             $this->fail("No se detectaron credenciales inválidas");
         } catch (RequestException $e) {
-            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "Credenciales inválidas o faltantes");
         }
     }
 
     public function testTokenActionIdTokenInvalidJson()
     {
         $invalidBody = <<<EOF
-        {
-            "id_token" "1234"
-        }
-        EOF;
+            {
+                "id_token" "1234"
+            }
+            EOF;
 
         $options = [
             'headers' => ['X-AUTH-TOKEN' => true],
@@ -119,7 +118,7 @@ class TokenControllerTest extends ApiTestCase
             self::$client->post(self::$token_uri, $options);
             $this->fail("No se detectó el JSON inválido");
         } catch (RequestException $e) {
-            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "JSON inválido");
         }
     }
 
@@ -127,15 +126,14 @@ class TokenControllerTest extends ApiTestCase
     {
         $options = [
             'headers' => ['X-AUTH-TOKEN' => true],
-            'json' => [
-            ]
+            'json' => []
         ];
 
         try {
             self::$client->post(self::$token_uri, $options);
             $this->fail("No se detectó el id_token faltante");
         } catch (RequestException $e) {
-            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "No se encontró el id_token de usuario");
         }
     }
 
@@ -145,17 +143,17 @@ class TokenControllerTest extends ApiTestCase
             'headers' => ['X-AUTH-TOKEN' => true],
             'json' => [
                 'token' => null
-            ]
-        ];
-
-        try {
-            self::$client->post(self::$token_uri, $options);
-            $this->fail("No se detectó el id_token null");
-        } catch (RequestException $e) {
-            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
-        }   
-    }
-
+                ]
+            ];
+            
+            try {
+                self::$client->post(self::$token_uri, $options);
+                $this->fail("No se detectó el id_token null");
+            } catch (RequestException $e) {
+                $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "No se encontró el id_token de usuario");
+            }
+        }
+        
     public function testTokenActionInvalidIdTokenFormat()
     {
         $options = [
@@ -169,7 +167,7 @@ class TokenControllerTest extends ApiTestCase
             self::$client->post(self::$token_uri, $options);
             $this->fail("No se detectó el formato erróneo de id_token");
         } catch (RequestException $e) {
-            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "El id_token no es un JWT válido");
         }
     }
 
@@ -186,7 +184,7 @@ class TokenControllerTest extends ApiTestCase
             self::$client->post(self::$token_uri, $options);
             $this->fail("No se detectó el id_token inválido");
         } catch (RequestException $e) {
-            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "El id_token no es válido");
         }
     }
 }

@@ -121,17 +121,6 @@ class ActividadesController extends BaseController
         return $this->handleView($this->getViewWithGroups(["results" => $actividades], "autor"));
     }
 
-    private function checkRequiredParameters(array $parameters, array $data)
-    {
-        foreach ($parameters as $parameter) {
-            if (!array_key_exists($parameter, $data) || is_null($data[$parameter])) {
-                throw new ApiProblemException(
-                    new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos")
-                );
-            }
-        }
-    }
-
     private function checkAccessActividad($actividad)
     {
         if ($actividad->getEstado()->getNombre() == "Privado" && $actividad->getAutor()->getId() !== $this->getUser()->getId()) {
@@ -152,28 +141,18 @@ class ActividadesController extends BaseController
 
     private function checkCodigoNotUsed($codigo)
     {
-        $actividadDb = $this->getDoctrine()->getRepository(Actividad::class)->findOneBy(["codigo" => $codigo]);
-
-        if (!is_null($actividadDb)) {
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_BAD_REQUEST, "Ya existe una actividad con el mismo código", "Ya existe una actividad con el mismo código")
-            );
-        }
+        $this->checkPropertyNotUsed(Actividad::class, "codigo", $codigo, "Ya existe una actividad con el mismo código");
     }
 
     private function checkActividadFound($id)
     {
-        $em = $this->getDoctrine()->getManager();
-        $actividadRepository = $em->getRepository(Actividad::class);
-        $actividad = $actividadRepository->find($id);
-        if (is_null($actividad)) {
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_NOT_FOUND, "No se encontró ninguna actividad con ese id", "No se encontró la actividad")
-            );
-        }
-        return $actividad;
+        return $this->checkEntityFound(Actividad::class, $id);
     }
 
+    private function checkTareaFound($id)
+    {
+        return $this->checkEntityFound(Tarea::class, $id);
+    }
 
     /**
      * Muestra una actividad
@@ -227,13 +206,7 @@ class ActividadesController extends BaseController
      */
     public function showActividadAction($id)
     {
-        $repository = $this->getDoctrine()->getRepository(Actividad::class);
-        $actividad = $repository->find($id);
-        if (is_null($actividad)) {
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad")
-            );
-        }
+        $actividad = $this->checkActividadFound($id);
         $this->checkAccessActividad($actividad);
         return $this->handleView($this->getViewWithGroups($actividad, "autor"));
     }
@@ -351,25 +324,18 @@ class ActividadesController extends BaseController
         $this->checkRequiredParameters(["nombre", "objetivo", "codigo", "dominio", "idioma", "tipoPlanificacion", "estado"], $data);
         $this->checkCodigoNotUsed($data["codigo"]);
         $form->submit($data);
-        if ($form->isSubmitted() && $form->isValid()) {
-            $em = $this->getDoctrine()->getManager();
-            $planificacion = new Planificacion();
-            $em->persist($planificacion);
-            $em->flush();
-            $actividad->setPlanificacion($planificacion);
-            $actividad->setAutor($this->getUser());
-            $em->persist($actividad);
-            $em->flush();
+        $this->checkFormValidity($form);
+        
+        $em = $this->getDoctrine()->getManager();
+        $planificacion = new Planificacion();
+        $em->persist($planificacion);
+        $actividad->setPlanificacion($planificacion);
+        $actividad->setAutor($this->getUser());
+        $em->persist($actividad);
+        $em->flush();
 
-            $url = $this->generateUrl('show_actividad', ['id' => $actividad->getId()]);
-            return $this->handleView($this->setGroupToView($this->view($actividad, Response::HTTP_CREATED, ["Location" => $url]), "autor"));
-        } else {
-            $this->logger->alert("Datos inválidos: ");
-            $this->logger->alert($form->getErrors(true));
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_BAD_REQUEST, "Se recibieron datos inválidos", "Datos inválidos")
-            );
-        }
+        $url = $this->generateUrl('show_actividad', ['id' => $actividad->getId()]);
+        return $this->handleView($this->setGroupToView($this->view($actividad, Response::HTTP_CREATED, ["Location" => $url]), "autor"));
     }
 
     /**
@@ -573,7 +539,6 @@ class ActividadesController extends BaseController
         $actividadRepository = $em->getRepository(Actividad::class);
         $actividad = $actividadRepository->find($id);
         if (!is_null($actividad)) {
-            $actividad = $this->checkActividadFound($id);
             $this->checkOwnActividad($actividad);
             $em->remove($actividad);
             $em->flush();
@@ -647,12 +612,7 @@ class ActividadesController extends BaseController
         $em = $this->getDoctrine()->getManager();
 
         $actividad = $this->checkActividadFound($id);
-        $tarea = $em->getRepository(Tarea::class)->find($data["tarea"]);
-        if (is_null($tarea)) {
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna tarea", "No se encontró la tarea")
-            );
-        }
+        $tarea = $this->checkTareaFound($id);
         $actividad->addTarea($tarea);
         $em->persist($actividad);
         $em->flush();

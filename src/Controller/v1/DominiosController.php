@@ -23,6 +23,11 @@ use Swagger\Annotations as SWG;
  */
 class DominiosController extends BaseController
 {
+    private function checkNombreNotUsed($nombre)
+    {
+        $this->checkPropertyNotUsed(Dominio::class, "nombre", $nombre, "Ya existe un dominio con el mismo nombre");
+    }
+
     /**
      * Crea un dominio.
      * @Rest\Post(name="post_dominio")
@@ -75,36 +80,18 @@ class DominiosController extends BaseController
     {
         $dominio = new Dominio();
         $form = $this->createForm(DominioType::class, $dominio);
-        $data = json_decode($request->getContent(), true);
-        if (is_null($data)) {
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_BAD_REQUEST, "No hay campos en el request", "Hubo un problema con la petición")
-            );
-        }
-        if (!array_key_exists("nombre", $data) || is_null($data["nombre"])) {
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos para crear la actividad")
-            );
-        }
+        $data = $this->getJsonData($request);
+        $this->checkRequiredParameters(["nombre"], $data);
         $form->submit($data);
-        if ($form->isSubmitted() && $form->isValid()) {
-            $em = $this->getDoctrine()->getManager();
-            $dominioDb = $em->getRepository(Dominio::class)->findOneBy(["nombre" => $data["nombre"]]);
-            if (!is_null($dominioDb)) {
-                throw new ApiProblemException(
-                    new ApiProblem(Response::HTTP_BAD_REQUEST, "Ya existe un dominio con el mismo nombre", "Ya existe un dominio con el mismo nombre")
-                );
-            }
-            $em->persist($dominio);
-            $em->flush();
-            $url = $this->generateUrl("show_dominio", ["id" => $dominio->getId()]);
-            return $this->handleView($this->setGroupToView($this->view($dominio, Response::HTTP_CREATED, ["Location" => $url]), "select"));
-        } else {
-            $this->logger->alert("Datos inválidos: " . json_decode($form->getErrors()));
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_BAD_REQUEST, "Se recibieron datos inválidos", "Datos inválidos"),
-            );
-        }
+        $this->checkFormValidity($form);
+        $this->checkNombreNotUsed($data["nombre"]);
+
+        $em = $this->getDoctrine()->getManager();
+        $em->persist($dominio);
+        $em->flush();
+        
+        $url = $this->generateUrl("show_dominio", ["id" => $dominio->getId()]);
+        return $this->handleView($this->setGroupToView($this->view($dominio, Response::HTTP_CREATED, ["Location" => $url]), "select"));
     }
 
     /**

@@ -7,13 +7,13 @@ use App\Entity\Usuario;
 use App\Test\ApiTestCase;
 use Doctrine\Persistence\ObjectManager;
 use GuzzleHttp\Exception\RequestException;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class DominioControllerTest extends ApiTestCase
 {
     private static $dominioName = "Test";
     private static $resourceUri;
-    private static $publicResourceUri;
     private static $autorEmail = "autor@test.com";
     private static $usuarioEmail = "usuario@test.com";
 
@@ -21,7 +21,6 @@ class DominioControllerTest extends ApiTestCase
     {
         parent::setUpBeforeClass();
         self::$resourceUri = self::$prefijo_api . "/dominios";
-        self::$publicResourceUri = self::$prefijo_api . "/public/dominios";
         $usuario = self::createAutor(self::$autorEmail);
         self::$access_token = self::getNewAccessToken($usuario);
     }
@@ -87,7 +86,7 @@ class DominioControllerTest extends ApiTestCase
             self::$client->post(self::$resourceUri, $options);
             $this->fail("No se detectó el dominio repetido");
         } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "Ya existe un dominio con el mismo nombre");
 
             /** @var ObjectManager $em */
             $em = self::getService("doctrine")->getManager();
@@ -98,32 +97,24 @@ class DominioControllerTest extends ApiTestCase
 
     public function testPostUnauthorized()
     {
-        $this->assertUnauthorized(self::POST, self::$resourceUri);
+        $this->assertUnauthorized(Request::METHOD_POST, self::$resourceUri);
     }
 
     public function testPostForbidden()
     {
         $usuario = self::createUsuarioApp(self::$usuarioEmail);
         $access_token = self::getNewAccessToken($usuario);
-        $this->assertForbidden(self::POST, self::$resourceUri, $access_token);
+        $this->assertForbidden(Request::METHOD_POST, self::$resourceUri, $access_token);
     }
 
     public function testPostWrongToken()
     {
-        $this->assertWrongToken(self::POST, self::$resourceUri);
+        $this->assertWrongToken(Request::METHOD_POST, self::$resourceUri);
     }
 
     public function testPostNoJson()
     {
-        $options = [
-            'headers' => ['Authorization' => 'Bearer ' . self::$access_token]
-        ];
-        try {
-            self::$client->post(self::$resourceUri, $options);
-            $this->fail("No se detectó que no hay json en el request");
-        } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
-        }
+        $this->assertNoJson(Request::METHOD_POST, self::$resourceUri);
     }
 
     public function testPostNoNombre()
@@ -136,7 +127,7 @@ class DominioControllerTest extends ApiTestCase
             self::$client->post(self::$resourceUri, $options);
             $this->fail("No se detectó que no se envió un nombre");
         } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo");
         }
     }
 }

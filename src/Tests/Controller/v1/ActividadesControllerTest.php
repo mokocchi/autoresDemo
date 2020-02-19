@@ -15,6 +15,7 @@ use App\Entity\Usuario;
 use App\Test\ApiTestCase;
 use Doctrine\Persistence\ObjectManager;
 use GuzzleHttp\Exception\RequestException;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class ActividadesControllerTest extends ApiTestCase
@@ -155,20 +156,28 @@ class ActividadesControllerTest extends ApiTestCase
         $this->assertEquals("Pedro", $data["autor"]["nombre"]);
     }
 
-    public function testPostUnauthorized() {
-        $this->assertUnauthorized(self::POST, self::$resourceUri);
-
+    public function testPostUnauthorized()
+    {
+        $this->assertUnauthorized(Request::METHOD_POST, self::$resourceUri);
     }
 
-    public function testPostForbiddenRole() {
-        $this->assertForbidden(self::POST, self::$resourceUri, self::$usuarioAppToken);
+    public function testPostForbiddenRole()
+    {
+        $this->assertForbidden(Request::METHOD_POST, self::$resourceUri, self::$usuarioAppToken);
     }
 
-    public function testPostWrongToken() {
-        $this->assertWrongToken(self::POST, self::$resourceUri);
+    public function testPostWrongToken()
+    {
+        $this->assertWrongToken(Request::METHOD_POST, self::$resourceUri);
     }
 
-    public function testPostCodigoAlreadyUsed() {
+    public function testPostNoJson()
+    {
+        $this->assertNoJson(Request::METHOD_POST, self::$resourceUri);
+    }
+
+    public function testPostCodigoAlreadyUsed()
+    {
         $this->createDefaultActividad();
         $options = [
             'headers' => ['Authorization' => self::getAuthHeader()],
@@ -186,7 +195,7 @@ class ActividadesControllerTest extends ApiTestCase
             self::$client->post(self::$resourceUri, $options);
             $this->fail("No se detectó el código repetido");
         } catch (RequestException $e) {
-            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "Ya existe una actividad con el mismo código");
         }
     }
 
@@ -208,7 +217,7 @@ class ActividadesControllerTest extends ApiTestCase
             self::$client->post(self::$resourceUri, $options);
             $this->fail("No se detectó que falta el nombre");
         } catch (RequestException $e) {
-            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo");
         }
     }
 
@@ -230,7 +239,7 @@ class ActividadesControllerTest extends ApiTestCase
             self::$client->post(self::$resourceUri, $options);
             $this->fail("No se detectó el id de idioma inválido");
         } catch (RequestException $e) {
-            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "Se recibieron datos inválidos");
         }
     }
 
@@ -242,43 +251,61 @@ class ActividadesControllerTest extends ApiTestCase
             'headers' => ['Authorization' => self::getAuthHeader()],
             'json' => [
                 "nombre" => "Actividad test 2"
-                ]
-            ];
-            try{ 
-                $response = self::$client->patch($uri, $options);
-            } catch (RequestException $e) {
-                $this->dumpError($e);
-            }
+            ]
+        ];
+        try {
+            $response = self::$client->patch($uri, $options);
+        } catch (RequestException $e) {
+            $this->dumpError($e);
+        }
         $data = json_decode((string) $response->getBody(), true);
         $this->assertArrayHasKey("nombre", $data);
         $this->assertTrue($data["nombre"] == "Actividad test 2");
     }
-    
-    public function testPatchUnauthorized() {
-        $this->assertUnauthorized(self::PATCH, self::$resourceUri . "/" . 0);
-        
+
+    public function testPatchUnauthorized()
+    {
+        $this->assertUnauthorized(Request::METHOD_PATCH, self::$resourceUri . "/" . 0);
     }
-    
-    public function testPatchForbiddenRole() {
-        $this->assertForbidden(self::PATCH, self::$resourceUri . "/" . 0, self::$usuarioAppToken);
+
+    public function testPatchForbiddenRole()
+    {
+        $this->assertForbidden(Request::METHOD_PATCH, self::$resourceUri . "/" . 0, self::$usuarioAppToken);
     }
-    
-    public function testPatchWrongToken() {
-        $this->assertWrongToken(self::PATCH, self::$resourceUri . "/" . 0);
+
+    public function testPatchActividadNotOwned() {
+        $id = $this->createActividad([
+            "nombre" => "Actividad ajena",
+            "codigo" => self::$actividadCodigo,
+            "objetivo" => "Probar acceder a una actividad de otro autor",
+            "autor" => self::$otherAutorEmail
+        ]);
+
+        $uri = self::$resourceUri . "/" . $id;
+        $options = [
+            'headers' => ['Authorization' => self::getAuthHeader()],
+            'json' => [
+                "objetivo" => "Alterar una actividad ajena"
+            ]
+        ];
+        try {
+            self::$client->patch($uri, $options);
+        } catch (RequestException $e) {
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_FORBIDDEN, "La actividad no pertenece al usuario actual");
+        }
     }
-    
+
+    public function testPatchWrongToken()
+    {
+        $this->assertWrongToken(Request::METHOD_PATCH, self::$resourceUri . "/" . 0);
+    }
+
     public function testPatchMissingJson()
     {
         $id = $this->createDefaultActividad();
-        $uri = self::$prefijo_api . "/actividades/" . $id; //TODO: id por codigos
-        try {
-            self::$client->patch($uri, self::getDefaultOptions());
-            $this->fail("No se detectó que no se envió json");
-        } catch (RequestException $e) {
-            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
-        }
+        $this->assertNoJson(Request::METHOD_PATCH, self::$resourceUri . '/' . $id);
     }
-    
+
     public function testPatchModifyCodigo()
     {
         $id = $this->createDefaultActividad();
@@ -287,33 +314,23 @@ class ActividadesControllerTest extends ApiTestCase
             "headers" => ["Authorization" => self::getAuthHeader()],
             "json" => [
                 "codigo" => "codigonuevo"
-                ]
-            ];
-            try {
-                self::$client->patch($uri, $options);
-                $this->fail("No se detectó el intento de modificar el código de la actividad");
-            } catch (RequestException $e) {
-                $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST);
-            }
-        }
-        
-        public function testPatchNotFound()
-        {
-            $uri = self::$resourceUri . '/' . 0;
-            $options = [
-                "headers" => ["Authorization" => self::getAuthHeader()],
-            "json" => [
-                ]
+            ]
         ];
         try {
             self::$client->patch($uri, $options);
-            $this->fail("No se detectó que la actividad no existe");
+            $this->fail("No se detectó el intento de modificar el código de la actividad");
         } catch (RequestException $e) {
-            
-            $this->assertErrorResponse($e->getResponse(), Response::HTTP_NOT_FOUND);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "No se puede modificar el código de una actividad");
         }
     }
+
+    public function testPatchNotFound()
+    {
+        $uri = self::$resourceUri . '/' . 0;
+        $this->assertNotFound(Request::METHOD_PATCH, $uri, "Actividad");
+    }
     
+
     public function testDelete()
     {
         $id = $this->createDefaultActividad();
@@ -321,18 +338,20 @@ class ActividadesControllerTest extends ApiTestCase
         $response = self::$client->delete($uri, self::getDefaultOptions());
         $this->assertEquals(Response::HTTP_NO_CONTENT, $response->getStatusCode());
     }
-    
-    public function testDeleteUnauthorized() {
-        $this->assertUnauthorized(self::DELETE, self::$resourceUri . "/" . 0);
-        
-    }
-    
-    public function testDeleteForbiddenRole() {
-        $this->assertForbidden(self::DELETE, self::$resourceUri . "/" . 0, self::$usuarioAppToken);
+
+    public function testDeleteUnauthorized()
+    {
+        $this->assertUnauthorized(Request::METHOD_DELETE, self::$resourceUri . "/" . 0);
     }
 
-    public function testDeleteWrongToken() {
-        $this->assertWrongToken(self::DELETE, self::$resourceUri . "/" . 0);
+    public function testDeleteForbiddenRole()
+    {
+        $this->assertForbidden(Request::METHOD_DELETE, self::$resourceUri . "/" . 0, self::$usuarioAppToken);
+    }
+
+    public function testDeleteWrongToken()
+    {
+        $this->assertWrongToken(Request::METHOD_DELETE, self::$resourceUri . "/" . 0);
     }
 
     public function testDeleteNotFound()
@@ -372,30 +391,41 @@ class ActividadesControllerTest extends ApiTestCase
         $this->assertEquals("Pedro", $data["autor"]["nombre"]);
     }
 
+    public function testGetUnauthorized()
+    {
+        $this->assertUnauthorized(Request::METHOD_GET, self::$resourceUri . "/" . 0);
+    }
+
+    public function testGetForbiddenRole()
+    {
+        $this->assertForbidden(Request::METHOD_GET, self::$resourceUri . "/" . 0, self::$usuarioAppToken);
+    }
+
+    public function testGetWrongToken()
+    {
+        $this->assertWrongToken(Request::METHOD_GET, self::$resourceUri . "/" . 0);
+    }
+
     public function testAccessDeniedGet()
     {
         $id = $this->createActividad([
             "nombre" => "Actividad ajena",
             "codigo" => self::$actividadCodigo,
             "objetivo" => "Probar acceder a una actividad de otro autor",
-            "autor" => "autor2@test.com"
+            "autor" => self::$otherAutorEmail
         ]);
 
         $uri = self::$resourceUri . "/" . $id;
         try {
             self::$client->get($uri, self::getDefaultOptions());
         } catch (RequestException $e) {
-            $this->assertErrorResponse($e->getResponse(), Response::HTTP_FORBIDDEN);
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_FORBIDDEN, "La actividad es privada o no pertenece al usuario actual");
         }
     }
 
     public function testNotFoundGet()
     {
         $uri = self::$resourceUri . "/" . 0;
-        try {
-            self::$client->get($uri, self::getDefaultOptions());
-        } catch (RequestException $e) {
-            $this->assertErrorResponse($e->getResponse(), Response::HTTP_NOT_FOUND);
-        }
+        $this->assertNotFound(Request::METHOD_GET, $uri, "Actividad");
     }
 }

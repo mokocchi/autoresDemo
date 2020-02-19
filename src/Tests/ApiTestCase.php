@@ -10,16 +10,11 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use OAuth2\OAuth2;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class ApiTestCase extends KernelTestCase
 {
-    protected const GET = "GET";
-    protected const POST = "POST";
-    protected const PATCH = "PATCH";
-    protected const PUT = "PUT";
-    protected const DELETE = "DELETE";
-
     protected static $client;
     protected static $access_token;
     protected static $prefijo_api = '/api/v1.0';
@@ -41,16 +36,17 @@ class ApiTestCase extends KernelTestCase
         return ["headers" => ['Authorization' => self::getAuthHeader()]];
     }
 
-    protected function assertApiProblemResponse($response)
+    protected function assertApiProblemResponse($response, $message)
     {
         $data = json_decode((string) $response->getBody(), true);
         $this->assertEquals(self::$apiProblemArray, array_keys($data));
+        $this->assertEquals($message, $data["developer_message"]);
     }
 
-    protected function assertErrorResponse($response, $statusCode)
+    protected function assertErrorResponse($response, $statusCode, $message)
     {
         $this->assertEquals($statusCode, $response->getStatusCode());
-        $this->assertApiProblemResponse($response);
+        $this->assertApiProblemResponse($response, $message);
     }
 
     protected function dumpError(RequestException $e)
@@ -103,6 +99,7 @@ class ApiTestCase extends KernelTestCase
         return $user;
     }
 
+    /** @return AccessToken  */
     protected static function getNewAccessToken(Usuario $usuario)
     {
         $client = $usuario->getOauthClient();
@@ -163,25 +160,22 @@ class ApiTestCase extends KernelTestCase
     {
         try {
             switch ($method) {
-                case self::GET:
+                case Request::METHOD_GET:
                     self::$client->get($uri);
                     break;
-                case self::POST:
+                case Request::METHOD_POST:
                     self::$client->post($uri);
                     break;
-                case self::PUT:
-                    self::$client->put($uri);
-                    break;
-                case self::PATCH:
+                case Request::METHOD_PATCH:
                     self::$client->patch($uri);
                     break;
-                case self::DELETE:
+                case Request::METHOD_DELETE:
                     self::$client->delete($uri);
                 default:
                     break;
             }
         } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_UNAUTHORIZED);
+            self::assertErrorResponse($e->getResponse(), Response::HTTP_UNAUTHORIZED, 'Se requiere autenticación OAuth');
         }
     }
 
@@ -192,25 +186,22 @@ class ApiTestCase extends KernelTestCase
         ];
         try {
             switch ($method) {
-                case self::GET:
+                case Request::METHOD_GET:
                     self::$client->get($uri, $options);
                     break;
-                case self::POST:
+                case Request::METHOD_POST:
                     self::$client->post($uri, $options);
                     break;
-                case self::PUT:
-                    self::$client->put($uri, $options);
-                    break;
-                case self::PATCH:
+                case Request::METHOD_PATCH:
                     self::$client->patch($uri, $options);
                     break;
-                case self::DELETE:
+                case Request::METHOD_DELETE:
                     self::$client->delete($uri, $options);
                 default:
                     break;
             }
         } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_FORBIDDEN);
+            self::assertErrorResponse($e->getResponse(), Response::HTTP_FORBIDDEN, "No tenés los permisos suficientes para acceder al recurso");
         }
     }
 
@@ -221,25 +212,68 @@ class ApiTestCase extends KernelTestCase
         ];
         try {
             switch ($method) {
-                case self::GET:
+                case Request::METHOD_GET:
                     self::$client->get($uri, $options);
                     break;
-                case self::POST:
+                case Request::METHOD_POST:
                     self::$client->post($uri, $options);
                     break;
-                case self::PUT:
-                    self::$client->put($uri, $options);
-                    break;
-                case self::PATCH:
+                case Request::METHOD_PATCH:
                     self::$client->patch($uri, $options);
                     break;
-                case self::DELETE:
+                case Request::METHOD_DELETE:
                     self::$client->delete($uri, $options);
                 default:
                     break;
             }
         } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_UNAUTHORIZED);
+            self::assertErrorResponse($e->getResponse(), Response::HTTP_UNAUTHORIZED, "El token expiró o es inválido");
+        }
+    }
+
+    protected function assertNoJson($method, $uri)
+    {
+        $options = [
+            'headers' => ['Authorization' => 'Bearer ' . self::$access_token]
+        ];
+        try {
+            switch ($method) {
+                case Request::METHOD_POST:
+                    self::$client->post($uri, $options);
+                    break;
+                case Request::METHOD_PATCH:
+                    self::$client->patch($uri, $options);
+                    break;
+                default:
+                    break;
+            }
+            $this->fail("No se detectó que no hay json en el request");
+        } catch (RequestException $e) {
+            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "No hay campos en el json");
+        }
+    }
+
+    public function assertNotFound($method, $uri, $className)
+    {
+        try {
+            switch ($method) {
+                case Request::METHOD_GET:
+                    self::$client->get($uri, self::getDefaultOptions());
+                case Request::METHOD_PATCH:
+                    $options = [
+                        "headers" => ["Authorization" => self::getAuthHeader()],
+                        "json" => []
+                    ];
+                    self::$client->patch($uri, $options);
+                    break;
+                case Request::METHOD_DELETE:
+                    self::$client->delete($uri, self::getDefaultOptions());
+                    break;
+                default:
+                    break;
+            }
+        } catch (RequestException $e) {
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_NOT_FOUND, sprintf("No se encontró: %s", $className));
         }
     }
 }
