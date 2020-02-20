@@ -129,6 +129,13 @@ class ApiTestCase extends KernelTestCase
         self::$em = self::getService("doctrine")->getManager();
     }
 
+    protected static function removeUsuarios()
+    {
+        self::truncateTable("access_token");
+        self::truncateTable("usuario_role");
+        self::truncateEntities([Usuario::class, EntityClient::class]);
+    }
+
     protected static function removeUsuario($email)
     {
         $usuario = self::$em->getRepository(Usuario::class)->findOneBy(["email" => $email]);
@@ -136,6 +143,10 @@ class ApiTestCase extends KernelTestCase
             $access_tokens = self::$em->getRepository(AccessToken::class)->findBy(["user" => $usuario->getId()]);
             foreach ($access_tokens as $token) {
                 self::$em->remove($token);
+            }
+            $roles = self::$em->getRepository(Role::class)->findAll();
+            foreach ($roles as $role) {
+                $usuario->removeRole($role);
             }
             self::$em->flush();
             self::$em->remove($usuario);
@@ -153,6 +164,34 @@ class ApiTestCase extends KernelTestCase
     protected static function getService($id)
     {
         return self::$kernel->getContainer()->get($id);
+    }
+
+    protected static function truncateTable($name)
+    {
+        $connection = self::$em->getConnection();
+        $platform = $connection->getDatabasePlatform();
+        $connection->executeQuery('SET FOREIGN_KEY_CHECKS = 0;');
+        $truncateSql = $platform->getTruncateTableSQL($name);
+        $connection->executeUpdate($truncateSql);
+        $connection->executeQuery('SET FOREIGN_KEY_CHECKS = 1;');
+    }
+
+    protected static function truncateEntities(array $entities)
+    {
+        $connection = self::$em->getConnection();
+        $databasePlatform = $connection->getDatabasePlatform();
+        if ($databasePlatform->supportsForeignKeyConstraints()) {
+            $connection->query('SET FOREIGN_KEY_CHECKS=0');
+        }
+        foreach ($entities as $entity) {
+            $query = $databasePlatform->getTruncateTableSQL(
+                self::$em->getClassMetadata($entity)->getTableName()
+            );
+            $connection->executeUpdate($query);
+        }
+        if ($databasePlatform->supportsForeignKeyConstraints()) {
+            $connection->query('SET FOREIGN_KEY_CHECKS=1');
+        }
     }
 
     protected function assertUnauthorized($method, $uri)

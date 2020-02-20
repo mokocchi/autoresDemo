@@ -612,8 +612,14 @@ class ActividadesController extends BaseController
         $em = $this->getDoctrine()->getManager();
 
         $actividad = $this->checkActividadFound($id);
-        $tarea = $this->checkTareaFound($id);
-        $actividad->addTarea($tarea);
+        $tareasIds = $data["tarea"];
+        $tareas = [];
+        foreach ($tareasIds as $tareaId) {
+            $tareas[]= $this->checkTareaFound($tareaId);
+        }
+        foreach ($tareas as $tarea) {
+            $actividad->addTarea($tarea);
+        }
         $em->persist($actividad);
         $em->flush();
         return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));

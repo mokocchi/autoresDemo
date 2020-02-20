@@ -46,25 +46,14 @@ class TareasControllerTest extends ApiTestCase
     protected function tearDown(): void
     {
         parent::tearDown();
-        $tareas = self::$em->getRepository(Tarea::class)->findBy(["codigo" => self::$tareaCodigo]);;
-        foreach ($tareas as $tarea) {
-            self::$em->remove($tarea);
-            self::$em->flush();
-        }
+        self::truncateEntities([Tarea::class]);
     }
 
     public static function tearDownAfterClass(): void
     {
         parent::tearDownAfterClass();
-        $dominio = self::$em->getRepository(Dominio::class)->find(self::$dominioId);
-        if ($dominio) {
-            self::$em->remove($dominio);
-            self::$em->flush();
-        }
-        self::$em->clear();
-        self::removeUsuario(self::$autorEmail);
-        self::removeUsuario(self::$otherAutorEmail);
-        self::removeUsuario(self::$usuarioAppEmail);
+        self::truncateEntities([Dominio::class]);
+        self::removeUsuarios();
     }
 
     private function createTarea(array $tareaArray)
@@ -221,7 +210,7 @@ class TareasControllerTest extends ApiTestCase
             $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "Se recibieron datos inválidos");
         }
     }
-    
+
     public function testGet()
     {
         $id = $this->createDefaultTarea();

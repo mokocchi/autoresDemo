@@ -10,7 +10,9 @@ use App\Entity\Dominio;
 use App\Entity\Estado;
 use App\Entity\Idioma;
 use App\Entity\Planificacion;
+use App\Entity\Tarea;
 use App\Entity\TipoPlanificacion;
+use App\Entity\TipoTarea;
 use App\Entity\Usuario;
 use App\Test\ApiTestCase;
 use Doctrine\Persistence\ObjectManager;
@@ -22,6 +24,8 @@ class ActividadesControllerTest extends ApiTestCase
 {
     private static $dominioName = "Test";
     private static $actividadCodigo = "actividadtest";
+    private static $tareaCodigo = "tareatest";
+    private static $tareaCodigo2 = "tareatest2";
     private static $dominioId;
     private static $resourceUri;
     private static $autorEmail = "autor@test.com";
@@ -47,28 +51,15 @@ class ActividadesControllerTest extends ApiTestCase
     protected function tearDown(): void
     {
         parent::tearDown();
-        $actividades = self::$em->getRepository(Actividad::class)->findBy(["codigo" => self::$actividadCodigo]);;
-        foreach ($actividades as $actividad) {
-            $planificacion = $actividad->getPlanificacion();
-            self::$em->remove($actividad);
-            self::$em->flush();
-            self::$em->remove($planificacion);
-            self::$em->flush();
-        }
+        self::truncateEntities([Actividad::class, Tarea::class]);
+        self::truncateTable("actividad_tarea");
     }
 
     public static function tearDownAfterClass(): void
     {
         parent::tearDownAfterClass();
-        $dominio = self::$em->getRepository(Dominio::class)->find(self::$dominioId);
-        if ($dominio) {
-            self::$em->remove($dominio);
-            self::$em->flush();
-        }
-        self::$em->clear();
-        self::removeUsuario(self::$autorEmail);
-        self::removeUsuario(self::$otherAutorEmail);
-        self::removeUsuario(self::$usuarioAppEmail);
+        self::truncateEntities([Dominio::class]);
+        self::removeUsuarios();
     }
 
     private function createActividad(array $actividad_array): int
@@ -104,6 +95,40 @@ class ActividadesControllerTest extends ApiTestCase
             "nombre" => "Actividad test",
             "objetivo" => "Probar crear una actividad",
             "codigo" => self::$actividadCodigo,
+        ]);
+    }
+
+    private function createTarea(array $tareaArray)
+    {
+        $tarea = new Tarea();
+        $tarea->setNombre($tareaArray["nombre"]);
+        $tarea->setConsigna($tareaArray["consigna"]);
+        $tarea->setCodigo($tareaArray["codigo"]);
+        $dominio = self::$em->getRepository(Dominio::class)->find(self::$dominioId);
+        $tarea->setDominio($dominio);
+        $tipoTarea = self::$em->getRepository(TipoTarea::class)->findOneBy(["codigo" => $tareaArray["tipo"]]);
+        $tarea->setTipo($tipoTarea);
+        if (!array_key_exists("autor", $tareaArray)) {
+            $accessToken = self::$em->getRepository(AccessToken::class)->findOneBy(["token" => self::$access_token]);
+            $tarea->setAutor($accessToken->getUser());
+        } else {
+            $autor = self::$em->getRepository(Usuario::class)->findOneBy(["email" => $tareaArray["autor"]]);
+            $tarea->setAutor($autor);
+        }
+        $estado = self::$em->getRepository(Estado::class)->findOneBy(["nombre" => "Privado"]);
+        $tarea->setEstado($estado);
+        self::$em->persist($tarea);
+        self::$em->flush();
+        return $tarea->getId();
+    }
+
+    private function createDefaultTarea()
+    {
+        return $this->createTarea([
+            "nombre" => "Tarea test",
+            "consigna" => "Probar las tareas",
+            "codigo" => self::$tareaCodigo,
+            "tipo" => "simple"
         ]);
     }
 
@@ -416,5 +441,26 @@ class ActividadesControllerTest extends ApiTestCase
     {
         $uri = self::$resourceUri . "/" . 0;
         $this->assertNotFound(Request::METHOD_GET, $uri, "Actividad");
+    }
+
+    public function testaddTareasToActividad()
+    {
+        $tareaId = $this->createDefaultTarea();
+        $tarea2Id = $this->createTarea([
+            "nombre" => "Tarea test 2",
+            "consigna" => "Probar la asociación de tareas",
+            "codigo" => self::$tareaCodigo2,
+            "tipo" => "simple"
+        ]);
+        $id = $this->createDefaultActividad();
+        $uri = self::$resourceUri . '/' . $id . '/tareas';
+        $options = [
+            'headers' => ['Authorization' => 'Bearer ' . self::$access_token],
+            'json' => [
+                'tarea' => [$tareaId, $tarea2Id]
+            ]
+        ];
+        $response = self::$client->post($uri, $options);
+        $this->assertTrue($response->getStatusCode() == Response::HTTP_OK);
     }
 }

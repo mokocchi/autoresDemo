@@ -44,7 +44,7 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
                 );
             } elseif ($e instanceof NotFoundHttpException) {
                 $devMessage = "Recurso no encontrado";
-                $usrMessage = "Recuro no encontrado";
+                $usrMessage = "Recurso no encontrado";
                 $apiProblem = new ApiProblem(
                     $e->getStatusCode(),
                     $devMessage,

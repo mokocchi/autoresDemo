@@ -27,18 +27,13 @@ class DominioControllerTest extends ApiTestCase
     public function tearDown(): void
     {
         parent::tearDown();
-        $dominio = self::$em->getRepository(Dominio::class)->findOneBy(["nombre" => self::$dominioName]);
-        if (!is_null($dominio)) {
-            self::$em->remove($dominio);
-            self::$em->flush();
-        }
+        self::truncateEntities([Dominio::class]);
         self::removeUsuario(self::$usuarioEmail);
     }
 
     public static function tearDownAfterClass(): void
     {
-        /** @var ObjectManager $em */
-        self::removeUsuario(self::$autorEmail);
+        self::removeUsuarios();
     }
 
     private function createDominio(?string $nombre = null): int
