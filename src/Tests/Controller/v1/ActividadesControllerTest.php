@@ -31,12 +31,10 @@ class ActividadesControllerTest extends ApiTestCase
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
-        /** @var ObjectManager $em */
-        $em = self::getService("doctrine")->getManager();
         $dominio = new Dominio();
         $dominio->setNombre(self::$dominioName);
-        $em->persist($dominio);
-        $em->flush();
+        self::$em->persist($dominio);
+        self::$em->flush();
         self::$dominioId = $dominio->getId();
         self::$resourceUri = self::$prefijo_api . "/actividades";
         $usuario = self::createAutor(self::$autorEmail);
@@ -49,29 +47,25 @@ class ActividadesControllerTest extends ApiTestCase
     protected function tearDown(): void
     {
         parent::tearDown();
-        /** @var ObjectManager $em */
-        $em = self::getService("doctrine")->getManager();
-        $actividades = $em->getRepository(Actividad::class)->findBy(["codigo" => self::$actividadCodigo]);;
+        $actividades = self::$em->getRepository(Actividad::class)->findBy(["codigo" => self::$actividadCodigo]);;
         foreach ($actividades as $actividad) {
             $planificacion = $actividad->getPlanificacion();
-            $em->remove($actividad);
-            $em->flush();
-            $em->remove($planificacion);
-            $em->flush();
+            self::$em->remove($actividad);
+            self::$em->flush();
+            self::$em->remove($planificacion);
+            self::$em->flush();
         }
     }
 
     public static function tearDownAfterClass(): void
     {
         parent::tearDownAfterClass();
-        /** @var ObjectManager $em */
-        $em = self::getService("doctrine")->getManager();
-        $dominio = $em->getRepository(Dominio::class)->find(self::$dominioId);
+        $dominio = self::$em->getRepository(Dominio::class)->find(self::$dominioId);
         if ($dominio) {
-            $em->remove($dominio);
-            $em->flush();
+            self::$em->remove($dominio);
+            self::$em->flush();
         }
-        $em->clear();
+        self::$em->clear();
         self::removeUsuario(self::$autorEmail);
         self::removeUsuario(self::$otherAutorEmail);
         self::removeUsuario(self::$usuarioAppEmail);
@@ -79,30 +73,28 @@ class ActividadesControllerTest extends ApiTestCase
 
     private function createActividad(array $actividad_array): int
     {
-        /** @var ObjectManager $em */
-        $em = self::getService("doctrine")->getManager();
         $actividad = new Actividad();
         $actividad->setNombre($actividad_array["nombre"]);
         $actividad->setObjetivo($actividad_array["objetivo"]);
         $actividad->setCodigo($actividad_array["codigo"]);
-        $dominio = $em->getRepository(Dominio::class)->find(self::$dominioId);
+        $dominio = self::$em->getRepository(Dominio::class)->find(self::$dominioId);
         $actividad->setDominio($dominio);
-        $idioma = $em->getRepository(Idioma::class)->findOneBy(["code" => "es"]);
+        $idioma = self::$em->getRepository(Idioma::class)->findOneBy(["code" => "es"]);
         $actividad->setIdioma($idioma);
-        $tipoPlanificacion = $em->getRepository(TipoPlanificacion::class)->findOneBy(["nombre" => "Secuencial"]);
+        $tipoPlanificacion = self::$em->getRepository(TipoPlanificacion::class)->findOneBy(["nombre" => "Secuencial"]);
         $actividad->setTipoPlanificacion($tipoPlanificacion);
         $actividad->setPlanificacion(new Planificacion());
-        $estado = $em->getRepository(Estado::class)->findOneBy(["nombre" => "Privado"]);
+        $estado = self::$em->getRepository(Estado::class)->findOneBy(["nombre" => "Privado"]);
         $actividad->setEstado($estado);
         if (!array_key_exists("autor", $actividad_array)) {
-            $accessToken = $em->getRepository(AccessToken::class)->findOneBy(["token" => self::$access_token]);
+            $accessToken = self::$em->getRepository(AccessToken::class)->findOneBy(["token" => self::$access_token]);
             $actividad->setAutor($accessToken->getUser());
         } else {
-            $autor = $em->getRepository(Usuario::class)->findOneBy(["email" => $actividad_array["autor"]]);
+            $autor = self::$em->getRepository(Usuario::class)->findOneBy(["email" => $actividad_array["autor"]]);
             $actividad->setAutor($autor);
         }
-        $em->persist($actividad);
-        $em->flush();
+        self::$em->persist($actividad);
+        self::$em->flush();
         return $actividad->getId();
     }
 

@@ -3,7 +3,6 @@
 namespace App\Controller\Tests;
 
 use App\Entity\Dominio;
-use App\Entity\Usuario;
 use App\Test\ApiTestCase;
 use Doctrine\Persistence\ObjectManager;
 use GuzzleHttp\Exception\RequestException;
@@ -28,12 +27,10 @@ class DominioControllerTest extends ApiTestCase
     public function tearDown(): void
     {
         parent::tearDown();
-        /** @var ObjectManager $em */
-        $em = self::getService("doctrine")->getManager();
-        $dominio = $em->getRepository(Dominio::class)->findOneBy(["nombre" => self::$dominioName]);
+        $dominio = self::$em->getRepository(Dominio::class)->findOneBy(["nombre" => self::$dominioName]);
         if (!is_null($dominio)) {
-            $em->remove($dominio);
-            $em->flush();
+            self::$em->remove($dominio);
+            self::$em->flush();
         }
         self::removeUsuario(self::$usuarioEmail);
     }
@@ -46,12 +43,10 @@ class DominioControllerTest extends ApiTestCase
 
     private function createDominio(?string $nombre = null): int
     {
-        /** @var ObjectManager $em */
-        $em = self::getService("doctrine")->getManager();
         $dominio = new Dominio();
         $dominio->setNombre(is_null($nombre) ? self::$dominioName : $nombre);
-        $em->persist($dominio);
-        $em->flush();
+        self::$em->persist($dominio);
+        self::$em->flush();
         return $dominio->getId();
     }
 
@@ -87,10 +82,7 @@ class DominioControllerTest extends ApiTestCase
             $this->fail("No se detectó el dominio repetido");
         } catch (RequestException $e) {
             self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "Ya existe un dominio con el mismo nombre");
-
-            /** @var ObjectManager $em */
-            $em = self::getService("doctrine")->getManager();
-            $dominios = $em->getRepository(Dominio::class)->findBy(["nombre" => self::$dominioName]);
+            $dominios = self::$em->getRepository(Dominio::class)->findBy(["nombre" => self::$dominioName]);
             $this->assertEquals(1, count($dominios));
         }
     }

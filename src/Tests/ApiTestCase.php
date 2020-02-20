@@ -25,6 +25,7 @@ class ApiTestCase extends KernelTestCase
         "error_code",
         "more_info"
     ];
+    protected static $em;
 
     protected static function getAuthHeader()
     {
@@ -79,23 +80,21 @@ class ApiTestCase extends KernelTestCase
 
     protected static function createUsuario(array $usuarioArray)
     {
-        /** @var ObjectManager $em */
-        $em = self::getService('doctrine')->getManager();
         $user = new Usuario();
         $user->setEmail($usuarioArray["email"]);
         $user->setNombre($usuarioArray["nombre"]);
         $user->setApellido($usuarioArray["apellido"]);
         $user->setGoogleid($usuarioArray["googleid"]);
-        $role = $em->getRepository(Role::class)->findOneBy(["name" => $usuarioArray["role"]]);
+        $role = self::$em->getRepository(Role::class)->findOneBy(["name" => $usuarioArray["role"]]);
         $user->addRole($role);
 
         $client = new EntityClient();
         $client->setAllowedGrantTypes(array(OAuth2::GRANT_TYPE_CLIENT_CREDENTIALS));
         $user->setOAuthClient($client);
-        $em->persist($client);
-        $em->flush();
-        $em->persist($user);
-        $em->flush();
+        self::$em->persist($client);
+        self::$em->flush();
+        self::$em->persist($user);
+        self::$em->flush();
         return $user;
     }
 
@@ -127,23 +126,23 @@ class ApiTestCase extends KernelTestCase
                 'base_uri' => 'http://localhost:80/'
             ]
         );
+        self::$em = self::getService("doctrine")->getManager();
     }
 
     protected static function removeUsuario($email)
     {
-        $em = self::getService('doctrine')->getManager();
-        $usuario = $em->getRepository(Usuario::class)->findOneBy(["email" => $email]);
+        $usuario = self::$em->getRepository(Usuario::class)->findOneBy(["email" => $email]);
         if (!is_null($usuario)) {
-            $access_tokens = $em->getRepository(AccessToken::class)->findBy(["user" => $usuario->getId()]);
+            $access_tokens = self::$em->getRepository(AccessToken::class)->findBy(["user" => $usuario->getId()]);
             foreach ($access_tokens as $token) {
-                $em->remove($token);
+                self::$em->remove($token);
             }
-            $em->flush();
-            $em->remove($usuario);
-            $em->flush();
+            self::$em->flush();
+            self::$em->remove($usuario);
+            self::$em->flush();
             $client = $usuario->getOauthClient();
-            $em->remove($client);
-            $em->flush();
+            self::$em->remove($client);
+            self::$em->flush();
         }
     }
 
@@ -273,7 +272,6 @@ class ApiTestCase extends KernelTestCase
                     break;
             }
         } catch (RequestException $e) {
-            $this->dumpError($e);
             $this->assertErrorResponse($e->getResponse(), Response::HTTP_NOT_FOUND, sprintf("No se encontró: %s", $className));
         }
     }

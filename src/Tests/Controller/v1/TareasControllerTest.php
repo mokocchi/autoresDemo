@@ -30,12 +30,10 @@ class TareasControllerTest extends ApiTestCase
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
-        /** @var ObjectManager $em */
-        $em = self::getService("doctrine")->getManager();
         $dominio = new Dominio();
         $dominio->setNombre(self::$dominioName);
-        $em->persist($dominio);
-        $em->flush();
+        self::$em->persist($dominio);
+        self::$em->flush();
         self::$dominioId = $dominio->getId();
         self::$resourceUri = self::$prefijo_api . "/tareas";
         $usuario = self::createAutor(self::$autorEmail);
@@ -48,26 +46,22 @@ class TareasControllerTest extends ApiTestCase
     protected function tearDown(): void
     {
         parent::tearDown();
-        /** @var ObjectManager $em */
-        $em = self::getService("doctrine")->getManager();
-        $tareas = $em->getRepository(Tarea::class)->findBy(["codigo" => self::$tareaCodigo]);;
+        $tareas = self::$em->getRepository(Tarea::class)->findBy(["codigo" => self::$tareaCodigo]);;
         foreach ($tareas as $tarea) {
-            $em->remove($tarea);
-            $em->flush();
+            self::$em->remove($tarea);
+            self::$em->flush();
         }
     }
 
     public static function tearDownAfterClass(): void
     {
         parent::tearDownAfterClass();
-        /** @var ObjectManager $em */
-        $em = self::getService("doctrine")->getManager();
-        $dominio = $em->getRepository(Dominio::class)->find(self::$dominioId);
+        $dominio = self::$em->getRepository(Dominio::class)->find(self::$dominioId);
         if ($dominio) {
-            $em->remove($dominio);
-            $em->flush();
+            self::$em->remove($dominio);
+            self::$em->flush();
         }
-        $em->clear();
+        self::$em->clear();
         self::removeUsuario(self::$autorEmail);
         self::removeUsuario(self::$otherAutorEmail);
         self::removeUsuario(self::$usuarioAppEmail);
@@ -79,22 +73,21 @@ class TareasControllerTest extends ApiTestCase
         $tarea->setNombre($tareaArray["nombre"]);
         $tarea->setConsigna($tareaArray["consigna"]);
         $tarea->setCodigo($tareaArray["codigo"]);
-        $em = self::getService("doctrine")->getManager();
-        $dominio = $em->getRepository(Dominio::class)->find(self::$dominioId);
+        $dominio = self::$em->getRepository(Dominio::class)->find(self::$dominioId);
         $tarea->setDominio($dominio);
-        $tipoTarea = $em->getRepository(TipoTarea::class)->findOneBy(["codigo" => $tareaArray["tipo"]]);
+        $tipoTarea = self::$em->getRepository(TipoTarea::class)->findOneBy(["codigo" => $tareaArray["tipo"]]);
         $tarea->setTipo($tipoTarea);
         if (!array_key_exists("autor", $tareaArray)) {
-            $accessToken = $em->getRepository(AccessToken::class)->findOneBy(["token" => self::$access_token]);
+            $accessToken = self::$em->getRepository(AccessToken::class)->findOneBy(["token" => self::$access_token]);
             $tarea->setAutor($accessToken->getUser());
         } else {
-            $autor = $em->getRepository(Usuario::class)->findOneBy(["email" => $tareaArray["autor"]]);
+            $autor = self::$em->getRepository(Usuario::class)->findOneBy(["email" => $tareaArray["autor"]]);
             $tarea->setAutor($autor);
         }
-        $estado = $em->getRepository(Estado::class)->findOneBy(["nombre" => "Privado"]);
+        $estado = self::$em->getRepository(Estado::class)->findOneBy(["nombre" => "Privado"]);
         $tarea->setEstado($estado);
-        $em->persist($tarea);
-        $em->flush();
+        self::$em->persist($tarea);
+        self::$em->flush();
         return $tarea->getId();
     }
 

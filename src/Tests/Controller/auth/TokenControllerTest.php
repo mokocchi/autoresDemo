@@ -26,9 +26,7 @@ class TokenControllerTest extends ApiTestCase
     public function tearDown(): void
     {
         parent::tearDown();
-        /** @var ObjectManager $em */
-        $em = self::getService('doctrine')->getManager();
-        $autor = $em->getRepository(Usuario::class)->findOneBy(["email" => "carlos@test.com"]);
+        $autor = self::$em->getRepository(Usuario::class)->findOneBy(["email" => "carlos@test.com"]);
         self::removeUsuario($autor);
     }
 
