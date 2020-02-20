@@ -253,11 +253,7 @@ class ActividadesControllerTest extends ApiTestCase
                 "nombre" => "Actividad test 2"
             ]
         ];
-        try {
-            $response = self::$client->patch($uri, $options);
-        } catch (RequestException $e) {
-            $this->dumpError($e);
-        }
+        $response = self::$client->patch($uri, $options);
         $data = json_decode((string) $response->getBody(), true);
         $this->assertArrayHasKey("nombre", $data);
         $this->assertTrue($data["nombre"] == "Actividad test 2");
@@ -273,7 +269,8 @@ class ActividadesControllerTest extends ApiTestCase
         $this->assertForbidden(Request::METHOD_PATCH, self::$resourceUri . "/" . 0, self::$usuarioAppToken);
     }
 
-    public function testPatchActividadNotOwned() {
+    public function testPatchActividadNotOwned()
+    {
         $id = $this->createActividad([
             "nombre" => "Actividad ajena",
             "codigo" => self::$actividadCodigo,
@@ -329,7 +326,6 @@ class ActividadesControllerTest extends ApiTestCase
         $uri = self::$resourceUri . '/' . 0;
         $this->assertNotFound(Request::METHOD_PATCH, $uri, "Actividad");
     }
-    
 
     public function testDelete()
     {
@@ -406,7 +402,7 @@ class ActividadesControllerTest extends ApiTestCase
         $this->assertWrongToken(Request::METHOD_GET, self::$resourceUri . "/" . 0);
     }
 
-    public function testAccessDeniedGet()
+    public function testGetNotOwned()
     {
         $id = $this->createActividad([
             "nombre" => "Actividad ajena",
@@ -418,6 +414,7 @@ class ActividadesControllerTest extends ApiTestCase
         $uri = self::$resourceUri . "/" . $id;
         try {
             self::$client->get($uri, self::getDefaultOptions());
+            $this->fail("No se detectó el intento de acceder a una actividad ajena");
         } catch (RequestException $e) {
             $this->assertErrorResponse($e->getResponse(), Response::HTTP_FORBIDDEN, "La actividad es privada o no pertenece al usuario actual");
         }

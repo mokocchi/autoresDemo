@@ -273,7 +273,7 @@ class TareasControllerTest extends ApiTestCase
         $this->assertWrongToken(Request::METHOD_GET, self::$resourceUri . "/" . 0);
     }
 
-    public function testAccessDeniedGet()
+    public function testGetNotOwned()
     {
         $id = $this->createTarea([
             "nombre" => "Tarea ajena",
@@ -286,6 +286,7 @@ class TareasControllerTest extends ApiTestCase
         $uri = self::$resourceUri . "/" . $id;
         try {
             self::$client->get($uri, self::getDefaultOptions());
+            $this->fail("No se detectó el intento de acceder a una actividad ajena");
         } catch (RequestException $e) {
             $this->assertErrorResponse($e->getResponse(), Response::HTTP_FORBIDDEN, "La tarea es privada o no pertenece al usuario actual");
         }
