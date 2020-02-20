@@ -443,7 +443,7 @@ class ActividadesControllerTest extends ApiTestCase
         $this->assertNotFound(Request::METHOD_GET, $uri, "Actividad");
     }
 
-    public function testaddTareasToActividad()
+    public function testPutTareas()
     {
         $tareaId = $this->createDefaultTarea();
         $tarea2Id = $this->createTarea([
@@ -457,10 +457,81 @@ class ActividadesControllerTest extends ApiTestCase
         $options = [
             'headers' => ['Authorization' => 'Bearer ' . self::$access_token],
             'json' => [
-                'tarea' => [$tareaId, $tarea2Id]
+                'tareas' => [$tareaId, $tarea2Id]
             ]
         ];
-        $response = self::$client->post($uri, $options);
+        $response = self::$client->put($uri, $options);
         $this->assertTrue($response->getStatusCode() == Response::HTTP_OK);
+    }
+
+    public function testPutTareasUnauthorized()
+    {
+        $this->assertUnauthorized(Request::METHOD_PUT, self::$resourceUri . "/" . 0 . "/tareas");
+    }
+
+
+    public function testPutTareasWrongToken()
+    {
+        $this->assertWrongToken(Request::METHOD_PUT, self::$resourceUri . "/" . 0 . "/tareas");
+    }
+
+    public function testPutTareasForbiddenRole()
+    {
+        $this->assertForbidden(Request::METHOD_PUT, self::$resourceUri . "/" . 0 . "/tareas", self::$usuarioAppToken);
+    }
+
+    public function testPutTareasMissingJson()
+    {
+        $id = $this->createDefaultActividad();
+        $this->assertNoJson(Request::METHOD_PUT, self::$resourceUri . '/' . $id . "/tareas");
+    }
+
+    public function testPutTareasActividadNotOwned()
+    {
+        $id = $this->createActividad([
+            "nombre" => "Actividad ajena",
+            "codigo" => self::$actividadCodigo,
+            "objetivo" => "Probar acceder a una actividad de otro autor",
+            "autor" => self::$otherAutorEmail
+        ]);
+
+        $uri = self::$resourceUri . "/" . $id . "/tareas";
+        $options = [
+            'headers' => ['Authorization' => self::getAuthHeader()],
+            'json' => [
+                "tareas" => []
+            ]
+        ];
+        try {
+            self::$client->put($uri, $options);
+            $this->fail("No se detectó un intento de acceder a una actividad ajena");
+        } catch (RequestException $e) {
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_FORBIDDEN, "La actividad no pertenece al usuario actual");
+        }
+    }
+
+    public function testPutTareasTareasNotOwned()
+    {
+        $id = $this->createDefaultActividad();
+        $tareaId = $this->createTarea([
+            "nombre" => "Tarea test",
+            "consigna" => "Probar la asociación de tareas",
+            "codigo" => self::$tareaCodigo,
+            "tipo" => "simple",
+            "autor" => self::$otherAutorEmail
+        ]);
+        $uri = self::$resourceUri . "/" . $id . "/tareas";
+        $options = [
+            'headers' => ['Authorization' => self::getAuthHeader()],
+            'json' => [
+                "tareas" => [$tareaId]
+            ]
+        ];
+        try {
+            self::$client->put($uri, $options);
+            $this->fail("No se detectó un intento de acceder a una tarea ajena");
+        } catch (RequestException $e) {
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_FORBIDDEN, "La tarea no pertenece al usuario actual");
+        }
     }
 }

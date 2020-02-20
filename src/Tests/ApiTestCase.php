@@ -207,11 +207,15 @@ class ApiTestCase extends KernelTestCase
                 case Request::METHOD_PATCH:
                     self::$client->patch($uri);
                     break;
+                case Request::METHOD_PUT:
+                    self::$client->put($uri);
+                    break;
                 case Request::METHOD_DELETE:
                     self::$client->delete($uri);
                 default:
                     break;
             }
+            $this->fail("No se detectó una petición no autorizada");
         } catch (RequestException $e) {
             self::assertErrorResponse($e->getResponse(), Response::HTTP_UNAUTHORIZED, 'Se requiere autenticación OAuth');
         }
@@ -230,6 +234,9 @@ class ApiTestCase extends KernelTestCase
                 case Request::METHOD_POST:
                     self::$client->post($uri, $options);
                     break;
+                case Request::METHOD_PUT:
+                    self::$client->put($uri, $options);
+                    break;
                 case Request::METHOD_PATCH:
                     self::$client->patch($uri, $options);
                     break;
@@ -238,6 +245,7 @@ class ApiTestCase extends KernelTestCase
                 default:
                     break;
             }
+            $this->fail("No se detectó una petición sin permisos suficientes");
         } catch (RequestException $e) {
             self::assertErrorResponse($e->getResponse(), Response::HTTP_FORBIDDEN, "No tenés los permisos suficientes para acceder al recurso");
         }
@@ -256,6 +264,9 @@ class ApiTestCase extends KernelTestCase
                 case Request::METHOD_POST:
                     self::$client->post($uri, $options);
                     break;
+                case Request::METHOD_PUT:
+                    self::$client->put($uri, $options);
+                    break;
                 case Request::METHOD_PATCH:
                     self::$client->patch($uri, $options);
                     break;
@@ -264,6 +275,7 @@ class ApiTestCase extends KernelTestCase
                 default:
                     break;
             }
+            $this->fail("No se detectó una petición con un token erróneo");
         } catch (RequestException $e) {
             self::assertErrorResponse($e->getResponse(), Response::HTTP_UNAUTHORIZED, "El token expiró o es inválido");
         }
@@ -278,6 +290,9 @@ class ApiTestCase extends KernelTestCase
             switch ($method) {
                 case Request::METHOD_POST:
                     self::$client->post($uri, $options);
+                    break;
+                case Request::METHOD_PUT:
+                    self::$client->put($uri, $options);
                     break;
                 case Request::METHOD_PATCH:
                     self::$client->patch($uri, $options);
@@ -303,6 +318,13 @@ class ApiTestCase extends KernelTestCase
                         "json" => []
                     ];
                     self::$client->patch($uri, $options);
+                    break;
+                case Request::METHOD_PUT:
+                    $options = [
+                        "headers" => ["Authorization" => self::getAuthHeader()],
+                        "json" => []
+                    ];
+                    self::$client->put($uri, $options);
                     break;
                 case Request::METHOD_DELETE:
                     self::$client->delete($uri, self::getDefaultOptions());

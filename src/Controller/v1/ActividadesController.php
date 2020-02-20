@@ -139,6 +139,15 @@ class ActividadesController extends BaseController
         }
     }
 
+    private function checkOwnTarea($tarea)
+    {
+        if ($tarea->getAutor()->getId() !== $this->getUser()->getId()) {
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_FORBIDDEN, "La tarea no pertenece al usuario actual", "No se puede acceder a la actividad"),
+            );
+        }
+    }
+
     private function checkCodigoNotUsed($codigo)
     {
         $this->checkPropertyNotUsed(Actividad::class, "codigo", $codigo, "Ya existe una actividad con el mismo código");
@@ -547,8 +556,8 @@ class ActividadesController extends BaseController
     }
 
     /**
-     * Asigna una tarea a una actividad
-     * @Rest\Post("/{id}/tareas", name="post_tarea_actividad")
+     * Asigna un conjunto de tareas a un array
+     * @Rest\Put("/{id}/tareas", name="post_tarea_actividad")
      * @IsGranted("ROLE_AUTOR")
      *
      * @SWG\Response(
@@ -595,27 +604,33 @@ class ActividadesController extends BaseController
      * 
      * @SWG\Parameter(
      *     required=true,
-     *     name="tarea",
+     *     name="tareas",
      *     in="body",
-     *     type="string",
-     *     description="Id de la tarea",
+     *     type="array",
+     *     description="Ids de la tareas",
      *     schema={}
      * )
      * 
      * @SWG\Tag(name="Actividad")
      * @return Response
      */
-    public function addTareaToActividad(Request $request, $id)
+    public function setTareasToActividad(Request $request, $id)
     {
-        $data = json_decode($request->getContent(), true);
-        $this->checkRequiredParameters(["tarea"], $data);
+        $data = $this->getJsonData($request);
+        $this->checkRequiredParameters(["tareas"], $data);
         $em = $this->getDoctrine()->getManager();
 
         $actividad = $this->checkActividadFound($id);
-        $tareasIds = $data["tarea"];
+        $this->checkOwnActividad($actividad);
+
+        $this->removeTareasFromActividad($actividad);
+
+        $tareasIds = $data["tareas"];
         $tareas = [];
         foreach ($tareasIds as $tareaId) {
-            $tareas[]= $this->checkTareaFound($tareaId);
+            $tareaDb = $this->checkTareaFound($tareaId);
+            $this->checkOwnTarea($tareaDb);
+            $tareas[]= $tareaDb;
         }
         foreach ($tareas as $tarea) {
             $actividad->addTarea($tarea);
@@ -623,6 +638,21 @@ class ActividadesController extends BaseController
         $em->persist($actividad);
         $em->flush();
         return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
+    }
+
+    private function removeTareasFromActividad($actividad) 
+    {
+        $tareas = $actividad->getTareas();
+        foreach ($tareas as $tarea) {
+            $actividad->removeTarea($tarea);
+        }
+        $planificacion = $actividad->getPlanificacion();
+        $saltos = $planificacion->getSaltos();
+        $em = $this->getDoctrine()->getManager();
+        foreach ($saltos as $salto) {
+            $em->remove($salto);
+        }
+        $em->persist($planificacion);
     }
 
     /**
@@ -905,76 +935,6 @@ class ActividadesController extends BaseController
     public function deleteSaltosAction($id)
     {
         $actividad = $this->checkActividadFound($id);
-        $planificacion = $actividad->getPlanificacion();
-        $saltos = $planificacion->getSaltos();
-        $em = $this->getDoctrine()->getManager();
-        foreach ($saltos as $salto) {
-            $em->remove($salto);
-        }
-        $em->persist($planificacion);
-        $em->flush();
-        return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
-    }
-
-    /**
-     * Desasigna todas las tareas de una actividad
-     * @Rest\Delete("/{id}/tareas", name="detach_tareas_actividad")
-     * @IsGranted("ROLE_AUTOR")
-     * 
-     * @SWG\Response(
-     *     response=401,
-     *     description="No autorizado"
-     * )
-     * 
-     * @SWG\Response(
-     *     response=403,
-     *     description="Permisos insuficientes"
-     * )
-     * 
-     * @SWG\Parameter(
-     *     required=true,
-     *     name="Authorization",
-     *     in="header",
-     *     type="string",
-     *     description="Bearer token",
-     * )
-     * 
-     * @SWG\Response(
-     *     response=200,
-     *     description="Operación exitosa"
-     * )
-     * 
-     * @SWG\Response(
-     *     response=404,
-     *     description="Actividad no encontrada"
-     * )
-     *
-     * @SWG\Response(
-     *     response=500,
-     *     description="Error en el servidor"
-     * )
-     * 
-     * @SWG\Parameter(
-     *     required=true,
-     *     name="id",
-     *     in="path",
-     *     type="string",
-     *     description="Id de la actividad",
-     *     schema={}
-     * )
-     * 
-     * @SWG\Tag(name="Actividad")
-     * @return Response
-     */
-    public function deleteTareasAction($id)
-    {
-        $actividad = $this->checkActividadFound($id);
-        $tareas = $actividad->getTareas();
-        foreach ($tareas as $tarea) {
-            $actividad->removeTarea($tarea);
-        }
-        $em = $this->getDoctrine()->getManager();
-        $em->persist($actividad);
         $planificacion = $actividad->getPlanificacion();
         $saltos = $planificacion->getSaltos();
         $em = $this->getDoctrine()->getManager();
