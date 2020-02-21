@@ -413,7 +413,8 @@ class ActividadesControllerTest extends ApiTestCase
             "planificacion",
             "autor",
             "estado",
-            "codigo"
+            "codigo",
+            "_links"
         ], array_keys($data));
         $this->assertNotEmpty($data["id"]);
         $this->assertEquals("Actividad test", $data["nombre"]);
@@ -424,6 +425,7 @@ class ActividadesControllerTest extends ApiTestCase
         $this->assertEquals("Secuencial", $data["tipo_planificacion"]["nombre"]);
         $this->assertEquals("Privado", $data["estado"]["nombre"]);
         $this->assertEquals("Pedro", $data["autor"]["nombre"]);
+        $this->assertEquals(self::$resourceUri . '/' . $id, $data['_links']['self']);
     }
 
     /** @group getOne */

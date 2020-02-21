@@ -42,3 +42,8 @@ services:
         arguments: []
         tags:
             - { name: kernel.event_subscriber }
+
+    link_serialization_subscriber:
+        class: App\Serializer\LinkSerializationSubscriber
+        tags:
+            - { name: jms_serializer.event_subscriber }
