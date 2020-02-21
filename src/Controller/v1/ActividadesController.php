@@ -123,7 +123,7 @@ class ActividadesController extends BaseController
         $filter = $request->query->get('filter');
         /** @var ActividadRepository $repository */
         $repository = $this->getDoctrine()->getRepository(Actividad::class);
-        $qb = $repository->findAllQueryBuilder($filter);
+        $qb = $repository->findAllQueryBuilder($filter, $this->getUser());
         $paginatedCollection = $paginationFactory->createCollection($qb, $request, 'get_actividades_user');
         return $this->handleView($this->getViewWithGroups($paginatedCollection, "autor"));
     }

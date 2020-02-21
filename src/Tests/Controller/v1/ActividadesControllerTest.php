@@ -486,6 +486,13 @@ class ActividadesControllerTest extends ApiTestCase
             "codigo" => "codigo",
             "objetivo" => "Probar la paginación de las actividades"
         ));
+
+        $this->createActividad(array(
+            "nombre" => "Actividad test",
+            "codigo" => "codigo",
+            "objetivo" => "Probar la paginación de las actividades",
+            "autor" => self::$otherAutorEmail
+        ));
         $uri = self::$resourceUri . '/user?filter=test';
 
         $response = self::$client->get($uri, $this->getDefaultOptions());
