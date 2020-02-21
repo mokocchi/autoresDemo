@@ -105,7 +105,7 @@ class TareasControllerTest extends ApiTestCase
         ];
         $response = self::$client->post(self::$resourceUri, $options);
         $this->assertTrue($response->hasHeader("Location"));
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $this->getJson($response);
         $this->assertEquals([
             "id",
             "nombre",
@@ -211,13 +211,15 @@ class TareasControllerTest extends ApiTestCase
         }
     }
 
+    //TODO: testPostExtra
+
     public function testGet()
     {
         $id = $this->createDefaultTarea();
         $uri = self::$resourceUri . "/" . $id;
         $response = self::$client->get($uri, self::getDefaultOptions());
         $this->assertTrue($response->getStatusCode() == Response::HTTP_OK);
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $this->getJson($response);
         $this->assertEquals([
             "id",
             "nombre",

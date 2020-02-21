@@ -45,7 +45,7 @@ class TokenControllerTest extends ApiTestCase
         ];
         $response = self::$client->post(self::$token_uri, $options);
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $this->getJson($response);
         $this->assertEquals(
             [
                 "access_token",

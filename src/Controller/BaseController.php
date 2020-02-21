@@ -81,10 +81,14 @@ class BaseController extends AbstractFOSRestController
         }
     }
 
-    protected function checkEntityFound($class, $id)
+    protected function checkEntityFound($class, $id, $property=null)
     {
         $em = $this->getDoctrine()->getManager();
-        $entity = $em->getRepository($class)->find($id);
+        if ($property) {
+            $entity = $em->getRepository($class)->findOneBy([$property => $id]);
+        } else {
+            $entity = $em->getRepository($class)->find($id);
+        }
         if (is_null($entity)) {
             $path = explode('\\', $class);
             $class = array_pop($path);
@@ -101,6 +105,14 @@ class BaseController extends AbstractFOSRestController
             $this->logger->alert("Datos inválidos: " . json_decode($form->getErrors()));
             throw new ApiProblemException(
                 new ApiProblem(Response::HTTP_BAD_REQUEST, "Se recibieron datos inválidos", "Datos inválidos"),
+            );
+        }
+    }
+
+    protected function checkIsArray($property, $propertyName) {
+        if (!is_array($property)) {
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_BAD_REQUEST, sprintf("El campo %s tiene que ser un array", $propertyName), "Hubo un problema con la petición")
             );
         }
     }

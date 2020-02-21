@@ -56,7 +56,7 @@ class DominioControllerTest extends ApiTestCase
 
         $response = self::$client->post(self::$resourceUri, $options);
         $this->assertTrue($response->hasHeader("Location"));
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $this->getJson($response);
         $this->assertArrayHasKey("nombre", $data);
         $this->assertEquals(self::$dominioName, $data["nombre"]);
     }

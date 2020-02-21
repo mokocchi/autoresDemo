@@ -150,7 +150,7 @@ class ActividadesController extends BaseController
     {
         if ($tarea->getAutor()->getId() !== $this->getUser()->getId()) {
             throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_FORBIDDEN, "La tarea no pertenece al usuario actual", "No se puede acceder a la actividad"),
+                new ApiProblem(Response::HTTP_FORBIDDEN, "La tarea no pertenece al usuario actual", "No se puede acceder a la tarea"),
             );
         }
     }
@@ -168,6 +168,11 @@ class ActividadesController extends BaseController
     private function checkTareaFound($id)
     {
         return $this->checkEntityFound(Tarea::class, $id);
+    }
+
+    private function checkTareaFoundByCodigo($codigo)
+    {
+        return $this->checkEntityFound(Tarea::class, $codigo, "codigo");
     }
 
     /**
@@ -564,7 +569,7 @@ class ActividadesController extends BaseController
 
     /**
      * Asigna un conjunto de tareas a una actividad
-     * @Rest\Put("/{id}/tareas", name="put_tarea_actividad")
+     * @Rest\Put("/{id}/tareas", name="put_tareas_actividad")
      * @IsGranted("ROLE_AUTOR")
      *
      * @SWG\Response(
@@ -615,7 +620,10 @@ class ActividadesController extends BaseController
      *     in="body",
      *     type="array",
      *     description="Ids de la tareas",
-     *     schema={}
+     *     @SWG\Schema(type="array",
+     *        @SWG\Items(
+     *              type="integer")
+     *     )
      * )
      * 
      * @SWG\Tag(name="Actividad")
@@ -632,9 +640,10 @@ class ActividadesController extends BaseController
 
         $this->removeTareasFromActividad($actividad);
 
-        $tareasIds = $data["tareas"];
+
         $tareas = [];
-        foreach ($tareasIds as $tareaId) {
+        $this->checkIsArray($data["tareas"], "tareas");
+        foreach ($data["tareas"] as $tareaId) {
             $tareaDb = $this->checkTareaFound($tareaId);
             $this->checkOwnTarea($tareaDb);
             $tareas[] = $tareaDb;
@@ -770,8 +779,8 @@ class ActividadesController extends BaseController
     }
 
     /**
-     * Crea un salto para una actividad
-     * @Rest\Post("/{id}/saltos", name="post_saltos_actividad")
+     * Setea los saltos de una actividad
+     * @Rest\Put("/{id}/saltos", name="put_saltos_actividad")
      * @IsGranted("ROLE_AUTOR")
      *
      * @SWG\Parameter(
@@ -813,36 +822,20 @@ class ActividadesController extends BaseController
      * 
      * @SWG\Parameter(
      *     required=true,
-     *     name="origen",
+     *     name="saltos",
      *     in="body",
      *     type="string",
-     *     description="Id de la tarea origen del salto",
-     *     schema={}
-     * )
-     * 
-     * @SWG\Parameter(
-     *     required=true,
-     *     name="condicion",
-     *     in="body",
-     *     type="string",
-     *     description="Condición del salto",
-     *     schema={}
-     * )
-     * 
-     * @SWG\Parameter(
-     *     name="destinos",
-     *     in="body",
-     *     type="array",
-     *     description="Ids de las tareas destino del salto",
-     *     schema={}
-     * )
-     * 
-     * @SWG\Parameter(
-     *     name="respuesta",
-     *     in="body",
-     *     type="string",
-     *     description="Ids de las tareas destino del salto",
-     *     schema={}
+     *     description="Saltos para agregar a la tarea",
+     *     @SWG\Schema(type="array",
+     *        @SWG\Items(
+     *              type="object",
+     *              required={"origen", "condicion", "destinos"},
+     *              @SWG\Property(property="origen", type="string", description="Código de la tarea origen"),
+     *              @SWG\Property(property="condicion", type="enum", description="Condición del salto"),
+     *              @SWG\Property(property="respuesta", type="string", description="Respuesta o tarea que condiciona el salto"),
+     *              @SWG\Property(property="destinos", type="array", description="Códigos de las tareas destino", @SWG\Items(type="string"))
+     *        )
+     *     )
      * )
      * 
      * @SWG\Tag(name="Actividad")
@@ -850,44 +843,49 @@ class ActividadesController extends BaseController
      */
     public function postSaltoForActividadAction(Request $request, $id)
     {
-        $salto = new Salto();
         $data = json_decode($request->getContent(), true);
 
-        $this->checkRequiredParameters(["origen", "condicion", "destinos"], $data);
+        $this->checkRequiredParameters(["saltos"], $data);
+        foreach ($data["saltos"] as $saltoArray) {
+            $this->checkRequiredParameters(["origen", "condicion", "destinos"], $saltoArray);
+        }
 
         $em = $this->getDoctrine()->getManager();
         $actividad = $this->checkActividadFound($id);
         $planificacion = $actividad->getPlanificacion();
-        $salto->setPlanificacion($planificacion);
-        $tareaRepository = $em->getRepository(Tarea::class);
-        $origen = $tareaRepository->find($data["origen"]);
-        if (is_null($origen)) {
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_NOT_FOUND, "El id de tarea origen no corresponde a ninguna tarea", "No se encontró la tarea origen")
-            );
-        }
-        $salto->setOrigen($origen);
-        if (array_key_exists("destinos", $data) && !is_null($data["destinos"])) {
-            foreach ($data["destinos"] as $destino_id) {
-                $tareaDb = $tareaRepository->find($destino_id);
-                if (is_null($tareaDb)) {
-                    throw new ApiProblemException(
-                        new ApiProblem(Response::HTTP_NOT_FOUND, "El id de la tarea destino no corresponde a ninguna tarea", "No se encontró la tarea destino")
-                    );
-                }
-                $salto->addDestino($tareaDb);
+        $saltos = [];
+        $this->checkIsArray($data["saltos"], "saltos");
+        foreach ($data["saltos"] as $saltoArray) {
+            $origen = $this->checkTareaFoundByCodigo($saltoArray["origen"]);
+            $destinos = [];
+            $this->checkIsArray($saltoArray["destinos"], "destinos");
+            foreach ($saltoArray["destinos"] as $destinoId) {
+                $destinos[] = $this->checkTareaFoundByCodigo($destinoId);
             }
-        } //TODO: existen saltos sin destino? por qué esto no es required?
-        $salto->setCondicion($data["condicion"]);
-        if (array_key_exists("respuesta", $data) && !is_null($data["respuesta"])) {
-            $salto->setRespuesta($data["respuesta"]);
+
+            $saltos[] = [
+                "origen" => $origen,
+                "destinos" => $destinos,
+                "condicion" => $saltoArray["condicion"],
+                "respuesta" => (array_key_exists("respuesta", $saltoArray) && $saltoArray["respuesta"]) ?
+                    $saltoArray["respuesta"] :
+                    null
+            ];
         }
 
-        $em->persist($salto);
+        foreach ($saltos as $saltoArray) {
+            $salto = new Salto();
+            $salto->setPlanificacion($planificacion);
+            $salto->setOrigen($saltoArray["origen"]);
+            foreach ($saltoArray["destinos"] as $destino) {
+                $salto->addDestino($destino);
+            }
+            $salto->setCondicion($saltoArray["condicion"]);
+            $salto->setRespuesta($saltoArray["respuesta"]);
+            $em->persist($salto);
+        }
         $em->flush();
-        $url = $this->generateUrl("show_salto", ["id" => $salto->getId()]);
-        $view = $this->view($salto, Response::HTTP_CREATED, ["Location" => $url]);
-        return $this->handleView($this->setGroupToView($view, "autor"));
+        return $this->handleView($this->view(['results' => $saltos], Response::HTTP_OK));
     }
 
     /**
@@ -1007,7 +1005,11 @@ class ActividadesController extends BaseController
      *     in="body",
      *     type="array",
      *     description="Ids de las tareas iniciales de la actividad",
-     *     schema={}
+     *     @SWG\Schema(type="array",
+     *        @SWG\Items(
+     *              type="string"
+     *        )
+     *     )
      * )
      * 
      * @SWG\Parameter(
@@ -1016,7 +1018,8 @@ class ActividadesController extends BaseController
      *     in="body",
      *     type="array",
      *     description="Ids de las tareas opcionales de la actividad",
-     *     schema={}
+     *     @SWG\Schema(type="integer",
+     *     )
      * )
      * 
      * @SWG\Tag(name="Actividad")

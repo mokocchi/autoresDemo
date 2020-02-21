@@ -10,6 +10,7 @@ use App\Entity\Dominio;
 use App\Entity\Estado;
 use App\Entity\Idioma;
 use App\Entity\Planificacion;
+use App\Entity\Salto;
 use App\Entity\Tarea;
 use App\Entity\TipoPlanificacion;
 use App\Entity\TipoTarea;
@@ -25,7 +26,6 @@ class ActividadesControllerTest extends ApiTestCase
     private static $dominioName = "Test";
     private static $actividadCodigo = "actividadtest";
     private static $tareaCodigo = "tareatest";
-    private static $tareaCodigo2 = "tareatest2";
     private static $dominioId;
     private static $resourceUri;
     private static $autorEmail = "autor@test.com";
@@ -51,8 +51,9 @@ class ActividadesControllerTest extends ApiTestCase
     protected function tearDown(): void
     {
         parent::tearDown();
-        self::truncateEntities([Actividad::class, Tarea::class]);
+        self::truncateEntities([Actividad::class, Tarea::class, Salto::class, Planificacion::class]);
         self::truncateTable("actividad_tarea");
+        self::truncateTable("salto_tarea");
     }
 
     public static function tearDownAfterClass(): void
@@ -62,6 +63,9 @@ class ActividadesControllerTest extends ApiTestCase
         self::removeUsuarios();
     }
 
+    /**
+     * @param array $actividad_array Array of nombre, objetivo, codigo and maybe usuario
+     */
     private function createActividad(array $actividad_array): Actividad
     {
         $actividad = new Actividad();
@@ -153,7 +157,7 @@ class ActividadesControllerTest extends ApiTestCase
 
         $response = self::$client->post(self::$resourceUri, $options);
         $this->assertTrue($response->hasHeader("Location"));
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $this->getJson($response);
         $this->assertEquals([
             "id",
             "nombre",
@@ -285,7 +289,7 @@ class ActividadesControllerTest extends ApiTestCase
             ]
         ];
         $response = self::$client->patch($uri, $options);
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $this->getJson($response);
         $this->assertArrayHasKey("nombre", $data);
         $this->assertTrue($data["nombre"] == "Actividad test 2");
     }
@@ -407,7 +411,7 @@ class ActividadesControllerTest extends ApiTestCase
         $uri = self::$resourceUri . "/" . $id;
         $response = self::$client->get($uri, self::getDefaultOptions());
         $this->assertTrue($response->getStatusCode() == Response::HTTP_OK);
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $this->getJson($response);
         $this->assertEquals([
             "id",
             "nombre",
@@ -504,7 +508,7 @@ class ActividadesControllerTest extends ApiTestCase
 
         $response = self::$client->get($uri, $this->getDefaultOptions());
         $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $this->getJson($response);
         $this->assertEquals(self::$actividadCodigo . 5, $data["results"][5]["codigo"]);
         $this->assertEquals(10, $data["count"]);
         $this->assertEquals(25, $data["total"]);
@@ -514,15 +518,17 @@ class ActividadesControllerTest extends ApiTestCase
         $response = self::$client->get($nextLink, $this->getDefaultOptions());
 
         $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $this->getJson($response);
         $this->assertEquals(self::$actividadCodigo . 15, $data["results"][5]["codigo"]);
+        $this->assertEquals(10, $data["count"]);
         $this->assertEquals(10, $data["count"]);
 
         $this->assertArrayHasKey("_links", $data);
         $this->assertArrayHasKey("last", $data["_links"]);
         $lastLink = $data["_links"]["last"];
         $response = self::$client->get($lastLink, $this->getDefaultOptions());
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $this->getJson($response);
+        $this->assertEquals(5, $data["count"]);
         $this->assertEquals(5, count($data["results"]));
 
         $response = self::$client->get($uri, $this->getDefaultOptions());
@@ -549,26 +555,29 @@ class ActividadesControllerTest extends ApiTestCase
     /** @group putTareas */
     public function testPutTareas()
     {
-        $tareaId = $this->createDefaultTarea();
-        $tarea2Id = $this->createTarea([
-            "nombre" => "Tarea test 2",
-            "consigna" => "Probar la asociación de tareas",
-            "codigo" => self::$tareaCodigo2,
-            "tipo" => "simple"
-        ]);
+        $tareas = [];
+        for ($i = 0; $i < 10; $i++) {
+            $tarea = $this->createTarea([
+                "nombre" => "Tarea test",
+                "consigna" => "Probar la asociación de tareas",
+                "codigo" => self::$tareaCodigo . $i,
+                "tipo" => "simple"
+            ]);
+            $tareas[] = $tarea->getId();
+        }
         $id = $this->createDefaultActividad()->getId();
         $uri = self::$resourceUri . '/' . $id . '/tareas';
         $options = [
             'headers' => ['Authorization' => 'Bearer ' . self::$access_token],
             'json' => [
-                'tareas' => [$tareaId, $tarea2Id]
+                'tareas' => $tareas
             ]
         ];
         $response = self::$client->put($uri, $options);
         $this->assertTrue($response->getStatusCode() == Response::HTTP_OK);
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $this->getJson($response);
         $this->assertEquals(["results"], array_keys($data));
-        $this->assertEquals(2, count($data["results"]));
+        $this->assertEquals(10, count($data["results"]));
     }
 
     /** @group putTareas */
@@ -648,6 +657,25 @@ class ActividadesControllerTest extends ApiTestCase
     }
 
     /** @group putTareas */
+    public function testPutTareasTareasNotArray()
+    {
+        $id = $this->createDefaultActividad()->getId();
+        $uri = self::$resourceUri . '/' . $id . '/tareas';
+        $options = [
+            'headers' => ['Authorization' => 'Bearer ' . self::$access_token],
+            'json' => [
+                'tareas' => "string"
+            ]
+        ];
+        try {
+            self::$client->put($uri, $options);
+            $this->fail("No se detectó que el campo tareas no es array");
+        } catch (RequestException $e) {
+            $this->assertApiProblemResponse($e->getResponse(), "El campo tareas tiene que ser un array");
+        }
+    }
+
+    /** @group putTareas */
     public function testPutTareasTareasDeleted()
     {
         $actividad = $this->createDefaultActividad();
@@ -671,16 +699,17 @@ class ActividadesControllerTest extends ApiTestCase
         $uri = self::$resourceUri . "/" . $id . "/tareas";
         $response = self::$client->put($uri, $options);
         $this->assertTrue($response->getStatusCode() == Response::HTTP_OK);
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $this->getJson($response);
         $this->assertEquals(["results"], array_keys($data));
         $this->assertEquals(0, count($data["results"]));
     }
 
     /** @group getAllTareas */
+    /** @group failing */
     public function testGetAllTareas()
     {
         $tareas = [];
-        for ($i=0; $i < 5; $i++) { 
+        for ($i = 0; $i < 5; $i++) {
             $tareas[] = $this->createTarea([
                 "nombre" => "Tarea test " . $i,
                 "consigna" => "Probar el listado de tareas de una actividad",
@@ -691,9 +720,10 @@ class ActividadesControllerTest extends ApiTestCase
         $actividad = $this->createDefaultActividad();
         foreach ($tareas as $tarea) {
             $actividad->addTarea($tarea);
+            self::$em->persist($actividad);
+            self::$em->flush();
         }
-        self::$em->persist($actividad);
-        self::$em->flush();
+        die;
 
         $id = $actividad->getId();
         $options = [
@@ -705,7 +735,7 @@ class ActividadesControllerTest extends ApiTestCase
         $uri = self::$resourceUri . "/" . $id . "/tareas";
         $response = self::$client->get($uri, $options);
         $this->assertTrue($response->getStatusCode() == Response::HTTP_OK);
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $this->getJson($response);
         $this->assertEquals(["results"], array_keys($data));
         $this->assertEquals(5, count($data["results"]));
     }
@@ -754,4 +784,83 @@ class ActividadesControllerTest extends ApiTestCase
         $this->assertNotFound(Request::METHOD_GET, $uri, "Actividad");
     }
 
+    /** @group putSaltos */
+    public function testPutSaltos()
+    {
+        $actividad = $this->createActividad(
+            [
+                "nombre" => "Actividad test",
+                "objetivo" => "Probar la creación de saltos",
+                "codigo" => self::$tareaCodigo
+            ]
+        );
+        $tareas = [];
+        for ($i = 1; $i <= 10; $i++) {
+            $tareas[] = $this->createTarea([
+                "nombre" => "Tarea test " . $i,
+                "consigna" => "Probar la creación de saltos",
+                "codigo" => self::$tareaCodigo . $i,
+                "tipo" => "simple"
+            ]);
+        }
+        foreach ($tareas as $tarea) {
+            $actividad->addTarea($tarea);
+        }
+        self::$em->persist($actividad);
+        self::$em->flush();
+        $id = $actividad->getId();
+        $options = [
+            "headers" => ["Authorization" => "Bearer " . self::$access_token],
+            "json" => [
+                "saltos" => [
+                    [
+                        "origen" => self::$tareaCodigo . 1,
+                        "condicion" => "ALL",
+                        "destinos" => [self::$tareaCodigo . 2],
+                    ],
+                    [
+                        "origen" => self::$tareaCodigo . 2,
+                        "condicion" => "ALL",
+                        "destinos" => [self::$tareaCodigo . 3],
+                    ],
+                    [
+                        "origen" => self::$tareaCodigo . 3,
+                        "condicion" => "ALL",
+                        "destinos" => [
+                            self::$tareaCodigo . 4,
+                            self::$tareaCodigo . 6,
+                            self::$tareaCodigo . 9
+                        ]
+                    ],
+                    [
+                        "origen" => self::$tareaCodigo . 4,
+                        "condicion" => "ALL",
+                        "destinos" => [self::$tareaCodigo . 5],
+                    ],
+                    [
+                        "origen" => self::$tareaCodigo . 6,
+                        "condicion" => "ALL",
+                        "destinos" => [self::$tareaCodigo . 7],
+                    ],
+                    [
+                        "origen" => self::$tareaCodigo . 7,
+                        "condicion" => "ALL",
+                        "destinos" => [self::$tareaCodigo . 8],
+                    ],
+                    [
+                        "origen" => self::$tareaCodigo . 9,
+                        "condicion" => "ALL",
+                        "destinos" => [self::$tareaCodigo . 10],
+                    ],
+                ]
+            ]
+        ];
+        $uri = self::$resourceUri . '/' . $id . '/saltos';
+        $response = self::$client->put($uri, $options);
+        $data = $this->getJson($response);
+        $this->assertEquals(["results"], array_keys($data));
+        $this->assertEquals(7, count($data["results"]));
+    }
+    //TODO: testPutSaltosTareasNotAttached
+    //TODO: testPutSaltosNoFinals
 }

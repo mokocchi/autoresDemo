@@ -336,4 +336,8 @@ class ApiTestCase extends KernelTestCase
             $this->assertErrorResponse($e->getResponse(), Response::HTTP_NOT_FOUND, sprintf("No se encontró: %s", $className));
         }
     }
+
+    protected function getJson($response) {
+        return json_decode((string) $response->getBody(), true);
+    }
 }
