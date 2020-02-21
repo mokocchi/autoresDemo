@@ -54,6 +54,8 @@ class ActividadesControllerTest extends ApiTestCase
         self::truncateEntities([Actividad::class, Tarea::class, Salto::class, Planificacion::class]);
         self::truncateTable("actividad_tarea");
         self::truncateTable("salto_tarea");
+        self::truncateTable("tarea_inicial");
+        self::truncateTable("tarea_opcional");
     }
 
     public static function tearDownAfterClass(): void
@@ -723,7 +725,6 @@ class ActividadesControllerTest extends ApiTestCase
             self::$em->persist($actividad);
             self::$em->flush();
         }
-        die;
 
         $id = $actividad->getId();
         $options = [
@@ -784,8 +785,8 @@ class ActividadesControllerTest extends ApiTestCase
         $this->assertNotFound(Request::METHOD_GET, $uri, "Actividad");
     }
 
-    /** @group putSaltos */
-    public function testPutSaltos()
+    /** @group putPlanificacion */
+    public function testPutPlanificacion()
     {
         $actividad = $this->createActividad(
             [
@@ -803,8 +804,10 @@ class ActividadesControllerTest extends ApiTestCase
                 "tipo" => "simple"
             ]);
         }
+        $ids = [];
         foreach ($tareas as $tarea) {
             $actividad->addTarea($tarea);
+            $ids[] = $tarea->getId();
         }
         self::$em->persist($actividad);
         self::$em->flush();
@@ -814,53 +817,65 @@ class ActividadesControllerTest extends ApiTestCase
             "json" => [
                 "saltos" => [
                     [
-                        "origen" => self::$tareaCodigo . 1,
+                        "origen" => $ids[0],
                         "condicion" => "ALL",
-                        "destinos" => [self::$tareaCodigo . 2],
+                        "destinos" => [$ids[1]],
                     ],
                     [
-                        "origen" => self::$tareaCodigo . 2,
+                        "origen" => $ids[1],
                         "condicion" => "ALL",
-                        "destinos" => [self::$tareaCodigo . 3],
+                        "destinos" => [$ids[2]],
                     ],
                     [
-                        "origen" => self::$tareaCodigo . 3,
+                        "origen" => $ids[2],
                         "condicion" => "ALL",
                         "destinos" => [
-                            self::$tareaCodigo . 4,
-                            self::$tareaCodigo . 6,
-                            self::$tareaCodigo . 9
+                            $ids[3],
+                            $ids[5],
+                            $ids[8]
                         ]
                     ],
                     [
-                        "origen" => self::$tareaCodigo . 4,
+                        "origen" => $ids[3],
                         "condicion" => "ALL",
-                        "destinos" => [self::$tareaCodigo . 5],
+                        "destinos" => [$ids[4]],
                     ],
                     [
-                        "origen" => self::$tareaCodigo . 6,
+                        "origen" => $ids[5],
                         "condicion" => "ALL",
-                        "destinos" => [self::$tareaCodigo . 7],
+                        "destinos" => [$ids[6]],
                     ],
                     [
-                        "origen" => self::$tareaCodigo . 7,
+                        "origen" => $ids[6],
                         "condicion" => "ALL",
-                        "destinos" => [self::$tareaCodigo . 8],
+                        "destinos" => [$ids[7]],
                     ],
                     [
-                        "origen" => self::$tareaCodigo . 9,
+                        "origen" => $ids[8],
                         "condicion" => "ALL",
-                        "destinos" => [self::$tareaCodigo . 10],
+                        "destinos" => [$ids[9]],
                     ],
+                ],
+                "opcionales" => [
+                    $ids[4],
+                    $ids[6],
+                    $ids[9]
+                ],
+                "iniciales" => [
+                    $ids[2],
+                    $ids[5]
                 ]
             ]
         ];
-        $uri = self::$resourceUri . '/' . $id . '/saltos';
+        $uri = self::$resourceUri . '/' . $id . '/planificaciones/1';
         $response = self::$client->put($uri, $options);
         $data = $this->getJson($response);
-        $this->assertEquals(["results"], array_keys($data));
-        $this->assertEquals(7, count($data["results"]));
+        $this->assertEquals(["iniciales_ids", "opcionales_ids", "saltos"], array_keys($data));
+        $this->assertEquals(7, count($data["saltos"]));
+        $this->assertEquals(3, count($data["opcionales_ids"]));
+        $this->assertEquals(2, count($data["iniciales_ids"]));
     }
     //TODO: testPutSaltosTareasNotAttached
     //TODO: testPutSaltosNoFinals
+    //TODO: testGetPlanificacion
 }

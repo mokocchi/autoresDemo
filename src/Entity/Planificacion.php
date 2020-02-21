@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\ExclusionPolicy;
 use JMS\Serializer\Annotation\Expose;
+use JMS\Serializer\Annotation\VirtualProperty;
 use JMS\Serializer\Annotation\Groups;
 
 /**
@@ -32,16 +33,12 @@ class Planificacion
     /**
      * @ORM\ManyToMany(targetEntity="App\Entity\Tarea")
      * @ORM\JoinTable(name="tarea_opcional")
-     * @Expose
-     * @Groups({"publico", "autor"})
      */
     private $opcionales;
 
     /**
      * @ORM\ManyToMany(targetEntity="App\Entity\Tarea")
      * @ORM\JoinTable(name="tarea_inicial")
-     * @Expose
-     * @Groups({"publico", "autor"})
      */
     private $iniciales;
 
@@ -138,5 +135,27 @@ class Planificacion
         }
 
         return $this;
+    }
+
+     /**
+     * @VirtualProperty(name="iniciales_ids") 
+     * @Expose
+     * @Groups({"publico", "autor"})
+     */
+    public function getInicialesIds() {
+        return $this->iniciales->map(function ($elem) {
+            return $elem->getId();
+        });
+    }
+
+     /**
+     * @VirtualProperty(name="opcionales_ids") 
+     * @Expose
+     * @Groups({"publico", "autor"})
+     */
+    public function getOpcionalesIds() {
+        return $this->opcionales->map(function ($elem) {
+            return $elem->getId();
+        });
     }
 }

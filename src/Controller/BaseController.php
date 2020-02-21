@@ -93,7 +93,7 @@ class BaseController extends AbstractFOSRestController
             $path = explode('\\', $class);
             $class = array_pop($path);
             throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_NOT_FOUND, sprintf("No se encontró: %s", $class), sprintf("No se encontró: %s", $class))
+                new ApiProblem(Response::HTTP_NOT_FOUND, sprintf("No se encontró: %s %s", $class, $id), sprintf("No se encontró: %s", $class))
             );
         }
         return $entity;

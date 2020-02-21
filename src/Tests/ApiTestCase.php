@@ -333,7 +333,7 @@ class ApiTestCase extends KernelTestCase
                     break;
             }
         } catch (RequestException $e) {
-            $this->assertErrorResponse($e->getResponse(), Response::HTTP_NOT_FOUND, sprintf("No se encontró: %s", $className));
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_NOT_FOUND, sprintf("No se encontró: %s 0", $className));
         }
     }
 

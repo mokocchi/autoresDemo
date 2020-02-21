@@ -653,7 +653,7 @@ class ActividadesController extends BaseController
         }
         $em->persist($actividad);
         $em->flush();
-        return $this->handleView($this->view(['results' => $tareas], Response::HTTP_OK));
+        return $this->handleView($this->getViewWithGroups(['results' => $tareas], "autor"));
     }
 
     private function removeTareasFromActividad($actividad)
@@ -725,8 +725,8 @@ class ActividadesController extends BaseController
     }
 
     /**
-     * Lista todos los saltos de una actividad
-     * @Rest\Get("/{id}/saltos", name="get_actividad_saltos")
+     * Muestra la planificación de una actividad
+     * @Rest\Get("/{id}/planificaciones/1", name="get_planificacion_actividad")
      * @IsGranted("ROLE_AUTOR")
      *
      * @SWG\Parameter(
@@ -769,18 +769,16 @@ class ActividadesController extends BaseController
      * @SWG\Tag(name="Actividad")
      * @return Response
      */
-    public function getActividadSaltosAction($id)
+    public function getActividadPlanificacionAction($id)
     {
-        $repository = $this->getDoctrine()->getRepository(Actividad::class);
         $actividad = $this->checkActividadFound($id);
         $planificacion = $actividad->getPlanificacion();
-        $saltos = $planificacion->getSaltos();
-        return $this->handleView($this->getViewWithGroups(["results" => $saltos], "autor"));
+        return $this->handleView($this->getViewWithGroups($planificacion, "autor"));
     }
 
     /**
-     * Setea los saltos de una actividad
-     * @Rest\Put("/{id}/saltos", name="put_saltos_actividad")
+     * Setea la planificacion de una actividad
+     * @Rest\Put("/{id}/planificaciones/1", name="put_planificacion_actividad")
      * @IsGranted("ROLE_AUTOR")
      *
      * @SWG\Parameter(
@@ -794,6 +792,11 @@ class ActividadesController extends BaseController
      * @SWG\Response(
      *     response=401,
      *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=404,
+     *     description="Actividad o tarea no encontrada"
      * )
      * 
      * @SWG\Response(
@@ -825,7 +828,7 @@ class ActividadesController extends BaseController
      *     name="saltos",
      *     in="body",
      *     type="string",
-     *     description="Saltos para agregar a la tarea",
+     *     description="Saltos para agregar a la actividad",
      *     @SWG\Schema(type="array",
      *        @SWG\Items(
      *              type="object",
@@ -838,29 +841,55 @@ class ActividadesController extends BaseController
      *     )
      * )
      * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="opcionales",
+     *     in="body",
+     *     type="string",
+     *     description="Id de las tareas opcionales",
+     *     @SWG\Schema(type="array",
+     *        @SWG\Items(
+     *              type="integer"
+     *        )
+     *     )
+     * )
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="iniciales",
+     *     in="body",
+     *     type="string",
+     *     description="Id de las tareas iniciales",
+     *     @SWG\Schema(type="array",
+     *        @SWG\Items(
+     *              type="integer"
+     *        )
+     *     )
+     * )
+     * 
      * @SWG\Tag(name="Actividad")
      * @return Response
      */
-    public function postSaltoForActividadAction(Request $request, $id)
+    public function putPlanificacionForActividadAction(Request $request, $id)
     {
         $data = json_decode($request->getContent(), true);
 
-        $this->checkRequiredParameters(["saltos"], $data);
+        $this->checkRequiredParameters(["saltos", "iniciales", "opcionales"], $data);
         foreach ($data["saltos"] as $saltoArray) {
             $this->checkRequiredParameters(["origen", "condicion", "destinos"], $saltoArray);
         }
 
         $em = $this->getDoctrine()->getManager();
         $actividad = $this->checkActividadFound($id);
-        $planificacion = $actividad->getPlanificacion();
+
         $saltos = [];
         $this->checkIsArray($data["saltos"], "saltos");
         foreach ($data["saltos"] as $saltoArray) {
-            $origen = $this->checkTareaFoundByCodigo($saltoArray["origen"]);
+            $origen = $this->checkTareaFound($saltoArray["origen"]);
             $destinos = [];
             $this->checkIsArray($saltoArray["destinos"], "destinos");
             foreach ($saltoArray["destinos"] as $destinoId) {
-                $destinos[] = $this->checkTareaFoundByCodigo($destinoId);
+                $destinos[] = $this->checkTareaFound($destinoId);
             }
 
             $saltos[] = [
@@ -872,10 +901,25 @@ class ActividadesController extends BaseController
                     null
             ];
         }
+        $iniciales = [];
+        foreach ($data["iniciales"] as $inicialId) {
+            $iniciales[] = $this->checkTareaFound($inicialId);
+        }
+        $opcionales = [];
+        foreach ($data["opcionales"] as $opcionalId) {
+            $opcionales[] = $this->checkTareaFound($opcionalId);
+        }
+
+        $planificacion = $actividad->getPlanificacion();
+        $prevSaltos = $planificacion->getSaltos();
+        $em = $this->getDoctrine()->getManager();
+        foreach ($prevSaltos as $salto) {
+            $em->remove($salto);
+        }
 
         foreach ($saltos as $saltoArray) {
             $salto = new Salto();
-            $salto->setPlanificacion($planificacion);
+            $planificacion->addSalto($salto);
             $salto->setOrigen($saltoArray["origen"]);
             foreach ($saltoArray["destinos"] as $destino) {
                 $salto->addDestino($destino);
@@ -884,166 +928,7 @@ class ActividadesController extends BaseController
             $salto->setRespuesta($saltoArray["respuesta"]);
             $em->persist($salto);
         }
-        $em->flush();
-        return $this->handleView($this->view(['results' => $saltos], Response::HTTP_OK));
-    }
 
-    /**
-     * Borra todos los saltos de una actividad
-     * @Rest\Delete("/{id}/saltos", name="delete_saltos")
-     * @IsGranted("ROLE_AUTOR")
-     * 
-     * @SWG\Response(
-     *     response=401,
-     *     description="No autorizado"
-     * )
-     * 
-     * @SWG\Response(
-     *     response=403,
-     *     description="Permisos insuficientes"
-     * )
-     * 
-     * @SWG\Parameter(
-     *     required=true,
-     *     name="Authorization",
-     *     in="header",
-     *     type="string",
-     *     description="Bearer token",
-     * )
-     * 
-     * @SWG\Response(
-     *     response=200,
-     *     description="Operación exitosa"
-     * )
-     * 
-     * @SWG\Response(
-     *     response=404,
-     *     description="Actividad no encontrada"
-     * )
-     *
-     * @SWG\Response(
-     *     response=500,
-     *     description="Error en el servidor"
-     * )
-     * 
-     * @SWG\Parameter(
-     *     required=true,
-     *     name="id",
-     *     in="path",
-     *     type="string",
-     *     description="Id de la actividad",
-     *     schema={}
-     * )
-     * 
-     * @SWG\Tag(name="Actividad")
-     * @return Response
-     */
-    public function deleteSaltosAction($id)
-    {
-        $actividad = $this->checkActividadFound($id);
-        $planificacion = $actividad->getPlanificacion();
-        $saltos = $planificacion->getSaltos();
-        $em = $this->getDoctrine()->getManager();
-        foreach ($saltos as $salto) {
-            $em->remove($salto);
-        }
-        $em->persist($planificacion);
-        $em->flush();
-        return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
-    }
-
-    /**
-     * Agrega una configuración de planifiación a una actividad
-     * @Rest\Post("/{id}/planificaciones", name="post_planificacion_settings_actividad")
-     * @IsGranted("ROLE_AUTOR")
-     *
-     * @SWG\Response(
-     *     response=401,
-     *     description="No autorizado"
-     * )
-     * 
-     * @SWG\Response(
-     *     response=403,
-     *     description="Permisos insuficientes"
-     * )
-     * 
-     * @SWG\Parameter(
-     *     required=true,
-     *     name="Authorization",
-     *     in="header",
-     *     type="string",
-     *     description="Bearer token",
-     * )
-     * 
-     * @SWG\Response(
-     *     response=200,
-     *     description="Operación exitosa"
-     * )
-     * 
-     * @SWG\Response(
-     *     response=404,
-     *     description="Actividad no encontrada"
-     * )
-     *
-     * @SWG\Response(
-     *     response=500,
-     *     description="Error en el servidor"
-     * )
-     * 
-     * @SWG\Parameter(
-     *     required=true,
-     *     name="id",
-     *     in="path",
-     *     type="string",
-     *     description="Id de la actividad",
-     *     schema={}
-     * )
-     * 
-     * @SWG\Parameter(
-     *     required=true,
-     *     name="iniciales",
-     *     in="body",
-     *     type="array",
-     *     description="Ids de las tareas iniciales de la actividad",
-     *     @SWG\Schema(type="array",
-     *        @SWG\Items(
-     *              type="string"
-     *        )
-     *     )
-     * )
-     * 
-     * @SWG\Parameter(
-     *     required=true,
-     *     name="opcionales",
-     *     in="body",
-     *     type="array",
-     *     description="Ids de las tareas opcionales de la actividad",
-     *     @SWG\Schema(type="integer",
-     *     )
-     * )
-     * 
-     * @SWG\Tag(name="Actividad")
-     * @return Response
-     */
-    public function updatePlanificacionSettings(Request $request, $id)
-    {
-        $data = $this->getJsonData($request);
-        if (
-            !array_key_exists("iniciales", $data) || !array_key_exists("opcionales", $data)
-        ) {
-            new ApiProblemException(
-                new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos")
-            );
-        }
-
-        $repository = $this->getDoctrine()->getRepository(Actividad::class);
-        $actividad = $repository->find($id);
-        if (is_null($actividad)) {
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna actividad", "No se encontró la actividad")
-            );
-        }
-        $planificacion = $actividad->getPlanificacion();
         $prevOpcionales = $planificacion->getOpcionales();
         foreach ($prevOpcionales as $opcional) {
             $planificacion->removeOpcional($opcional);
@@ -1053,30 +938,17 @@ class ActividadesController extends BaseController
             $planificacion->removeInicial($inicial);
         }
 
-        $iniciales = $data["iniciales"];
-        $tareaRepository = $this->getDoctrine()->getRepository(Tarea::class);
-        foreach ($iniciales as $inicial) {
-            $tareaInicial = $tareaRepository->find($inicial);
-            if (is_null($tareaInicial)) {
-                throw new ApiProblemException(
-                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id de una tarea inicial no corresponde a ninguna tarea", "No se encontró una tarea inicial")
-                );
-            }
-            $planificacion->addInicial($tareaInicial);
-        }
-        $opcionales = $data["opcionales"];
         foreach ($opcionales as $opcional) {
-            $tareaOpcional = $tareaRepository->find($opcional);
-            if (is_null($tareaOpcional)) {
-                throw new ApiProblemException(
-                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id de una tarea opcional no corresponde a ninguna tarea", "No se encontró una tarea opcional"),
-                );
-            }
-            $planificacion->addOpcional($tareaOpcional);
+            $planificacion->addOpcional($opcional);
         }
+        foreach ($iniciales as $inicial) {
+            $planificacion->addInicial($inicial);
+        }
+
         $em = $this->getDoctrine()->getManager();
         $em->persist($planificacion);
+
         $em->flush();
-        return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
+        return $this->handleView($this->getViewWithGroups($planificacion, "autor"));
     }
 }
