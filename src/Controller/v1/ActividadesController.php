@@ -710,6 +710,7 @@ class ActividadesController extends BaseController
     public function getActividadTareasAction($id)
     {
         $actividad = $this->checkActividadFound($id);
+        $this->checkAccessActividad($actividad);
         $tareas = $actividad->getTareas();
         return $this->handleView($this->getViewWithGroups(["results" => $tareas], "autor"));
     }
