@@ -132,6 +132,7 @@ class ActividadesControllerTest extends ApiTestCase
         ]);
     }
 
+    /** @group post */
     public function testPost()
     {
         $options = [
@@ -173,26 +174,31 @@ class ActividadesControllerTest extends ApiTestCase
         $this->assertEquals("Pedro", $data["autor"]["nombre"]);
     }
 
+    /** @group post */
     public function testPostUnauthorized()
     {
         $this->assertUnauthorized(Request::METHOD_POST, self::$resourceUri);
     }
 
+    /** @group post */
     public function testPostForbiddenRole()
     {
         $this->assertForbidden(Request::METHOD_POST, self::$resourceUri, self::$usuarioAppToken);
     }
 
+    /** @group post */
     public function testPostWrongToken()
     {
         $this->assertWrongToken(Request::METHOD_POST, self::$resourceUri);
     }
 
+    /** @group post */
     public function testPostNoJson()
     {
         $this->assertNoJson(Request::METHOD_POST, self::$resourceUri);
     }
 
+    /** @group post */
     public function testPostCodigoAlreadyUsed()
     {
         $this->createDefaultActividad();
@@ -216,6 +222,7 @@ class ActividadesControllerTest extends ApiTestCase
         }
     }
 
+    /** @group post */
     public function testPostRequiredParameters()
     {
         $options = [
@@ -238,6 +245,7 @@ class ActividadesControllerTest extends ApiTestCase
         }
     }
 
+    /** @group post */
     public function testPostWrongData()
     {
         $options = [
@@ -260,6 +268,7 @@ class ActividadesControllerTest extends ApiTestCase
         }
     }
 
+    /** @group patch */
     public function testPatch()
     {
         $id = $this->createDefaultActividad();
@@ -276,16 +285,19 @@ class ActividadesControllerTest extends ApiTestCase
         $this->assertTrue($data["nombre"] == "Actividad test 2");
     }
 
+    /** @group patch */
     public function testPatchUnauthorized()
     {
         $this->assertUnauthorized(Request::METHOD_PATCH, self::$resourceUri . "/" . 0);
     }
 
+    /** @group patch */
     public function testPatchForbiddenRole()
     {
         $this->assertForbidden(Request::METHOD_PATCH, self::$resourceUri . "/" . 0, self::$usuarioAppToken);
     }
 
+    /** @group patch */
     public function testPatchActividadNotOwned()
     {
         $id = $this->createActividad([
@@ -309,17 +321,20 @@ class ActividadesControllerTest extends ApiTestCase
         }
     }
 
+    /** @group patch */
     public function testPatchWrongToken()
     {
         $this->assertWrongToken(Request::METHOD_PATCH, self::$resourceUri . "/" . 0);
     }
 
+    /** @group patch */
     public function testPatchMissingJson()
     {
         $id = $this->createDefaultActividad();
         $this->assertNoJson(Request::METHOD_PATCH, self::$resourceUri . '/' . $id);
     }
 
+    /** @group patch */
     public function testPatchModifyCodigo()
     {
         $id = $this->createDefaultActividad();
@@ -338,12 +353,14 @@ class ActividadesControllerTest extends ApiTestCase
         }
     }
 
+    /** @group patch */
     public function testPatchNotFound()
     {
         $uri = self::$resourceUri . '/' . 0;
         $this->assertNotFound(Request::METHOD_PATCH, $uri, "Actividad");
     }
 
+    /** @group delete */
     public function testDelete()
     {
         $id = $this->createDefaultActividad();
@@ -352,21 +369,25 @@ class ActividadesControllerTest extends ApiTestCase
         $this->assertEquals(Response::HTTP_NO_CONTENT, $response->getStatusCode());
     }
 
+    /** @group delete */
     public function testDeleteUnauthorized()
     {
         $this->assertUnauthorized(Request::METHOD_DELETE, self::$resourceUri . "/" . 0);
     }
 
+    /** @group delete */
     public function testDeleteForbiddenRole()
     {
         $this->assertForbidden(Request::METHOD_DELETE, self::$resourceUri . "/" . 0, self::$usuarioAppToken);
     }
 
+    /** @group delete */
     public function testDeleteWrongToken()
     {
         $this->assertWrongToken(Request::METHOD_DELETE, self::$resourceUri . "/" . 0);
     }
 
+    /** @group delete */
     public function testDeleteNotFound()
     {
         $uri = self::$resourceUri . "/" . 0;
@@ -374,6 +395,7 @@ class ActividadesControllerTest extends ApiTestCase
         $this->assertEquals(Response::HTTP_NO_CONTENT, $response->getStatusCode());
     }
 
+    /** @group getOne */
     public function testGetOne()
     {
         $id = $this->createDefaultActividad();
@@ -404,21 +426,25 @@ class ActividadesControllerTest extends ApiTestCase
         $this->assertEquals("Pedro", $data["autor"]["nombre"]);
     }
 
+    /** @group getOne */
     public function testGetUnauthorized()
     {
         $this->assertUnauthorized(Request::METHOD_GET, self::$resourceUri . "/" . 0);
     }
 
+    /** @group getOne */
     public function testGetForbiddenRole()
     {
         $this->assertForbidden(Request::METHOD_GET, self::$resourceUri . "/" . 0, self::$usuarioAppToken);
     }
 
+    /** @group getOne */
     public function testGetWrongToken()
     {
         $this->assertWrongToken(Request::METHOD_GET, self::$resourceUri . "/" . 0);
     }
 
+    /** @group getOne */
     public function testGetNotOwned()
     {
         $id = $this->createActividad([
@@ -437,12 +463,58 @@ class ActividadesControllerTest extends ApiTestCase
         }
     }
 
+    /** @group getOne */
     public function testNotFoundGet()
     {
         $uri = self::$resourceUri . "/" . 0;
         $this->assertNotFound(Request::METHOD_GET, $uri, "Actividad");
     }
 
+    /** @group getAllUser */
+    public function testGetAllUserPaginated()
+    {
+        for ($i = 0; $i < 25; $i++) {
+            $this->createActividad(array(
+                "nombre" => "Actividad test",
+                "codigo" => self::$actividadCodigo . $i,
+                "objetivo" => "Probar la paginación de las actividades"
+            ));
+        }
+
+        $this->createActividad(array(
+            "nombre" => "Actividad not match",
+            "codigo" => "codigo",
+            "objetivo" => "Probar la paginación de las actividades"
+        ));
+        $uri = self::$resourceUri . '/user?filter=test';
+
+        $response = self::$client->get($uri, $this->getDefaultOptions());
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getBody(), true);
+        $this->assertEquals(self::$actividadCodigo . 5, $data["results"][5]["codigo"]);
+        $this->assertEquals(10, $data["count"]);
+        $this->assertEquals(25, $data["total"]);
+        $this->assertArrayHasKey("_links", $data);
+        $this->assertArrayHasKey("next", $data["_links"]);
+        $nextLink = $data["_links"]["next"];
+        $response = self::$client->get($nextLink, $this->getDefaultOptions());
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getBody(), true);
+        $this->assertEquals(self::$actividadCodigo . 15, $data["results"][5]["codigo"]);
+        $this->assertEquals(10, $data["count"]);
+
+        $this->assertArrayHasKey("_links", $data);
+        $this->assertArrayHasKey("last", $data["_links"]);
+        $lastLink = $data["_links"]["last"];
+        $response = self::$client->get($lastLink, $this->getDefaultOptions());
+        $data = json_decode((string) $response->getBody(), true);
+        $this->assertEquals(5, count($data["results"]));
+
+        $response = self::$client->get($uri, $this->getDefaultOptions());
+    }
+
+    /** @group putTareas */
     public function testPutTareas()
     {
         $tareaId = $this->createDefaultTarea();
@@ -462,30 +534,37 @@ class ActividadesControllerTest extends ApiTestCase
         ];
         $response = self::$client->put($uri, $options);
         $this->assertTrue($response->getStatusCode() == Response::HTTP_OK);
+        $data = json_decode((string) $response->getBody(), true);
+        $this->assertEquals(["results"], array_keys($data));
+        $this->assertEquals(2, count($data["results"]));
     }
 
+    /** @group putTareas */
     public function testPutTareasUnauthorized()
     {
         $this->assertUnauthorized(Request::METHOD_PUT, self::$resourceUri . "/" . 0 . "/tareas");
     }
 
-
+    /** @group putTareas */
     public function testPutTareasWrongToken()
     {
         $this->assertWrongToken(Request::METHOD_PUT, self::$resourceUri . "/" . 0 . "/tareas");
     }
 
+    /** @group putTareas */
     public function testPutTareasForbiddenRole()
     {
         $this->assertForbidden(Request::METHOD_PUT, self::$resourceUri . "/" . 0 . "/tareas", self::$usuarioAppToken);
     }
 
+    /** @group putTareas */
     public function testPutTareasMissingJson()
     {
         $id = $this->createDefaultActividad();
         $this->assertNoJson(Request::METHOD_PUT, self::$resourceUri . '/' . $id . "/tareas");
     }
 
+    /** @group putTareas */
     public function testPutTareasActividadNotOwned()
     {
         $id = $this->createActividad([
@@ -510,6 +589,7 @@ class ActividadesControllerTest extends ApiTestCase
         }
     }
 
+    /** @group putTareas */
     public function testPutTareasTareasNotOwned()
     {
         $id = $this->createDefaultActividad();
@@ -533,5 +613,40 @@ class ActividadesControllerTest extends ApiTestCase
         } catch (RequestException $e) {
             $this->assertErrorResponse($e->getResponse(), Response::HTTP_FORBIDDEN, "La tarea no pertenece al usuario actual");
         }
+    }
+
+    /** @group putTareas */
+    public function testPutTareasTareasDeleted()
+    {
+        $id = $this->createDefaultActividad();
+        $tareaId = $this->createTarea([
+            "nombre" => "Tarea test",
+            "consigna" => "Probar la asociación de tareas",
+            "codigo" => self::$tareaCodigo,
+            "tipo" => "simple"
+        ]);
+        $actividad = self::$em->getRepository(Actividad::class)->find($id);
+        $tarea = self::$em->getRepository(Tarea::class)->find($tareaId);
+        $actividad->addTarea($tarea);
+        self::$em->persist($actividad);
+        self::$em->flush();
+
+        $options = [
+            'headers' => ['Authorization' => "Bearer " . self::$access_token],
+            'json' => [
+                'tareas' => []
+            ]
+        ];
+        $uri = self::$resourceUri . "/" . $id . "/tareas";
+        $response = self::$client->put($uri, $options);
+        $this->assertTrue($response->getStatusCode() == Response::HTTP_OK);
+        $data = json_decode((string) $response->getBody(), true);
+        $this->assertEquals(["results"], array_keys($data));
+        $this->assertEquals(0, count($data["results"]));
+    }
+
+    /** @group getAllTareas */
+    public function testGetActividadTareas()
+    {
     }
 }

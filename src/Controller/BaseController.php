@@ -42,8 +42,8 @@ class BaseController extends AbstractFOSRestController
         throw new ApiProblemException(
             new ApiProblem(
                 Response::HTTP_INTERNAL_SERVER_ERROR,
-                "error",
-                $this->serializer->serialize($variable, "json")
+                $this->serializer->serialize($variable?:"null", "json"),
+                "error"
             )
         );
     }

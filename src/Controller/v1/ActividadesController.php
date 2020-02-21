@@ -14,7 +14,12 @@ use App\Entity\Salto;
 use App\Entity\Tarea;
 use App\Entity\TipoPlanificacion;
 use App\Form\ActividadType;
+use App\Pagination\PaginatedCollection;
+use App\Pagination\PaginationFactory;
+use App\Repository\ActividadRepository;
 use FOS\RestBundle\Controller\Annotations as Rest;
+use Pagerfanta\Adapter\DoctrineORMAdapter;
+use Pagerfanta\Pagerfanta;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -113,12 +118,14 @@ class ActividadesController extends BaseController
      * @SWG\Tag(name="Actividad")
      * @return Response
      */
-    public function getActividadesForUserAction()
+    public function getActividadesForUserAction(Request $request, PaginationFactory $paginationFactory)
     {
-        $user = $this->getUser();
+        $filter = $request->query->get('filter');
+        /** @var ActividadRepository $repository */
         $repository = $this->getDoctrine()->getRepository(Actividad::class);
-        $actividades = $repository->findBy(["autor" => $user]);
-        return $this->handleView($this->getViewWithGroups(["results" => $actividades], "autor"));
+        $qb = $repository->findAllQueryBuilder($filter);
+        $paginatedCollection = $paginationFactory->createCollection($qb, $request, 'get_actividades_user');
+        return $this->handleView($this->getViewWithGroups($paginatedCollection, "autor"));
     }
 
     private function checkAccessActividad($actividad)
@@ -334,7 +341,7 @@ class ActividadesController extends BaseController
         $this->checkCodigoNotUsed($data["codigo"]);
         $form->submit($data);
         $this->checkFormValidity($form);
-        
+
         $em = $this->getDoctrine()->getManager();
         $planificacion = new Planificacion();
         $em->persist($planificacion);
@@ -556,8 +563,8 @@ class ActividadesController extends BaseController
     }
 
     /**
-     * Asigna un conjunto de tareas a un array
-     * @Rest\Put("/{id}/tareas", name="post_tarea_actividad")
+     * Asigna un conjunto de tareas a una actividad
+     * @Rest\Put("/{id}/tareas", name="put_tarea_actividad")
      * @IsGranted("ROLE_AUTOR")
      *
      * @SWG\Response(
@@ -630,17 +637,17 @@ class ActividadesController extends BaseController
         foreach ($tareasIds as $tareaId) {
             $tareaDb = $this->checkTareaFound($tareaId);
             $this->checkOwnTarea($tareaDb);
-            $tareas[]= $tareaDb;
+            $tareas[] = $tareaDb;
         }
         foreach ($tareas as $tarea) {
             $actividad->addTarea($tarea);
         }
         $em->persist($actividad);
         $em->flush();
-        return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
+        return $this->handleView($this->view(['results' => $tareas], Response::HTTP_OK));
     }
 
-    private function removeTareasFromActividad($actividad) 
+    private function removeTareasFromActividad($actividad)
     {
         $tareas = $actividad->getTareas();
         foreach ($tareas as $tarea) {
@@ -700,7 +707,7 @@ class ActividadesController extends BaseController
      * @SWG\Tag(name="Actividad")
      * @return Response
      */
-    public function getActividadTareasAction(Request $request, $id)
+    public function getActividadTareasAction($id)
     {
         $actividad = $this->checkActividadFound($id);
         $tareas = $actividad->getTareas();

@@ -30,6 +30,16 @@ class ActividadRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
     }
 
+    public function findAllQueryBuilder($filter = '')
+    {
+        $qb = $this->createQueryBuilder('actividad');
+        if ($filter) {
+            $qb->andWhere('actividad.nombre LIKE :filter')
+                ->setParameter('filter', '%' . $filter . '%');
+        }
+        return $qb;
+    }
+
     /*
     public function findOneBySomeField($value): ?Actividad
     {
