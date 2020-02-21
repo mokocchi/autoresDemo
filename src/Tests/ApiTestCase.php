@@ -284,7 +284,7 @@ class ApiTestCase extends KernelTestCase
     protected function assertNoJson($method, $uri)
     {
         $options = [
-            'headers' => ['Authorization' => 'Bearer ' . self::$access_token]
+            'headers' => ['Authorization' => self::getAuthHeader()]
         ];
         try {
             switch ($method) {

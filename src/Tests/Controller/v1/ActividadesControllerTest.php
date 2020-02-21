@@ -568,7 +568,7 @@ class ActividadesControllerTest extends ApiTestCase
         $id = $this->createDefaultActividad()->getId();
         $uri = self::$resourceUri . '/' . $id . '/tareas';
         $options = [
-            'headers' => ['Authorization' => 'Bearer ' . self::$access_token],
+            'headers' => ['Authorization' => self::getAuthHeader()],
             'json' => [
                 'tareas' => $tareas
             ]
@@ -662,7 +662,7 @@ class ActividadesControllerTest extends ApiTestCase
         $id = $this->createDefaultActividad()->getId();
         $uri = self::$resourceUri . '/' . $id . '/tareas';
         $options = [
-            'headers' => ['Authorization' => 'Bearer ' . self::$access_token],
+            'headers' => ['Authorization' => self::getAuthHeader()],
             'json' => [
                 'tareas' => "string"
             ]
@@ -691,7 +691,7 @@ class ActividadesControllerTest extends ApiTestCase
         $id = $actividad->getId();
 
         $options = [
-            'headers' => ['Authorization' => "Bearer " . self::$access_token],
+            'headers' => ['Authorization' => self::getAuthHeader()],
             'json' => [
                 'tareas' => []
             ]
@@ -727,7 +727,7 @@ class ActividadesControllerTest extends ApiTestCase
 
         $id = $actividad->getId();
         $options = [
-            'headers' => ['Authorization' => "Bearer " . self::$access_token],
+            'headers' => ['Authorization' => self::getAuthHeader()],
             'json' => [
                 'tareas' => []
             ]
@@ -810,7 +810,7 @@ class ActividadesControllerTest extends ApiTestCase
         self::$em->flush();
         $id = $actividad->getId();
         $options = [
-            "headers" => ["Authorization" => "Bearer " . self::$access_token],
+            "headers" => ["Authorization" => self::getAuthHeader()],
             "json" => [
                 "saltos" => [
                     [
