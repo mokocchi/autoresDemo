@@ -2,6 +2,7 @@
 
 namespace App\Test\Controller\auth;
 
+use App\Entity\AccessToken;
 use App\Entity\Usuario;
 use App\Test\ApiTestCase;
 use GuzzleHttp\Exception\RequestException;
@@ -28,6 +29,7 @@ class TokenControllerTest extends ApiTestCase
         parent::tearDown();
         $autor = self::$em->getRepository(Usuario::class)->findOneBy(["email" => "carlos@test.com"]);
         self::removeUsuario($autor);
+        $this->truncateEntities([AccessToken::class]);
     }
 
     public function testTokenAction()

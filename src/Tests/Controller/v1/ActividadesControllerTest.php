@@ -708,7 +708,6 @@ class ActividadesControllerTest extends ApiTestCase
     }
 
     /** @group getAllTareas */
-    /** @group failing */
     public function testGetAllTareas()
     {
         $tareas = [];

@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Annotation\Link;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -12,6 +13,11 @@ use JMS\Serializer\Annotation\Expose;
 /**
  * @ORM\Entity(repositoryClass="App\Repository\ActividadRepository")
  * @ExclusionPolicy("all")
+ * @Link(
+ *  "self",
+ *  route = "show_actividad",
+ *  params = { "id": "object.getId()" }
+ * )
  */
 class Actividad
 {
