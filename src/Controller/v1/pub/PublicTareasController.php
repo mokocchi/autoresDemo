@@ -2,7 +2,8 @@
 
 namespace App\Controller\v1\pub;
 
-use App\ApiProblem;
+use App\Api\ApiProblem;
+use App\Api\ApiProblemException;
 use App\Controller\BaseController;
 use App\Entity\Estado;
 use App\Entity\Tarea;
@@ -18,7 +19,7 @@ use Swagger\Annotations as SWG;
 class PublicTareasController extends BaseController
 {
     /**
-     * Lista todas las tareaas
+     * Lista todas las tareas
      * @Rest\Get(name="get_tareas_public")
      * 
      * @SWG\Response(
@@ -36,18 +37,24 @@ class PublicTareasController extends BaseController
      */
     public function getTareasAction()
     {
-        try {
-            $repository = $this->getDoctrine()->getRepository(Tarea::class);
-            $estadoRepository = $this->getDoctrine()->getRepository(Estado::class);
-            $estado = $estadoRepository->findOneBy(["nombre" => "Público"]);
-            $tareas = $repository->findBy(["estado" => $estado]);
-            return $this->handleView($this->getViewWithGroups(["results" => $tareas], "publico"));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
+        $repository = $this->getDoctrine()->getRepository(Tarea::class);
+        $estadoRepository = $this->getDoctrine()->getRepository(Estado::class);
+        $estado = $estadoRepository->findOneBy(["nombre" => "Público"]);
+        $tareas = $repository->findBy(["estado" => $estado]);
+        return $this->handleView($this->getViewWithGroups(["results" => $tareas], "publico"));
+    }
+
+    private function checkTareaFound($id)
+    {
+        return $this->checkEntityFound(Tarea::class, $id);
+    }
+
+    private function checkAccessTarea($tarea)
+    {
+        if ($tarea->getEstado()->getNombre() == "Privado") {
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_FORBIDDEN, "La tarea es privada o no pertenece al usuario actual", "No se puede acceder a la tarea")
+            );
         }
     }
 
@@ -70,29 +77,8 @@ class PublicTareasController extends BaseController
      */
     public function showTareaAction($id)
     {
-        try {
-            $repository = $this->getDoctrine()->getRepository(Tarea::class);
-            $tarea = $repository->find($id);
-            if (is_null($tarea)) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna tarea", "No se encontró la tarea"),
-                    Response::HTTP_NOT_FOUND
-                ));
-            }
-            if ($tarea->getEstado()->getNombre() == "Privado") {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_FORBIDDEN, "La tarea es privada", "No se puede acceder a la actividad"),
-                    Response::HTTP_FORBIDDEN
-                ));
-            }
-
-            return $this->handleView($this->getViewWithGroups($tarea, "publico"));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
-        }
+        $tarea = $this->checkTareaFound($id);
+        $this->checkAccessTarea($tarea);
+        return $this->handleView($this->getViewWithGroups($tarea, "publico"));
     }
 }

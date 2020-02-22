@@ -2,10 +2,8 @@
 
 namespace App\Controller\v1\pub;
 
-use App\ApiProblem;
 use App\Controller\BaseController;
 use App\Entity\Estado;
-use Exception;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -36,16 +34,8 @@ class PublicEstadosController extends BaseController
      */
     public function getEstadoAction()
     {
-        try {
-            $repository = $this->getDoctrine()->getRepository(Estado::class);
-            $estado = $repository->findall();
-            return $this->handleView($this->getViewWithGroups(["results" => $estado], "select"));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
-        }
+        $repository = $this->getDoctrine()->getRepository(Estado::class);
+        $estado = $repository->findall();
+        return $this->handleView($this->getViewWithGroups(["results" => $estado], "select"));
     }
 }

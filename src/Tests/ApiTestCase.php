@@ -247,7 +247,7 @@ class ApiTestCase extends KernelTestCase
             }
             $this->fail("No se detectó una petición sin permisos suficientes");
         } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_FORBIDDEN, "No tenés los permisos suficientes para acceder al recurso");
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_FORBIDDEN, "No tenés los permisos suficientes para acceder al recurso");
         }
     }
 
@@ -277,7 +277,7 @@ class ApiTestCase extends KernelTestCase
             }
             $this->fail("No se detectó una petición con un token erróneo");
         } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_UNAUTHORIZED, "El token expiró o es inválido");
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_UNAUTHORIZED, "El token expiró o es inválido");
         }
     }
 
@@ -302,7 +302,7 @@ class ApiTestCase extends KernelTestCase
             }
             $this->fail("No se detectó que no hay json en el request");
         } catch (RequestException $e) {
-            self::assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "No hay campos en el json");
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "No hay campos en el json");
         }
     }
 

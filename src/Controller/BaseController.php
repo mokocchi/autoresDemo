@@ -2,8 +2,8 @@
 
 namespace App\Controller;
 
-use App\ApiProblem;
-use App\ApiProblemException;
+use App\Api\ApiProblem;
+use App\Api\ApiProblemException;
 use Exception;
 use FOS\RestBundle\Context\Context;
 use FOS\RestBundle\Controller\AbstractFOSRestController;

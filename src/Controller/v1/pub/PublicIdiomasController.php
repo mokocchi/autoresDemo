@@ -2,7 +2,7 @@
 
 namespace App\Controller\v1\pub;
 
-use App\ApiProblem;
+use App\Api\ApiProblem;
 use App\Controller\BaseController;
 use App\Entity\Idioma;
 use Exception;
@@ -35,16 +35,8 @@ class PublicIdiomasController extends BaseController
      */
     public function getIdiomaAction()
     {
-        try {
-            $repository = $this->getDoctrine()->getRepository(Idioma::class);
-            $idiomas = $repository->findall();
-            return $this->handleView($this->getViewWithGroups(["results" => $idiomas], "select"));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
-        }
+        $repository = $this->getDoctrine()->getRepository(Idioma::class);
+        $idiomas = $repository->findall();
+        return $this->handleView($this->getViewWithGroups(["results" => $idiomas], "select"));
     }
 }

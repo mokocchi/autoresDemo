@@ -2,7 +2,7 @@
 
 namespace App\Controller\v1\pub;
 
-use App\ApiProblem;
+use App\Api\ApiProblem;
 use App\Controller\BaseController;
 use App\Entity\Dominio;
 use Exception;
@@ -45,22 +45,19 @@ class PublicDominiosController extends BaseController
      */
     public function getDominiosAction(Request $request)
     {
-        try {
-            $repository = $this->getDoctrine()->getRepository(Dominio::class);
-            $nombre = $request->query->get("nombre");
-            if($nombre) {
-                $dominios = $repository->findBy(["nombre" => $nombre]);
-            } else {
-                $dominios = $repository->findall();
-            }
-            return $this->handleView($this->getViewWithGroups(["results" => $dominios], "select"));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
+        $repository = $this->getDoctrine()->getRepository(Dominio::class);
+        $nombre = $request->query->get("nombre");
+        if ($nombre) {
+            $dominios = $repository->findBy(["nombre" => $nombre]);
+        } else {
+            $dominios = $repository->findall();
         }
+        return $this->handleView($this->getViewWithGroups(["results" => $dominios], "select"));
+    }
+
+    private function checkDominioFound($id)
+    {
+        return $this->checkEntityFound(Dominio::class, $id);
     }
 
     /**
@@ -91,16 +88,7 @@ class PublicDominiosController extends BaseController
      */
     public function showDominioAction($id)
     {
-        try {
-            $repository = $this->getDoctrine()->getRepository(Dominio::class);
-            $dominio = $repository->find($id);
-            return $this->handleView($this->getViewWithGroups($dominio, "publico"));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
-        }
+        $dominio = $this->checkDominioFound($id);
+        return $this->handleView($this->getViewWithGroups($dominio, "publico"));
     }
 }

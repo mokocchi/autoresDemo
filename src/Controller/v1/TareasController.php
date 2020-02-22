@@ -2,8 +2,8 @@
 
 namespace App\Controller\v1;
 
-use App\ApiProblem;
-use App\ApiProblemException;
+use App\Api\ApiProblem;
+use App\Api\ApiProblemException;
 use App\Controller\BaseController;
 use App\Entity\Plano;
 use App\Entity\Tarea;

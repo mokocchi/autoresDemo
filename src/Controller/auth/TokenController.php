@@ -2,8 +2,8 @@
 
 namespace App\Controller\auth;
 
-use App\ApiProblem;
-use App\ApiProblemException;
+use App\Api\ApiProblem;
+use App\Api\ApiProblemException;
 use App\Entity\AccessToken;
 use App\Entity\Client;
 use App\Entity\Role;

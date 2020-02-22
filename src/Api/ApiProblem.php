@@ -1,6 +1,6 @@
 <?php
 
-namespace App;
+namespace App\Api;
 
 use phpDocumentor\Reflection\Types\Integer;
 
@@ -31,5 +31,16 @@ class ApiProblem
 
     public function getDeveloperMessage() {
         return $this->developerMessage;
+    }
+
+    public function toArray() 
+    {
+        return [
+            "status" => $this->status,
+            "developer_message" => $this->developerMessage,
+            "user_message" => $this->userMessage,
+            "error_code" => $this->errorCode,
+            "more_info" => $this->moreInfo
+        ];
     }
 }

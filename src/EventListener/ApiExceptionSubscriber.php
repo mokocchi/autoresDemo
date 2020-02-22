@@ -2,8 +2,9 @@
 
 namespace App\EventListener;
 
-use App\ApiProblem;
-use App\ApiProblemException;
+use App\Api\ApiProblem;
+use App\Api\ApiProblemException;
+use App\Api\ApiProblemResponseFactory;
 use JMS\Serializer\SerializerInterface;
 use OAuth2\OAuth2;
 use Psr\Log\LoggerInterface;
@@ -22,12 +23,12 @@ use Symfony\Component\HttpKernel\KernelEvents;
 class ApiExceptionSubscriber implements EventSubscriberInterface
 {
     private $logger;
-    private $serializer;
+    private $apiResponseFactory;
 
-    public function __construct(LoggerInterface $logger, SerializerInterface $serializer)
+    public function __construct(LoggerInterface $logger, ApiProblemResponseFactory $apiResponseFactory)
     {
         $this->logger = $logger;
-        $this->serializer = $serializer;
+        $this->apiResponseFactory = $apiResponseFactory;
     }
 
     public function onKernelException(ExceptionEvent $event)
@@ -38,10 +39,7 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
         if ($e instanceof HttpException) {
             if ($e instanceof ApiProblemException) {
                 $apiProblem = $e->getApiProblem();
-                $response = new Response(
-                    $this->serializer->serialize($apiProblem, "json"),
-                    $e->getStatusCode()
-                );
+                return $event->setResponse($this->apiResponseFactory->createResponse($apiProblem));
             } elseif ($e instanceof NotFoundHttpException) {
                 $devMessage = "Recurso no encontrado";
                 $usrMessage = "Recurso no encontrado";
@@ -95,20 +93,14 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
                     $usrMessage
                 );
             }
-            $response = new Response(
-                $this->serializer->serialize($apiProblem, "json"),
-                $e->getStatusCode()
-            );
+            $response = $this->apiResponseFactory->createResponse($apiProblem);
         } else {
             $apiProblem = new ApiProblem(
                 Response::HTTP_INTERNAL_SERVER_ERROR,
                 "Error interno del servidor",
                 "Ocurrió un error"
             );
-            $response = new Response(
-                $this->serializer->serialize($apiProblem, "json"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
+            $response = $this->apiResponseFactory->createResponse($apiProblem);
         }
         $event->setResponse($response);
     }
@@ -129,12 +121,8 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
                     $usrMessage = "Ocurrió un error";
                 }
 
-                $apiProblem = new ApiProblem($response->getStatusCode(), $devMessage, $usrMessage);
-                $response = new Response(
-                    $this->serializer->serialize($apiProblem, "json"),
-                    $response->getStatusCode()
-                );
-                $e->setResponse($response);
+                $apiProblem = new ApiProblem($response->getStatusCode(), $devMessage, $usrMessage); 
+                $e->setResponse($this->apiResponseFactory->createResponse($apiProblem));
             }
         }
     }

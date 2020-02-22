@@ -2,8 +2,8 @@
 
 namespace App\Security;
 
-use App\ApiProblem;
-use App\ApiProblemException;
+use App\Api\ApiProblem;
+use App\Api\ApiProblemException;
 use FOS\OAuthServerBundle\Security\EntryPoint\OAuthEntryPoint as BaseOAuthEntryPoint;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

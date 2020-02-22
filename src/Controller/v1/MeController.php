@@ -2,7 +2,8 @@
 
 namespace App\Controller\v1;
 
-use App\ApiProblem;
+use App\Api\ApiProblem;
+use App\Api\ApiProblemException;
 use App\Controller\BaseController;
 use Exception;
 use Symfony\Component\Routing\Annotation\Route;
@@ -50,10 +51,9 @@ class MeController extends BaseController
             return $this->handleView($this->getViewWithGroups($usuario, "auth"));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
+            throw new ApiProblemException(
+                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error")
+            );
         }
     }
 }

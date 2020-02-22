@@ -2,7 +2,6 @@
 
 namespace App\Controller\v1\pub;
 
-use App\ApiProblem;
 use App\Controller\BaseController;
 use App\Entity\TipoTarea;
 use Exception;
@@ -35,16 +34,8 @@ class PublicTiposTareaController extends BaseController
      */
     public function getTipoTareaAction()
     {
-        try {
-            $repository = $this->getDoctrine()->getRepository(TipoTarea::class);
-            $tipostarea = $repository->findall();
-            return $this->handleView($this->getViewWithGroups(["results" => $tipostarea], "select"));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
-        }
+        $repository = $this->getDoctrine()->getRepository(TipoTarea::class);
+        $tipostarea = $repository->findall();
+        return $this->handleView($this->getViewWithGroups(["results" => $tipostarea], "select"));
     }
 }
