@@ -56,6 +56,7 @@ class ActividadesControllerTest extends ApiTestCase
         self::truncateTable("salto_tarea");
         self::truncateTable("tarea_inicial");
         self::truncateTable("tarea_opcional");
+        self::$em->clear();
     }
 
     public static function tearDownAfterClass(): void
