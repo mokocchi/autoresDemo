@@ -24,9 +24,9 @@ class PublicTipoPlanificacionControllerTest extends ApiTestCase
     public function testGetAll()
     {
         for ($i = 0; $i < 25; $i++) {
-            $estado = new TipoPlanificacion();
-            $estado->setNombre("Tipo Planificación" . $i);
-            self::$em->persist($estado);
+            $tipo = new TipoPlanificacion();
+            $tipo->setNombre("Tipo Planificación" . $i);
+            self::$em->persist($tipo);
         }
         self::$em->flush();
 

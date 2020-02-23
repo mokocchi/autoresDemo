@@ -24,10 +24,10 @@ class PublicIdiomasControllerTest extends ApiTestCase
     public function testGetAll()
     {
         for ($i = 0; $i < 25; $i++) {
-            $estado = new Idioma();
-            $estado->setNombre("Idioma" . $i);
-            $estado->setCode($i);
-            self::$em->persist($estado);
+            $idioma = new Idioma();
+            $idioma->setNombre("Idioma" . $i);
+            $idioma->setCode($i);
+            self::$em->persist($idioma);
         }
         self::$em->flush();
 
