@@ -127,7 +127,9 @@ class ApiTestCase extends KernelTestCase
         $actividad->setIdioma($idioma);
         $tipoPlanificacion = self::$em->getRepository(TipoPlanificacion::class)->findOneBy(["nombre" => "Secuencial"]);
         $actividad->setTipoPlanificacion($tipoPlanificacion);
-        $actividad->setPlanificacion(new Planificacion());
+        $planificacion = new Planificacion();
+        self::$em->persist($planificacion);
+        $actividad->setPlanificacion($planificacion);
         $estado = self::$em->getRepository(Estado::class)->findOneBy(["nombre" => "Privado"]);
         $actividad->setEstado($estado);
         if (!array_key_exists("autor", $actividad_array)) {
@@ -187,7 +189,7 @@ class ApiTestCase extends KernelTestCase
             "tipo" => "simple"
         ]);
     }
-    
+
     /** @return AccessToken  */
     protected static function getNewAccessToken(Usuario $usuario)
     {

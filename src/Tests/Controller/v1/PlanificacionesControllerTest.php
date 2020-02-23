@@ -53,6 +53,23 @@ class PlanificacionesControllerTest extends ApiTestCase
         self::removeUsuarios();
     }
 
+    /** @param array $saltoArray Array of origen, condicion, destinos and maybe respuesta */
+    private function createSalto(array $saltoArray)
+    {
+        $salto = new Salto();
+        $salto->setOrigen($saltoArray["origen"]);
+        $salto->setCondicion($saltoArray["condicion"]);
+        foreach ($saltoArray["destinos"] as $destino) {
+            $salto->addDestino($destino);
+        }
+        $salto->setPlanificacion($saltoArray["planificacion"]);
+        $salto->setRespuesta(array_key_exists("respuesta", $saltoArray) ? $saltoArray["respuesta"] : null);
+        self::$em->persist($salto);
+        self::$em->flush();
+        return $salto;
+    }
+
+    /** @group put */
     public function testPut()
     {
         $actividad = $this->createActividad(
@@ -244,6 +261,7 @@ class PlanificacionesControllerTest extends ApiTestCase
         }
     }
 
+    /** @group put */
     public function testPutTareasNotAttached()
     {
         $actividad = $this->createActividad(
@@ -280,7 +298,7 @@ class PlanificacionesControllerTest extends ApiTestCase
         }
     }
 
-    /** @group failing */
+    /** @group put */
     public function testPutSaltosNoFinals()
     {
         $actividad = $this->createActividad(
@@ -339,5 +357,83 @@ class PlanificacionesControllerTest extends ApiTestCase
             $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "El grafo no tiene salida");
         }
     }
-    //TODO: testGetPlanificacion
+
+    /** @group get */
+    public function testGet()
+    {
+        $actividad = $this->createActividad(
+            [
+                "nombre" => "Actividad test",
+                "objetivo" => "Probar el seteo de planificaciones",
+                "codigo" => self::$actividadCodigo
+            ]
+        );
+        $tareas = [];
+        for ($i = 1; $i <= 10; $i++) {
+            $tareas[] = $this->createTarea([
+                "nombre" => "Tarea test " . $i,
+                "consigna" => "Probar el seteo de planificaciones",
+                "codigo" => self::$tareaCodigo . $i,
+                "tipo" => "simple"
+            ]);
+        }
+        $ids = [];
+        foreach ($tareas as $tarea) {
+            $actividad->addTarea($tarea);
+            $ids[] = $tarea->getId();
+        }
+        $planificacion = $actividad->getPlanificacion();
+        $salto1 = $this->createSalto([
+            "origen" => $tareas[0],
+            "condicion" => "ALL",
+            "destinos" => [$tareas[1], $tareas[2]],
+            "planificacion" => $planificacion
+        ]);
+        $salto2 = $this->createSalto([
+            "origen" => $tareas[3],
+            "condicion" => "ALL",
+            "destinos" => [$tareas[4]],
+            "planificacion" => $planificacion
+        ]);
+        $planificacion->addInicial($tareas[2]);
+        $planificacion->addOpcional($tareas[7]);
+        self::$em->persist($salto1);
+        self::$em->persist($salto2);
+        self::$em->persist($planificacion);
+        self::$em->flush();
+        $id = $actividad->getId();
+        $response = self::$client->get(self::$resourceUri . "/" . $id, self::getDefaultOptions());
+        $data = $this->getJson($response);
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertEquals([
+            "iniciales_ids",
+            "opcionales_ids",
+            "saltos"
+        ], array_keys($data));
+        $this->assertTrue(is_array($data["saltos"]));
+        $this->assertTrue(is_array($data["iniciales_ids"]));
+        $this->assertTrue(is_array($data["opcionales_ids"]));
+        $this->assertEquals(2, count($data["saltos"]));
+        $this->assertEquals(1, count($data["iniciales_ids"]));
+        $this->assertEquals(1, count($data["opcionales_ids"]));
+    }
+
+     /** @group get */
+     public function testGetUnauthorized()
+     {
+         $this->assertUnauthorized(Request::METHOD_GET, self::$resourceUri . "/0");
+     }
+ 
+     /** @group get */
+     public function testGetUserForbiddenRole()
+     {
+         $this->assertForbidden(Request::METHOD_GET, self::$resourceUri . "/0", self::$usuarioAppToken);
+     }
+ 
+     /** @group get */
+     public function testGetAllUserWrongToken()
+     {
+         $this->assertWrongToken(Request::METHOD_GET, self::$resourceUri . "/0");
+     }
+ 
 }

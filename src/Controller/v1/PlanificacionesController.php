@@ -14,7 +14,12 @@ use FOS\RestBundle\Controller\Annotations as Rest;
 use Swagger\Annotations as SWG;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
 
+
+/**
+ * @Route("/planificaciones")
+ */
 class PlanificacionesController extends BaseController
 {
 
@@ -101,7 +106,7 @@ class PlanificacionesController extends BaseController
 
     /**
      * Setea la planificacion de una actividad
-     * @Rest\Put("/planificaciones/{id}", name="put_planificacion_actividad")
+     * @Rest\Put("/{id}", name="put_planificacion_actividad")
      * @IsGranted("ROLE_AUTOR")
      *
      * @SWG\Parameter(
@@ -289,6 +294,58 @@ class PlanificacionesController extends BaseController
         $em->persist($planificacion);
 
         $em->flush();
+        return $this->handleView($this->getViewWithGroups($planificacion, "autor"));
+    }
+
+    /**
+     * Muestra la planificación de una actividad
+     * @Rest\Get("/{id}", name="get_planificacion_actividad")
+     * @IsGranted("ROLE_AUTOR")
+     *
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     * 
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     *
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="id",
+     *     in="path",
+     *     type="string",
+     *     description="Id de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Tag(name="Actividad")
+     * @return Response
+     */
+    public function getActividadPlanificacionAction($id)
+    {
+        $actividad = $this->checkActividadFound($id);
+        $planificacion = $actividad->getPlanificacion();
         return $this->handleView($this->getViewWithGroups($planificacion, "autor"));
     }
 }
