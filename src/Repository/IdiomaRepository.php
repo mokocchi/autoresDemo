@@ -19,6 +19,15 @@ class IdiomaRepository extends ServiceEntityRepository
         parent::__construct($registry, Idioma::class);
     }
 
+    public function deleteLike($nombre)
+    {
+        $this->createQueryBuilder('i')
+            ->delete()
+            ->where('i.nombre LIKE :nombre')
+            ->setParameter("nombre", $nombre . '%')
+            ->getQuery()
+            ->execute();
+    }
     // /**
     //  * @return Idioma[] Returns an array of Idioma objects
     //  */
