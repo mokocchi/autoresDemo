@@ -2,8 +2,6 @@
 
 namespace App\Api;
 
-use phpDocumentor\Reflection\Types\Integer;
-
 class ApiProblem
 {
     private $status;
@@ -16,24 +14,31 @@ class ApiProblem
 
     private $moreInfo;
 
-    public function __construct(string $status, string $developerMessage, string $userMessage)
+    public function __construct(string $status, string $developerMessage, string $userMessage, int $errorCode = 1)
     {
         $this->status = $status;
         $this->developerMessage = $developerMessage;
         $this->userMessage = $userMessage;
-        $this->errorCode = 1;
+        $this->errorCode = $errorCode;
         $this->moreInfo = $_ENV["SITE_BASE_URL"] . '/api/doc';
     }
 
-    public function getStatusCode() {
+    public function getStatusCode()
+    {
         return $this->status;
     }
 
-    public function getDeveloperMessage() {
+    public function getDeveloperMessage()
+    {
         return $this->developerMessage;
     }
 
-    public function toArray() 
+    public function getUserMessage()
+    {
+        return $this->userMessage;
+    }
+
+    public function toArray()
     {
         return [
             "status" => $this->status,

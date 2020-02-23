@@ -162,7 +162,7 @@ class PlanificacionesController extends BaseController
      *              type="object",
      *              required={"origen", "condicion", "destinos"},
      *              @SWG\Property(property="origen", type="string", description="Código de la tarea origen"),
-     *              @SWG\Property(property="condicion", type="enum", description="Condición del salto"),
+     *              @SWG\Property(property="condicion", type="string", enum={"ALL","YES", "NO","YES_TASK","NO_TASK"}, description="Condición del salto"),
      *              @SWG\Property(property="respuesta", type="string", description="Respuesta o tarea que condiciona el salto"),
      *              @SWG\Property(property="destinos", type="array", description="Códigos de las tareas destino", @SWG\Items(type="string"))
      *        )
@@ -195,7 +195,7 @@ class PlanificacionesController extends BaseController
      *     )
      * )
      * 
-     * @SWG\Tag(name="Actividad")
+     * @SWG\Tag(name="Planificación")
      * @return Response
      */
     public function putPlanificacion($id, Request $request)
@@ -339,7 +339,7 @@ class PlanificacionesController extends BaseController
      *     schema={}
      * )
      * 
-     * @SWG\Tag(name="Actividad")
+     * @SWG\Tag(name="Planificación")
      * @return Response
      */
     public function getActividadPlanificacionAction($id)
