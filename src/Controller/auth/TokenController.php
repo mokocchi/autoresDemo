@@ -71,6 +71,7 @@ class TokenController extends BaseTokenController
   }
 
   /**
+   * Crea un token a cambio de credenciales o un id_token de google válido
    * @Rest\Post(name="get_token")
    * 
    * @SWG\Response(

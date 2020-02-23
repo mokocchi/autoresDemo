@@ -99,7 +99,7 @@ class Actividad
     /**
      * @ORM\Column(type="string", length=255)
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $codigo;
 

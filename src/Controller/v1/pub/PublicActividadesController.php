@@ -7,12 +7,13 @@ use App\Api\ApiProblemException;
 use App\Controller\BaseController;
 use App\Entity\Actividad;
 use App\Entity\Estado;
-use Exception;
+use App\Pagination\PaginationFactory;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Swagger\Annotations as SWG;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * @Route("/actividades")
@@ -36,14 +37,14 @@ class PublicActividadesController extends BaseController
      * @SWG\Tag(name="Actividad")
      * @return Response
      */
-    public function getActividadesAction()
+    public function getActividadesAction(Request $request, PaginationFactory $paginationFactory)
     {
+        $filter = $request->query->get('filter');
+        /** @var ActividadRepository $repository */
         $repository = $this->getDoctrine()->getRepository(Actividad::class);
-        $estadoRepository = $this->getDoctrine()->getRepository(Estado::class);
-        $estado = $estadoRepository->findOneBy(["nombre" => "Público"]);
-        $actividades = $repository->findBy(["estado" => $estado]);
-
-        return $this->handleView($this->getViewWithGroups(["results" => $actividades], "publico"));
+        $qb = $repository->findAllPublicQueryBuilder($filter);
+        $paginatedCollection = $paginationFactory->createCollection($qb, $request, 'get_actividades_public');
+        return $this->handleView($this->getViewWithGroups($paginatedCollection, "publico"));
     }
 
     private function checkActividadFound($id)
@@ -94,7 +95,7 @@ class PublicActividadesController extends BaseController
 
     /**
      * Download the JSON definition for the Actividad.
-     * @Rest\Get("/{id}/download")
+     * @Rest\Get("/{id}/data")
      *
      * @return Response
      */

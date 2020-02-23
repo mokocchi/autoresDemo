@@ -31,7 +31,7 @@ class ApiTestCase extends KernelTestCase
     protected static $tareaCodigo = "tareatest";
     protected static $dominioName = "Test";
     protected static $dominioId;
-    
+
     protected static $apiProblemArray = [
         "status",
         "developer_message",
@@ -113,7 +113,7 @@ class ApiTestCase extends KernelTestCase
     }
 
     /**
-     * @param array $actividad_array Array of nombre, objetivo, codigo and maybe usuario
+     * @param array $actividad_array Array of nombre, objetivo, codigo and maybe usuario, maybe estado
      */
     protected function createActividad(array $actividad_array): Actividad
     {
@@ -130,7 +130,11 @@ class ApiTestCase extends KernelTestCase
         $planificacion = new Planificacion();
         self::$em->persist($planificacion);
         $actividad->setPlanificacion($planificacion);
-        $estado = self::$em->getRepository(Estado::class)->findOneBy(["nombre" => "Privado"]);
+        if (array_key_exists("estado", $actividad_array)) {
+            $estado = self::$em->getRepository(Estado::class)->findOneBy(["nombre" => $actividad_array["estado"]]);
+        } else {
+            $estado = self::$em->getRepository(Estado::class)->findOneBy(["nombre" => "Privado"]);
+        }
         $actividad->setEstado($estado);
         if (!array_key_exists("autor", $actividad_array)) {
             $accessToken = self::$em->getRepository(AccessToken::class)->findOneBy(["token" => self::$access_token]);
@@ -429,7 +433,8 @@ class ApiTestCase extends KernelTestCase
         }
     }
 
-    protected function getJson($response) {
+    protected function getJson($response)
+    {
         return json_decode((string) $response->getBody(), true);
     }
 }

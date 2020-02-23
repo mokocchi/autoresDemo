@@ -2,8 +2,6 @@
 
 namespace App\Repository;
 
-use App\Api\ApiProblem;
-use App\Api\ApiProblemException;
 use App\Entity\Actividad;
 use App\Entity\Dominio;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -43,6 +41,20 @@ class ActividadRepository extends ServiceEntityRepository
         if ($user) {
             $qb->andWhere('actividad.autor = :user')
                 ->setParameter('user', $user);
+        }
+        return $qb;
+    }
+
+    public function findAllPublicQueryBuilder($filter = '')
+    {
+        $qb = $this->createQueryBuilder('actividad');
+        if ($filter) {
+            $qb
+                ->join("actividad.estado", "e")
+                ->where("e.nombre = :estado")
+                ->andWhere('actividad.nombre LIKE :filter')
+                ->setParameter("estado","Público")
+                ->setParameter('filter', '%' . $filter . '%');
         }
         return $qb;
     }
