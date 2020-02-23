@@ -1,8 +1,6 @@
 <?php
 
-declare(strict_types=1);
-
-namespace App\Controller\Tests;
+namespace App\Tests\Controller;
 
 use App\Entity\Actividad;
 use App\Entity\Dominio;

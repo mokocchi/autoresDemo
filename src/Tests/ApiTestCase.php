@@ -194,6 +194,15 @@ class ApiTestCase extends KernelTestCase
         ]);
     }
 
+    protected function createDominio(?string $nombre = null): int
+    {
+        $dominio = new Dominio();
+        $dominio->setNombre(is_null($nombre) ? self::$dominioName : $nombre);
+        self::$em->persist($dominio);
+        self::$em->flush();
+        return $dominio->getId();
+    }
+
     /** @return AccessToken  */
     protected static function getNewAccessToken(Usuario $usuario)
     {

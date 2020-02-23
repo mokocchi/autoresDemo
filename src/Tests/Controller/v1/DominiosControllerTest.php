@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller\Tests;
+namespace App\Tests\Controller;
 
 use App\Entity\Dominio;
 use App\Test\ApiTestCase;
@@ -31,15 +31,6 @@ class DominioControllerTest extends ApiTestCase
     public static function tearDownAfterClass(): void
     {
         self::removeUsuarios();
-    }
-
-    private function createDominio(?string $nombre = null): int
-    {
-        $dominio = new Dominio();
-        $dominio->setNombre(is_null($nombre) ? self::$dominioName : $nombre);
-        self::$em->persist($dominio);
-        self::$em->flush();
-        return $dominio->getId();
     }
 
     public function testPostDominioAction()

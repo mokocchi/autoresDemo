@@ -2,10 +2,9 @@
 
 namespace App\Controller\v1\pub;
 
-use App\Api\ApiProblem;
 use App\Controller\BaseController;
 use App\Entity\Dominio;
-use Exception;
+use App\Repository\DominioRepository;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -45,10 +44,11 @@ class PublicDominiosController extends BaseController
      */
     public function getDominiosAction(Request $request)
     {
+        /** @var DominioRepository $repository */
         $repository = $this->getDoctrine()->getRepository(Dominio::class);
         $nombre = $request->query->get("nombre");
         if ($nombre) {
-            $dominios = $repository->findBy(["nombre" => $nombre]);
+            $dominios = $repository->findNombreLike($nombre);
         } else {
             $dominios = $repository->findall();
         }

@@ -19,6 +19,14 @@ class DominioRepository extends ServiceEntityRepository
         parent::__construct($registry, Dominio::class);
     }
 
+    public function findNombreLike($nombre)
+    {
+        return $this->createQueryBuilder('d')
+            ->andWhere('d.nombre LIKE :nombre')
+            ->setParameter('nombre', '%' . $nombre . '%')
+            ->getQuery()
+            ->getResult();
+    }
     // /**
     //  * @return Dominio[] Returns an array of Dominio objects
     //  */
