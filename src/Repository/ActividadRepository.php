@@ -2,6 +2,8 @@
 
 namespace App\Repository;
 
+use App\Api\ApiProblem;
+use App\Api\ApiProblemException;
 use App\Entity\Actividad;
 use App\Entity\Dominio;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -38,11 +40,23 @@ class ActividadRepository extends ServiceEntityRepository
                 ->setParameter('filter', '%' . $filter . '%');
         }
 
-        if($user) {
+        if ($user) {
             $qb->andWhere('actividad.autor = :user')
                 ->setParameter('user', $user);
         }
         return $qb;
+    }
+
+    public function hasTarea($actividadId, $tarea)
+    {
+        return $this->createQueryBuilder('a')
+            ->select("1")
+            ->where("a.id = :actividadId")
+            ->andWhere(":tarea MEMBER OF a.tareas")
+            ->setParameter("actividadId", $actividadId)
+            ->setParameter("tarea", $tarea)
+            ->getQuery()
+            ->getResult();
     }
 
     /*
