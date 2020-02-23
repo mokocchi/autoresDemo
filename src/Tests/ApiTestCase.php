@@ -3,8 +3,16 @@
 namespace App\Test;
 
 use App\Entity\AccessToken;
+use App\Entity\Actividad;
 use App\Entity\Client as EntityClient;
+use App\Entity\Dominio;
+use App\Entity\Estado;
+use App\Entity\Idioma;
+use App\Entity\Planificacion;
 use App\Entity\Role;
+use App\Entity\Tarea;
+use App\Entity\TipoPlanificacion;
+use App\Entity\TipoTarea;
 use App\Entity\Usuario;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
@@ -18,6 +26,12 @@ class ApiTestCase extends KernelTestCase
     protected static $client;
     protected static $access_token;
     protected static $prefijo_api = '/api/v1.0';
+    protected static $resourceUri;
+    protected static $actividadCodigo = "actividadtest";
+    protected static $tareaCodigo = "tareatest";
+    protected static $dominioName = "Test";
+    protected static $dominioId;
+    
     protected static $apiProblemArray = [
         "status",
         "developer_message",
@@ -37,7 +51,7 @@ class ApiTestCase extends KernelTestCase
         return ["headers" => ['Authorization' => self::getAuthHeader()]];
     }
 
-    protected function assertApiProblemResponse($response, $message)
+    private function assertApiProblemResponse($response, $message)
     {
         $data = json_decode((string) $response->getBody(), true);
         $this->assertEquals(self::$apiProblemArray, array_keys($data));
@@ -98,6 +112,82 @@ class ApiTestCase extends KernelTestCase
         return $user;
     }
 
+    /**
+     * @param array $actividad_array Array of nombre, objetivo, codigo and maybe usuario
+     */
+    protected function createActividad(array $actividad_array): Actividad
+    {
+        $actividad = new Actividad();
+        $actividad->setNombre($actividad_array["nombre"]);
+        $actividad->setObjetivo($actividad_array["objetivo"]);
+        $actividad->setCodigo($actividad_array["codigo"]);
+        $dominio = self::$em->getRepository(Dominio::class)->find(self::$dominioId);
+        $actividad->setDominio($dominio);
+        $idioma = self::$em->getRepository(Idioma::class)->findOneBy(["code" => "es"]);
+        $actividad->setIdioma($idioma);
+        $tipoPlanificacion = self::$em->getRepository(TipoPlanificacion::class)->findOneBy(["nombre" => "Secuencial"]);
+        $actividad->setTipoPlanificacion($tipoPlanificacion);
+        $actividad->setPlanificacion(new Planificacion());
+        $estado = self::$em->getRepository(Estado::class)->findOneBy(["nombre" => "Privado"]);
+        $actividad->setEstado($estado);
+        if (!array_key_exists("autor", $actividad_array)) {
+            $accessToken = self::$em->getRepository(AccessToken::class)->findOneBy(["token" => self::$access_token]);
+            $actividad->setAutor($accessToken->getUser());
+        } else {
+            $autor = self::$em->getRepository(Usuario::class)->findOneBy(["email" => $actividad_array["autor"]]);
+            $actividad->setAutor($autor);
+        }
+        self::$em->persist($actividad);
+        self::$em->flush();
+        return $actividad;
+    }
+
+    protected function createDefaultActividad(): Actividad
+    {
+        return $this->createActividad([
+            "nombre" => "Actividad test",
+            "objetivo" => "Probar crear una actividad",
+            "codigo" => self::$actividadCodigo,
+        ]);
+    }
+
+    /**
+     * @param array $tareaArray Array of nombre, consigna, codigo, tipo and maybe autor
+     */
+    protected function createTarea(array $tareaArray): Tarea
+    {
+        $tarea = new Tarea();
+        $tarea->setNombre($tareaArray["nombre"]);
+        $tarea->setConsigna($tareaArray["consigna"]);
+        $tarea->setCodigo($tareaArray["codigo"]);
+        $dominio = self::$em->getRepository(Dominio::class)->find(self::$dominioId);
+        $tarea->setDominio($dominio);
+        $tipoTarea = self::$em->getRepository(TipoTarea::class)->findOneBy(["codigo" => $tareaArray["tipo"]]);
+        $tarea->setTipo($tipoTarea);
+        if (!array_key_exists("autor", $tareaArray)) {
+            $accessToken = self::$em->getRepository(AccessToken::class)->findOneBy(["token" => self::$access_token]);
+            $tarea->setAutor($accessToken->getUser());
+        } else {
+            $autor = self::$em->getRepository(Usuario::class)->findOneBy(["email" => $tareaArray["autor"]]);
+            $tarea->setAutor($autor);
+        }
+        $estado = self::$em->getRepository(Estado::class)->findOneBy(["nombre" => "Privado"]);
+        $tarea->setEstado($estado);
+        self::$em->persist($tarea);
+        self::$em->flush();
+        return $tarea;
+    }
+
+    protected function createDefaultTarea(): Tarea
+    {
+        return $this->createTarea([
+            "nombre" => "Tarea test",
+            "consigna" => "Probar las tareas",
+            "codigo" => self::$tareaCodigo,
+            "tipo" => "simple"
+        ]);
+    }
+    
     /** @return AccessToken  */
     protected static function getNewAccessToken(Usuario $usuario)
     {

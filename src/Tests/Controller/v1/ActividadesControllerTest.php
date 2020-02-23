@@ -4,30 +4,18 @@ declare(strict_types=1);
 
 namespace App\Controller\Tests;
 
-use App\Entity\AccessToken;
 use App\Entity\Actividad;
 use App\Entity\Dominio;
-use App\Entity\Estado;
-use App\Entity\Idioma;
 use App\Entity\Planificacion;
 use App\Entity\Salto;
 use App\Entity\Tarea;
-use App\Entity\TipoPlanificacion;
-use App\Entity\TipoTarea;
-use App\Entity\Usuario;
 use App\Test\ApiTestCase;
-use Doctrine\Persistence\ObjectManager;
 use GuzzleHttp\Exception\RequestException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class ActividadesControllerTest extends ApiTestCase
 {
-    private static $dominioName = "Test";
-    private static $actividadCodigo = "actividadtest";
-    private static $tareaCodigo = "tareatest";
-    private static $dominioId;
-    private static $resourceUri;
     private static $autorEmail = "autor@test.com";
     private static $otherAutorEmail = "autor2@test.com";
     private static $usuarioAppEmail = "usuario@test.com";
@@ -64,82 +52,6 @@ class ActividadesControllerTest extends ApiTestCase
         parent::tearDownAfterClass();
         self::truncateEntities([Dominio::class]);
         self::removeUsuarios();
-    }
-
-    /**
-     * @param array $actividad_array Array of nombre, objetivo, codigo and maybe usuario
-     */
-    private function createActividad(array $actividad_array): Actividad
-    {
-        $actividad = new Actividad();
-        $actividad->setNombre($actividad_array["nombre"]);
-        $actividad->setObjetivo($actividad_array["objetivo"]);
-        $actividad->setCodigo($actividad_array["codigo"]);
-        $dominio = self::$em->getRepository(Dominio::class)->find(self::$dominioId);
-        $actividad->setDominio($dominio);
-        $idioma = self::$em->getRepository(Idioma::class)->findOneBy(["code" => "es"]);
-        $actividad->setIdioma($idioma);
-        $tipoPlanificacion = self::$em->getRepository(TipoPlanificacion::class)->findOneBy(["nombre" => "Secuencial"]);
-        $actividad->setTipoPlanificacion($tipoPlanificacion);
-        $actividad->setPlanificacion(new Planificacion());
-        $estado = self::$em->getRepository(Estado::class)->findOneBy(["nombre" => "Privado"]);
-        $actividad->setEstado($estado);
-        if (!array_key_exists("autor", $actividad_array)) {
-            $accessToken = self::$em->getRepository(AccessToken::class)->findOneBy(["token" => self::$access_token]);
-            $actividad->setAutor($accessToken->getUser());
-        } else {
-            $autor = self::$em->getRepository(Usuario::class)->findOneBy(["email" => $actividad_array["autor"]]);
-            $actividad->setAutor($autor);
-        }
-        self::$em->persist($actividad);
-        self::$em->flush();
-        return $actividad;
-    }
-
-    private function createDefaultActividad(): Actividad
-    {
-        return $this->createActividad([
-            "nombre" => "Actividad test",
-            "objetivo" => "Probar crear una actividad",
-            "codigo" => self::$actividadCodigo,
-        ]);
-    }
-
-    /**
-     * @param array $tareaArray Array of nombre, consigna, codigo, tipo and maybe autor
-     */
-    private function createTarea(array $tareaArray): Tarea
-    {
-        $tarea = new Tarea();
-        $tarea->setNombre($tareaArray["nombre"]);
-        $tarea->setConsigna($tareaArray["consigna"]);
-        $tarea->setCodigo($tareaArray["codigo"]);
-        $dominio = self::$em->getRepository(Dominio::class)->find(self::$dominioId);
-        $tarea->setDominio($dominio);
-        $tipoTarea = self::$em->getRepository(TipoTarea::class)->findOneBy(["codigo" => $tareaArray["tipo"]]);
-        $tarea->setTipo($tipoTarea);
-        if (!array_key_exists("autor", $tareaArray)) {
-            $accessToken = self::$em->getRepository(AccessToken::class)->findOneBy(["token" => self::$access_token]);
-            $tarea->setAutor($accessToken->getUser());
-        } else {
-            $autor = self::$em->getRepository(Usuario::class)->findOneBy(["email" => $tareaArray["autor"]]);
-            $tarea->setAutor($autor);
-        }
-        $estado = self::$em->getRepository(Estado::class)->findOneBy(["nombre" => "Privado"]);
-        $tarea->setEstado($estado);
-        self::$em->persist($tarea);
-        self::$em->flush();
-        return $tarea;
-    }
-
-    private function createDefaultTarea(): Tarea
-    {
-        return $this->createTarea([
-            "nombre" => "Tarea test",
-            "consigna" => "Probar las tareas",
-            "codigo" => self::$tareaCodigo,
-            "tipo" => "simple"
-        ]);
     }
 
     /** @group post */
@@ -674,7 +586,7 @@ class ActividadesControllerTest extends ApiTestCase
             self::$client->put($uri, $options);
             $this->fail("No se detectó que el campo tareas no es array");
         } catch (RequestException $e) {
-            $this->assertApiProblemResponse($e->getResponse(), "El campo tareas tiene que ser un array");
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_BAD_REQUEST, "El campo tareas tiene que ser un array");
         }
     }
 
@@ -784,98 +696,4 @@ class ActividadesControllerTest extends ApiTestCase
         $uri = self::$resourceUri . "/" . 0 . "/tareas";
         $this->assertNotFound(Request::METHOD_GET, $uri, "Actividad");
     }
-
-    /** @group putPlanificacion */
-    public function testPutPlanificacion()
-    {
-        $actividad = $this->createActividad(
-            [
-                "nombre" => "Actividad test",
-                "objetivo" => "Probar la creación de saltos",
-                "codigo" => self::$tareaCodigo
-            ]
-        );
-        $tareas = [];
-        for ($i = 1; $i <= 10; $i++) {
-            $tareas[] = $this->createTarea([
-                "nombre" => "Tarea test " . $i,
-                "consigna" => "Probar la creación de saltos",
-                "codigo" => self::$tareaCodigo . $i,
-                "tipo" => "simple"
-            ]);
-        }
-        $ids = [];
-        foreach ($tareas as $tarea) {
-            $actividad->addTarea($tarea);
-            $ids[] = $tarea->getId();
-        }
-        self::$em->persist($actividad);
-        self::$em->flush();
-        $id = $actividad->getId();
-        $options = [
-            "headers" => ["Authorization" => self::getAuthHeader()],
-            "json" => [
-                "saltos" => [
-                    [
-                        "origen" => $ids[0],
-                        "condicion" => "ALL",
-                        "destinos" => [$ids[1]],
-                    ],
-                    [
-                        "origen" => $ids[1],
-                        "condicion" => "ALL",
-                        "destinos" => [$ids[2]],
-                    ],
-                    [
-                        "origen" => $ids[2],
-                        "condicion" => "ALL",
-                        "destinos" => [
-                            $ids[3],
-                            $ids[5],
-                            $ids[8]
-                        ]
-                    ],
-                    [
-                        "origen" => $ids[3],
-                        "condicion" => "ALL",
-                        "destinos" => [$ids[4]],
-                    ],
-                    [
-                        "origen" => $ids[5],
-                        "condicion" => "ALL",
-                        "destinos" => [$ids[6]],
-                    ],
-                    [
-                        "origen" => $ids[6],
-                        "condicion" => "ALL",
-                        "destinos" => [$ids[7]],
-                    ],
-                    [
-                        "origen" => $ids[8],
-                        "condicion" => "ALL",
-                        "destinos" => [$ids[9]],
-                    ],
-                ],
-                "opcionales" => [
-                    $ids[4],
-                    $ids[6],
-                    $ids[9]
-                ],
-                "iniciales" => [
-                    $ids[2],
-                    $ids[5]
-                ]
-            ]
-        ];
-        $uri = self::$resourceUri . '/' . $id . '/planificaciones/1';
-        $response = self::$client->put($uri, $options);
-        $data = $this->getJson($response);
-        $this->assertEquals(["iniciales_ids", "opcionales_ids", "saltos"], array_keys($data));
-        $this->assertEquals(7, count($data["saltos"]));
-        $this->assertEquals(3, count($data["opcionales_ids"]));
-        $this->assertEquals(2, count($data["iniciales_ids"]));
-    }
-    //TODO: testPutSaltosTareasNotAttached
-    //TODO: testPutSaltosNoFinals
-    //TODO: testGetPlanificacion
 }

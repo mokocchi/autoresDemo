@@ -2,30 +2,19 @@
 
 namespace App\Test\Controller\v1;
 
-use App\Entity\AccessToken;
 use App\Entity\Dominio;
-use App\Entity\Estado;
 use App\Entity\Tarea;
-use App\Entity\TipoTarea;
-use App\Entity\Usuario;
 use App\Test\ApiTestCase;
 use GuzzleHttp\Exception\RequestException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-use function PHPSTORM_META\map;
-
 class TareasControllerTest extends ApiTestCase
 {
-
-    private static $dominioName = "Test";
-    private static $dominioId;
-    private static $resourceUri;
     private static $autorEmail = "autor1@gmail.com";
     private static $otherAutorEmail = "autor2@gmail.com";
     private static $usuarioAppEmail = "usuario@gmail.com";
     private static $usuarioAppToken;
-    private static $tareaCodigo = "tareaTest";
 
     public static function setUpBeforeClass(): void
     {
@@ -54,40 +43,6 @@ class TareasControllerTest extends ApiTestCase
         parent::tearDownAfterClass();
         self::truncateEntities([Dominio::class]);
         self::removeUsuarios();
-    }
-
-    private function createTarea(array $tareaArray)
-    {
-        $tarea = new Tarea();
-        $tarea->setNombre($tareaArray["nombre"]);
-        $tarea->setConsigna($tareaArray["consigna"]);
-        $tarea->setCodigo($tareaArray["codigo"]);
-        $dominio = self::$em->getRepository(Dominio::class)->find(self::$dominioId);
-        $tarea->setDominio($dominio);
-        $tipoTarea = self::$em->getRepository(TipoTarea::class)->findOneBy(["codigo" => $tareaArray["tipo"]]);
-        $tarea->setTipo($tipoTarea);
-        if (!array_key_exists("autor", $tareaArray)) {
-            $accessToken = self::$em->getRepository(AccessToken::class)->findOneBy(["token" => self::$access_token]);
-            $tarea->setAutor($accessToken->getUser());
-        } else {
-            $autor = self::$em->getRepository(Usuario::class)->findOneBy(["email" => $tareaArray["autor"]]);
-            $tarea->setAutor($autor);
-        }
-        $estado = self::$em->getRepository(Estado::class)->findOneBy(["nombre" => "Privado"]);
-        $tarea->setEstado($estado);
-        self::$em->persist($tarea);
-        self::$em->flush();
-        return $tarea->getId();
-    }
-
-    private function createDefaultTarea()
-    {
-        return $this->createTarea([
-            "nombre" => "Tarea test",
-            "consigna" => "Probar las tareas",
-            "codigo" => self::$tareaCodigo,
-            "tipo" => "simple"
-        ]);
     }
 
     public function testpostTarea()
@@ -215,7 +170,7 @@ class TareasControllerTest extends ApiTestCase
 
     public function testGet()
     {
-        $id = $this->createDefaultTarea();
+        $id = $this->createDefaultTarea()->getId();
         $uri = self::$resourceUri . "/" . $id;
         $response = self::$client->get($uri, self::getDefaultOptions());
         $this->assertTrue($response->getStatusCode() == Response::HTTP_OK);
@@ -265,7 +220,7 @@ class TareasControllerTest extends ApiTestCase
             "consigna" => "Probar acceder a una tarea de otro autor",
             "tipo" => "simple",
             "autor" => self::$otherAutorEmail
-        ]);
+        ])->getId();
 
         $uri = self::$resourceUri . "/" . $id;
         try {

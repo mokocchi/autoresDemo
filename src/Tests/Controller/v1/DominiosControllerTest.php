@@ -4,15 +4,12 @@ namespace App\Controller\Tests;
 
 use App\Entity\Dominio;
 use App\Test\ApiTestCase;
-use Doctrine\Persistence\ObjectManager;
 use GuzzleHttp\Exception\RequestException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class DominioControllerTest extends ApiTestCase
 {
-    private static $dominioName = "Test";
-    private static $resourceUri;
     private static $autorEmail = "autor@test.com";
     private static $usuarioEmail = "usuario@test.com";
 
