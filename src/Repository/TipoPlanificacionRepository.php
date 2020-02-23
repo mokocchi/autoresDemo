@@ -19,6 +19,16 @@ class TipoPlanificacionRepository extends ServiceEntityRepository
         parent::__construct($registry, TipoPlanificacion::class);
     }
 
+    public function deleteLike($nombre)
+    {
+        $this->createQueryBuilder('t')
+            ->delete()
+            ->where('t.nombre LIKE :nombre')
+            ->setParameter("nombre", $nombre . '%')
+            ->getQuery()
+            ->execute();
+    }
+
     // /**
     //  * @return Planificacion[] Returns an array of Planificacion objects
     //  */
