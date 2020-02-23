@@ -19,6 +19,15 @@ class TipoTareaRepository extends ServiceEntityRepository
         parent::__construct($registry, TipoTarea::class);
     }
 
+    public function deleteLike($nombre)
+    {
+        $this->createQueryBuilder('t')
+            ->delete()
+            ->where('t.nombre LIKE :nombre')
+            ->setParameter("nombre", $nombre . '%')
+            ->getQuery()
+            ->execute();
+    }
     // /**
     //  * @return TipoTarea[] Returns an array of TipoTarea objects
     //  */
