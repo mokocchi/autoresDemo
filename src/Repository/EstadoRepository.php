@@ -19,6 +19,17 @@ class EstadoRepository extends ServiceEntityRepository
         parent::__construct($registry, Estado::class);
     }
 
+
+    public function deleteLike($nombre)
+    {
+        $this->createQueryBuilder('e')
+            ->delete()
+            ->where('e.nombre LIKE :nombre')
+            ->setParameter("nombre", $nombre . '%')
+            ->getQuery()
+            ->execute();
+    }
+
     // /**
     //  * @return Estado[] Returns an array of Estado objects
     //  */
