@@ -34,6 +34,35 @@ class TareaRepository extends ServiceEntityRepository
             ->getSingleScalarResult()
         ;
     }
+
+    public function findAllUserQueryBuilder($nombre = '', $user = '')
+    {
+        $qb = $this->createQueryBuilder('tarea');
+        if ($nombre) {
+            $qb->andWhere('tarea.nombre LIKE :nombre')
+                ->setParameter('nombre', '%' . $nombre . '%');
+        }
+
+        if ($user) {
+            $qb->andWhere('tarea.autor = :user')
+                ->setParameter('user', $user);
+        }
+        return $qb;
+    }
+
+    public function findAllPublicQueryBuilder($nombre = '')
+    {
+        $qb = $this->createQueryBuilder('tarea');
+        if ($nombre) {
+            $qb
+                ->join("tarea.estado", "e")
+                ->where("e.nombre = :estado")
+                ->andWhere('tarea.nombre LIKE :nombre')
+                ->setParameter("estado","Público")
+                ->setParameter('nombre', '%' . $nombre . '%');
+        }
+        return $qb;
+    }
    
 
     /*

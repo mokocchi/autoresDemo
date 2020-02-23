@@ -2,12 +2,11 @@
 
 namespace App\Test\Controller\v1\pub;
 
-use App\Entity\Actividad;
 use App\Entity\Dominio;
-use App\Entity\Planificacion;
+use App\Entity\Tarea;
 use App\Test\ApiTestCase;
 
-class PublicActividadesControllerTest extends ApiTestCase
+class PublicTareasControllerTest extends ApiTestCase
 {
     private static $autorEmail = "autor@test.com";
     public static function setUpBeforeClass(): void
@@ -18,7 +17,7 @@ class PublicActividadesControllerTest extends ApiTestCase
         self::$em->persist($dominio);
         self::$em->flush();
         self::$dominioId = $dominio->getId();
-        self::$resourceUri = self::$prefijo_api . "/public/actividades";
+        self::$resourceUri = self::$prefijo_api . "/public/tareas";
         $usuario = self::createAutor(self::$autorEmail);
         self::$access_token = self::getNewAccessToken($usuario);
     }
@@ -26,7 +25,7 @@ class PublicActividadesControllerTest extends ApiTestCase
     protected function tearDown(): void
     {
         parent::tearDown();
-        self::truncateEntities([Actividad::class, Planificacion::class]);
+        self::truncateEntities([Tarea::class]);
         self::$em->clear();
     }
 
@@ -40,32 +39,35 @@ class PublicActividadesControllerTest extends ApiTestCase
     public function testGetAll()
     {
         for ($i = 0; $i < 25; $i++) {
-            $this->createActividad([
-                "nombre" => "Actividad test",
-                "codigo" => self::$actividadCodigo . $i,
-                "objetivo" => "Probar la paginación de las actividades",
+            $this->createTarea([
+                "nombre" => "Tarea test",
+                "codigo" => self::$tareaCodigo . $i,
+                "consigna" => "Probar la paginación de las tareas",
+                "tipo" => "simple",
                 "estado" => "Público"
             ]);
         }
 
         $this->createActividad([
-            "nombre" => "Actividad not match",
+            "nombre" => "Tarea not match",
             "codigo" => "codigo",
-            "objetivo" => "Probar la paginación de las actividades",
+            "tipo" => "simple",
+            "objetivo" => "Probar la paginación de las tareas",
             "estado" => "Público"
         ]);
 
         $this->createActividad([
-            "nombre" => "Actividad test",
+            "nombre" => "Tarea test",
             "codigo" => "codigo",
-            "objetivo" => "Probar la paginación de las actividades",
+            "tipo" => "simple",
+            "objetivo" => "Probar la paginación de las tareas",
         ]);
-        $uri = self::$resourceUri . '?filter=test';
+        $uri = self::$resourceUri . '?nombre=test';
 
         $response = self::$client->get($uri);
         $this->assertEquals(200, $response->getStatusCode());
         $data = $this->getJson($response);
-        $this->assertEquals(self::$actividadCodigo . 5, $data["results"][5]["codigo"]);
+        $this->assertEquals(self::$tareaCodigo . 5, $data["results"][5]["codigo"]);
         $this->assertEquals(10, $data["count"]);
         $this->assertEquals(25, $data["total"]);
         $this->assertArrayHasKey("_links", $data);
@@ -75,7 +77,7 @@ class PublicActividadesControllerTest extends ApiTestCase
 
         $this->assertEquals(200, $response->getStatusCode());
         $data = $this->getJson($response);
-        $this->assertEquals(self::$actividadCodigo . 15, $data["results"][5]["codigo"]);
+        $this->assertEquals(self::$tareaCodigo . 15, $data["results"][5]["codigo"]);
         $this->assertEquals(10, $data["count"]);
         $this->assertEquals(10, $data["count"]);
 
@@ -86,7 +88,5 @@ class PublicActividadesControllerTest extends ApiTestCase
         $data = $this->getJson($response);
         $this->assertEquals(5, $data["count"]);
         $this->assertEquals(5, count($data["results"]));
-
-        $response = self::$client->get($uri);
     }
 }

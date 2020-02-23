@@ -113,7 +113,7 @@ class ApiTestCase extends KernelTestCase
     }
 
     /**
-     * @param array $actividad_array Array of nombre, objetivo, codigo and maybe usuario, maybe estado
+     * @param array $actividad_array Array of nombre, objetivo, codigo and maybe autor, maybe estado
      */
     protected function createActividad(array $actividad_array): Actividad
     {
@@ -158,7 +158,7 @@ class ApiTestCase extends KernelTestCase
     }
 
     /**
-     * @param array $tareaArray Array of nombre, consigna, codigo, tipo and maybe autor
+     * @param array $tareaArray Array of nombre, consigna, codigo, tipo and maybe autor, maybe estado
      */
     protected function createTarea(array $tareaArray): Tarea
     {
@@ -177,7 +177,11 @@ class ApiTestCase extends KernelTestCase
             $autor = self::$em->getRepository(Usuario::class)->findOneBy(["email" => $tareaArray["autor"]]);
             $tarea->setAutor($autor);
         }
-        $estado = self::$em->getRepository(Estado::class)->findOneBy(["nombre" => "Privado"]);
+        if (array_key_exists("estado", $tareaArray)) {
+            $estado = self::$em->getRepository(Estado::class)->findOneBy(["nombre" => $tareaArray["estado"]]);
+        } else {
+            $estado = self::$em->getRepository(Estado::class)->findOneBy(["nombre" => "Privado"]);
+        }
         $tarea->setEstado($estado);
         self::$em->persist($tarea);
         self::$em->flush();

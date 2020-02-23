@@ -8,6 +8,7 @@ use App\Controller\BaseController;
 use App\Entity\Plano;
 use App\Entity\Tarea;
 use App\Form\TareaType;
+use App\Pagination\PaginationFactory;
 use App\Service\UploaderHelper;
 use Exception;
 use FOS\RestBundle\Controller\Annotations as Rest;
@@ -129,12 +130,14 @@ class TareasController extends BaseController
      * @SWG\Tag(name="Tarea")
      * @return Response
      */
-    public function getActividadForUserAction()
+    public function getActividadForUserAction(Request $request, PaginationFactory $paginationFactory)
     {
-        $user = $this->getUser();
+        $nombre = $request->query->get('nombre');
+        /** @var TareaRepository $repository */
         $repository = $this->getDoctrine()->getRepository(Tarea::class);
-        $tareas = $repository->findBy(["autor" => $user]);
-        return $this->handleView($this->getViewWithGroups(["results" => $tareas], "autor"));
+        $qb = $repository->findAllUserQueryBuilder($nombre, $this->getUser());
+        $paginatedCollection = $paginationFactory->createCollection($qb, $request, 'get_tareas_user');
+        return $this->handleView($this->getViewWithGroups($paginatedCollection, "autor"));
     }
 
 

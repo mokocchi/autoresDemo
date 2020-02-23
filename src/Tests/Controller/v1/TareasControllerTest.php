@@ -236,4 +236,57 @@ class TareasControllerTest extends ApiTestCase
         $uri = self::$resourceUri . "/" . 0;
         $this->assertNotFound(Request::METHOD_GET, $uri, "Tarea");
     }
+
+   /** @group getAll */
+   public function testGetAll()
+   {
+       for ($i = 0; $i < 25; $i++) {
+           $this->createTarea([
+               "nombre" => "Tarea test",
+               "codigo" => self::$tareaCodigo . $i,
+               "consigna" => "Probar la paginación de las tareas",
+               "tipo" => "simple",
+           ]);
+       }
+
+       $this->createActividad([
+           "nombre" => "Tarea not match",
+           "codigo" => "codigo",
+           "tipo" => "simple",
+           "objetivo" => "Probar la paginación de las tareas"
+       ]);
+
+       $this->createActividad([
+           "nombre" => "Tarea test",
+           "codigo" => "codigo",
+           "tipo" => "simple",
+           "objetivo" => "Probar la paginación de las tareas",
+       ]);
+       $uri = self::$resourceUri . '/user?nombre=test';
+
+       $response = self::$client->get($uri, $this->getDefaultOptions());
+       $this->assertEquals(200, $response->getStatusCode());
+       $data = $this->getJson($response);
+       $this->assertEquals(self::$tareaCodigo . 5, $data["results"][5]["codigo"]);
+       $this->assertEquals(10, $data["count"]);
+       $this->assertEquals(25, $data["total"]);
+       $this->assertArrayHasKey("_links", $data);
+       $this->assertArrayHasKey("next", $data["_links"]);
+       $nextLink = $data["_links"]["next"];
+       
+       $response = self::$client->get($nextLink, $this->getDefaultOptions());
+       $this->assertEquals(200, $response->getStatusCode());
+       $data = $this->getJson($response);
+       $this->assertEquals(self::$tareaCodigo . 15, $data["results"][5]["codigo"]);
+       $this->assertEquals(10, $data["count"]);
+       $this->assertEquals(10, $data["count"]);
+       $this->assertArrayHasKey("_links", $data);
+       $this->assertArrayHasKey("last", $data["_links"]);
+       $lastLink = $data["_links"]["last"];
+
+       $response = self::$client->get($lastLink, $this->getDefaultOptions());
+       $data = $this->getJson($response);
+       $this->assertEquals(5, $data["count"]);
+       $this->assertEquals(5, count($data["results"]));
+   }
 }
