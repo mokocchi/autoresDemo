@@ -1,10 +1,10 @@
 <?php
+
 namespace App\Form;
 
 use App\Entity\Tarea;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class TareaType extends AbstractType
@@ -18,8 +18,7 @@ class TareaType extends AbstractType
       ->add('tipo')
       ->add('dominio')
       ->add('estado')
-      ->add('save', SubmitType::class)
-    ;
+      ->add('extraData', ExtraType::class, ['mapped' => false]);
   }
   public function configureOptions(OptionsResolver $resolver)
   {

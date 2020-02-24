@@ -24,6 +24,7 @@ use Swagger\Annotations as SWG;
  */
 class TareasController extends BaseController
 {
+    private const TIPOS_EXTRA = ["select", "multiple", "counters", "collect"];
     private function checkAccessTarea($tarea)
     {
         if ($tarea->getEstado()->getNombre() == "Privado" && $tarea->getAutor()->getId() !== $this->getUser()->getId()) {
@@ -50,6 +51,84 @@ class TareasController extends BaseController
     private function checkTareaFound($id)
     {
         return $this->checkEntityFound(Tarea::class, $id);
+    }
+
+    public function checkExtraValidity(array $extra, Tarea $tarea)
+    {
+        if (!array_key_exists("elements", $extra)) {
+            throw new ApiProblemException(
+                new ApiProblem(
+                    Response::HTTP_BAD_REQUEST,
+                    "Falta el campo elements en el extraData",
+                    "Faltan elementos"
+                )
+            );
+        }
+
+        if ("counters" == $tarea->getTipo()->getCodigo()) {
+            if (!array_key_exists("byScore", $extra)) {
+                throw new ApiProblemException(
+                    new ApiProblem(
+                        Response::HTTP_BAD_REQUEST,
+                        "Falta el campo byScore en el extraData",
+                        "Faltan criterios"
+                    )
+                );
+            }
+            foreach ($extra["byScore"] as $criterio) {
+                if (!array_key_exists("scores", $criterio)) {
+                    throw new ApiProblemException(
+                        new ApiProblem(
+                            Response::HTTP_BAD_REQUEST,
+                            "Falta el campo scores en byScore",
+                            "Faltan puntajes"
+                        )
+                    );
+                }
+                if (!array_key_exists("name", $criterio)) {
+                    throw new ApiProblemException(
+                        new ApiProblem(
+                            Response::HTTP_BAD_REQUEST,
+                            "El criterio no tiene nombre",
+                            "Falta nombre del criterio"
+                        )
+                    );
+                }
+                if (!array_key_exists("message", $criterio)) {
+                    throw new ApiProblemException(
+                        new ApiProblem(
+                            Response::HTTP_BAD_REQUEST,
+                            "Falta el campo message para criterio " . $criterio["name"],
+                            "Falta mensaje del criterio " . $criterio["name"]
+                        )
+                    );
+                }
+                $settedElements = array_keys($criterio["scores"]);
+                if (count($settedElements) < count($extra["elements"])) {
+                    throw new ApiProblemException(
+                        new ApiProblem(
+                            Response::HTTP_BAD_REQUEST,
+                            "Falta llenar valores en el criterio " . $criterio["name"],
+                            "Faltan criterios"
+                        )
+                    );
+                }
+            }
+        }
+
+        if ("collect" == $tarea->getTipo()->getCodigo()) {
+            foreach ($extra["elements"] as $element) {
+                if (!array_key_exists("deposits", $element) || count($element["deposits"]) == 0) {
+                    throw new ApiProblemException(
+                        new ApiProblem(
+                            Response::HTTP_BAD_REQUEST,
+                            "Falta el campo deposits en el elemento " . $element["nombre"],
+                            "Faltan depósitos en el elemento " . $element["nombre"]
+                        )
+                    );
+                }
+            }
+        }
     }
 
     /**
@@ -231,6 +310,42 @@ class TareasController extends BaseController
      *     schema={}
      * )
      * 
+     * @SWG\Parameter(
+     *     name="extraData",
+     *     in="body",
+     *     type="array",
+     *     description="Id del estado de la tarea",
+     *     @SWG\Schema(type="array",
+     *        @SWG\Items(
+     *              type="object",
+     *              required={"elements"},
+     *              @SWG\Property(property="elements", type="array", description="Elementos de la tarea", 
+     *                  @SWG\Items(
+     *                      type="object",
+     *                      required={"code", "name"},
+     *                      @SWG\Property(property="code", type="string", description="Código del elemento"),
+     *                      @SWG\Property(property="name", type="string", description="Nombre del elemento")
+     *                  )
+     *              ),
+     *              @SWG\Property(property="validElements", type="array", description="Elementos válidos de la tarea", 
+     *                  @SWG\Items(type="string")
+     *              ),
+     *              @SWG\Property(property="byScore", type="array", description="Criterios de contadores de la tarea", 
+     *                  @SWG\Items(
+     *                      type="object",
+     *                      required={"name", "message", "scores"},
+     *                      @SWG\Property(property="name", type="string", description="Nombre del criterio"),
+     *                      @SWG\Property(property="message", type="string", description="Mensaje del criterio"),
+     *                      @SWG\Property(property="scores", type="array", description="Criterios de contadores de la tarea", 
+     *                          @SWG\Items(type="object", @SWG\Property(property="[codigo]", type="string", description="Valor del contador para el elemento")
+     *                      )
+     *                  )
+     *              )
+     *           )
+     *        )
+     *     )
+     * )
+     * 
      * @SWG\Tag(name="Tarea")
      * @return Response
      */
@@ -250,7 +365,19 @@ class TareasController extends BaseController
         $form->submit($data);
         $this->checkFormValidity($form);
         $this->checkCodigoNotUsed($data["codigo"]);
-
+        if (in_array($tarea->getTipo()->getCodigo(), self::TIPOS_EXTRA)) {
+            if (!array_key_exists("extraData", $data)) {
+                throw new ApiProblemException(
+                    new ApiProblem(
+                        Response::HTTP_BAD_REQUEST,
+                        "Falta el campo extraData en el request",
+                        "Faltan datos"
+                    )
+                );
+            }
+            $this->checkExtraValidity($data["extraData"], $tarea);
+        }
+        $tarea->setExtra($data["extraData"]);
         $tarea->setAutor($this->getUser());
         $em = $this->getDoctrine()->getManager();
         $em->persist($tarea);
@@ -302,93 +429,6 @@ class TareasController extends BaseController
     }
 
 
-
-    /**
-     * Agrega el extra a una tarea
-     * @Rest\Post("/{id}/extra", name="post_extra_tarea")
-     * @IsGranted("ROLE_AUTOR")
-     *
-     * @SWG\Response(
-     *     response=401,
-     *     description="No autorizado"
-     * )
-     * 
-     * @SWG\Response(
-     *     response=403,
-     *     description="Permisos insuficientes"
-     * )
-     * 
-     * @SWG\Response(
-     *     response=200,
-     *     description="Operación exitosa"
-     * )
-     *
-     * @SWG\Response(
-     *     response=400,
-     *     description="Hubo un problema con la petición"
-     * )
-     * 
-     * @SWG\Response(
-     *     response=404,
-     *     description="No se encontró la tarea"
-     * )
-     * 
-     * @SWG\Response(
-     *     response=500,
-     *     description="Error en el servidor"
-     * )
-     *
-     * @SWG\Parameter(
-     *     name="Authorization",
-     *     in="header",
-     *     type="string",
-     *     description="Bearer token",
-     * )
-     *
-     * @SWG\Parameter(
-     *     name="extra",
-     *     in="body",
-     *     type="array",
-     *     description="Contenido extra de la tarea",
-     *     schema={}
-     * )
-     * 
-     * @SWG\Tag(name="Tarea")
-     * @return Response
-     */
-    public function updateExtraOnTareaAction(Request $request, $id)
-    {
-        try {
-            $data = json_decode($request->getContent(), true);
-            if (!array_key_exists("extra", $data) && !is_null($data["extra"])) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_BAD_REQUEST, "Uno o más de los campos requeridos falta o es nulo", "Faltan datos"),
-                    Response::HTTP_BAD_REQUEST
-                ));
-            }
-
-            $em = $this->getDoctrine()->getManager();
-
-            $extra = $data["extra"];
-            $tarea = $em->getRepository(Tarea::class)->find($id);
-            if (is_null($tarea)) {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna tarea", "No se encontró la tarea"),
-                    Response::HTTP_NOT_FOUND
-                ));
-            }
-            $tarea->setExtra($extra);
-            $em->persist($tarea);
-            $em->flush();
-            return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            ));
-        }
-    }
 
     /**
      * Agregar plano a una tarea
@@ -445,40 +485,32 @@ class TareasController extends BaseController
      */
     public function updateMapOnTareaAction(Request $request, $id, UploaderHelper $uploaderHelper, ValidatorInterface $validator)
     {
-        try {
-            if (!$request->files->has('plano')) {
-                return $this->handleView($this->view(['errors' => 'No se encontró el archivo'], Response::HTTP_BAD_REQUEST));
-            }
-            $plano = new Plano();
-            $uploadedFile = $request->files->get('plano');
-            $plano->setPlano($uploadedFile);
+        if (!$request->files->has('plano')) {
+            return $this->handleView($this->view(['errors' => 'No se encontró el archivo'], Response::HTTP_BAD_REQUEST));
+        }
+        $plano = new Plano();
+        $uploadedFile = $request->files->get('plano');
+        $plano->setPlano($uploadedFile);
 
-            $errors = $validator->validate($plano);
+        $errors = $validator->validate($plano);
 
-            if (count($errors) > 0) {
-                $this->logger->alert("Archivo inválido: " . json_decode($errors));
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_BAD_REQUEST, "Se recibió una imagen inválida", "Imagen inválida"),
-                    Response::HTTP_BAD_REQUEST
-                ));
-            }
-            $em = $this->getDoctrine()->getManager();
-            $tarea = $em->getRepository(Tarea::class)->find($id);
-
-            if (!is_null($tarea)) {
-                $uploaderHelper->uploadPlano($uploadedFile, $tarea->getCodigo(), false);
-                return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
-            } else {
-                return $this->handleView($this->view(
-                    new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna tarea", "No se encontró la tarea"),
-                    Response::HTTP_NOT_FOUND
-                ));
-            }
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
+        if (count($errors) > 0) {
+            $this->logger->alert("Archivo inválido: " . json_decode($errors));
             return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_INTERNAL_SERVER_ERROR, "Error interno del servidor", "Ocurrió un error"),
-                Response::HTTP_INTERNAL_SERVER_ERROR
+                new ApiProblem(Response::HTTP_BAD_REQUEST, "Se recibió una imagen inválida", "Imagen inválida"),
+                Response::HTTP_BAD_REQUEST
+            ));
+        }
+        $em = $this->getDoctrine()->getManager();
+        $tarea = $em->getRepository(Tarea::class)->find($id);
+
+        if (!is_null($tarea)) {
+            $uploaderHelper->uploadPlano($uploadedFile, $tarea->getCodigo(), false);
+            return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
+        } else {
+            return $this->handleView($this->view(
+                new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna tarea", "No se encontró la tarea"),
+                Response::HTTP_NOT_FOUND
             ));
         }
     }

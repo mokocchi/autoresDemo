@@ -75,8 +75,6 @@ class Actividad
 
     /**
      * @ORM\OneToOne(targetEntity="App\Entity\Planificacion", cascade={"persist", "remove"})
-     * @Expose
-     * @Groups({"autor", "publico"})
      */
     private $planificacion;
 

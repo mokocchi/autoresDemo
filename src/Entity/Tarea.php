@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Annotation\Link;
 use App\Service\UploaderHelper;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\ExclusionPolicy;
@@ -11,6 +12,11 @@ use JMS\Serializer\Annotation\Expose;
 /**
  * @ORM\Entity(repositoryClass="App\Repository\TareaRepository")
  * @ExclusionPolicy("all")
+ * @Link(
+ *  "self",
+ *  route = "show_tarea",
+ *  params = { "id": "object.getId()" }
+ * )
  */
 class Tarea
 {
