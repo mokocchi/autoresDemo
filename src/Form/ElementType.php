@@ -5,6 +5,7 @@ namespace App\Form;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class ElementType extends AbstractType
 {
@@ -13,6 +14,6 @@ class ElementType extends AbstractType
         $builder
             ->add('name')
             ->add('code')
-            ->add('deposits', CollectionType::class);
+            ->add('deposits', CollectionType::class, ['allow_add' => true]);
     }
 }

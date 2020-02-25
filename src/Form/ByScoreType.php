@@ -13,6 +13,6 @@ class ByScoreType extends AbstractType
         $builder
             ->add('name')
             ->add('message')
-            ->add('scores', CollectionType::class, ["entry_type" => ScoreType::class]);
+            ->add('scores', CollectionType::class, ['allow_add' => true]);
     }
 }
