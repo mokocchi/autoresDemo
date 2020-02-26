@@ -7,7 +7,7 @@ security:
         api_user_provider:
             entity:
                 class: App\Entity\Usuario
-                property: username
+                property: email
 
     firewalls:
         oauth_token:

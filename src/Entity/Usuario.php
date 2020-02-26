@@ -123,7 +123,7 @@ class Usuario implements UserInterface
 
     public function getUsername(): ?string
     {
-        return $this->getGoogleid();
+        return $this->email;
     }
 
     public function getGoogleid(): ?string
