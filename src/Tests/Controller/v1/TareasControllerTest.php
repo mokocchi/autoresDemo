@@ -36,6 +36,7 @@ class TareasControllerTest extends ApiTestCase
     {
         parent::tearDown();
         self::truncateEntities([Tarea::class]);
+        self::$em->clear();
     }
 
     public static function tearDownAfterClass(): void

@@ -13,7 +13,7 @@ security:
         oauth_token:
             pattern: ^/api/oauth/v2/token
             security: false
-            access_denied_handler: App\Security\AccessDeniedHandler
+            stateless: true
 
         public_api:
             pattern: ^/api/v1.0/public
