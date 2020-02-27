@@ -435,5 +435,20 @@ class PlanificacionesControllerTest extends ApiTestCase
      {
          $this->assertWrongToken(Request::METHOD_GET, self::$resourceUri . "/0");
      }
- 
+
+     /** @group get */
+     public function testGetNotOwned()
+     {
+        $id = $this->createActividad([
+            "nombre" => "Actividad ajena",
+            "codigo" => self::$actividadCodigo,
+            "objetivo" => "Probar acceder a una actividad de otro autor",
+            "autor" => self::$otherAutorEmail
+        ])->getId();
+        try {
+            self::$client->get(self::$resourceUri . "/" . $id, self::getDefaultOptions());
+        } catch (RequestException $e) {
+            $this->assertErrorResponse($e->getResponse(), Response::HTTP_FORBIDDEN, "La actividad es privada o no pertenece al usuario actual");
+        }
+     }
 }

@@ -15,6 +15,8 @@ use App\Entity\TipoPlanificacion;
 use App\Form\ActividadType;
 use App\Pagination\PaginationFactory;
 use App\Repository\ActividadRepository;
+use App\Security\Voter\ActividadVoter;
+use App\Security\Voter\TareaVoter;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -124,33 +126,6 @@ class ActividadesController extends BaseController
         return $this->handleView($this->getViewWithGroups($paginatedCollection, "autor"));
     }
 
-    private function checkAccessActividad($actividad)
-    {
-        if ($actividad->getEstado()->getNombre() == "Privado" && $actividad->getAutor()->getId() !== $this->getUser()->getId()) {
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_FORBIDDEN, "La actividad es privada o no pertenece al usuario actual", "No se puede acceder a la actividad")
-            );
-        }
-    }
-
-    private function checkOwnActividad($actividad)
-    {
-        if ($actividad->getAutor()->getId() !== $this->getUser()->getId()) {
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_FORBIDDEN, "La actividad no pertenece al usuario actual", "No se puede acceder a la actividad"),
-            );
-        }
-    }
-
-    private function checkOwnTarea($tarea)
-    {
-        if ($tarea->getAutor()->getId() !== $this->getUser()->getId()) {
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_FORBIDDEN, "La tarea no pertenece al usuario actual", "No se puede acceder a la tarea"),
-            );
-        }
-    }
-
     private function checkCodigoNotUsed($codigo)
     {
         $this->checkPropertyNotUsed(Actividad::class, "codigo", $codigo, "Ya existe una actividad con el mismo código");
@@ -224,7 +199,7 @@ class ActividadesController extends BaseController
     public function showActividadAction($id)
     {
         $actividad = $this->checkActividadFound($id);
-        $this->checkAccessActividad($actividad);
+        $this->denyAccessUnlessGranted(ActividadVoter::ACCESS, $actividad);
         return $this->handleView($this->getViewWithGroups($actividad, "autor"));
     }
 
@@ -357,7 +332,7 @@ class ActividadesController extends BaseController
 
     /**
      * Actualiza una actividad
-     * @Rest\Patch("/{id}",name="put_actividad")
+     * @Rest\Patch("/{id}",name="patch_actividad")
      * @IsGranted("ROLE_AUTOR")
      *
      * @SWG\Response(
@@ -454,7 +429,7 @@ class ActividadesController extends BaseController
     {
         /** @var Actividad $actividad */
         $actividad = $this->checkActividadFound($id);
-        $this->checkOwnActividad($actividad);
+        $this->denyAccessUnlessGranted(ActividadVoter::OWN, $actividad);
         $data = $this->getJsonData($request);
 
         if (array_key_exists("codigo", $data)) {
@@ -556,7 +531,7 @@ class ActividadesController extends BaseController
         $actividadRepository = $em->getRepository(Actividad::class);
         $actividad = $actividadRepository->find($id);
         if (!is_null($actividad)) {
-            $this->checkOwnActividad($actividad);
+            $this->denyAccessUnlessGranted(ActividadVoter::OWN, $actividad);
             $em->remove($actividad);
             $em->flush();
         }
@@ -632,7 +607,7 @@ class ActividadesController extends BaseController
         $em = $this->getDoctrine()->getManager();
 
         $actividad = $this->checkActividadFound($id);
-        $this->checkOwnActividad($actividad);
+        $this->denyAccessUnlessGranted(ActividadVoter::OWN, $actividad);
 
         $this->removeTareasFromActividad($actividad);
 
@@ -641,7 +616,7 @@ class ActividadesController extends BaseController
         $this->checkIsArray($data["tareas"], "tareas");
         foreach ($data["tareas"] as $tareaId) {
             $tareaDb = $this->checkTareaFound($tareaId);
-            $this->checkOwnTarea($tareaDb);
+            $this->denyAccessUnlessGranted(TareaVoter::OWN, $tareaDb);
             $tareas[] = $tareaDb;
         }
         foreach ($tareas as $tarea) {
@@ -715,7 +690,7 @@ class ActividadesController extends BaseController
     public function getActividadTareasAction($id)
     {
         $actividad = $this->checkActividadFound($id);
-        $this->checkAccessActividad($actividad);
+        $this->denyAccessUnlessGranted(ActividadVoter::ACCESS, $actividad);
         $tareas = $actividad->getTareas();
         return $this->handleView($this->getViewWithGroups(["results" => $tareas], "autor"));
     }

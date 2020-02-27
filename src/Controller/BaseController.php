@@ -12,7 +12,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class BaseController extends AbstractFOSRestController
+abstract class BaseController extends AbstractFOSRestController
 {
     protected $logger;
     protected $serializer;

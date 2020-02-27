@@ -9,6 +9,7 @@ use App\Entity\Plano;
 use App\Entity\Tarea;
 use App\Form\TareaType;
 use App\Pagination\PaginationFactory;
+use App\Security\Voter\TareaVoter;
 use App\Service\UploaderHelper;
 use Exception;
 use FOS\RestBundle\Controller\Annotations as Rest;
@@ -25,23 +26,6 @@ use Swagger\Annotations as SWG;
 class TareasController extends BaseController
 {
     private const TIPOS_EXTRA = ["select", "multiple", "counters", "collect"];
-    private function checkAccessTarea($tarea)
-    {
-        if ($tarea->getEstado()->getNombre() == "Privado" && $tarea->getAutor()->getId() !== $this->getUser()->getId()) {
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_FORBIDDEN, "La tarea es privada o no pertenece al usuario actual", "No se puede acceder a la tarea")
-            );
-        }
-    }
-
-    public function checkOwnTarea($tarea)
-    {
-        if ($tarea->getAutor()->getId() !== $this->getUser()->getId()) {
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_FORBIDDEN, "La tarea no pertenece al usuario actual", "No se puede acceder a la tarea"),
-            );
-        }
-    }
 
     public function checkCodigoNotUsed($codigo)
     {
@@ -424,7 +408,7 @@ class TareasController extends BaseController
     public function showTareaAction($id)
     {
         $tarea = $this->checkTareaFound($id);
-        $this->checkAccessTarea($tarea);
+        $this->denyAccessUnlessGranted(TareaVoter::ACCESS, $tarea);
         return $this->handleView($this->getViewWithGroups($tarea, "autor"));
     }
 
@@ -501,17 +485,10 @@ class TareasController extends BaseController
                 Response::HTTP_BAD_REQUEST
             ));
         }
-        $em = $this->getDoctrine()->getManager();
-        $tarea = $em->getRepository(Tarea::class)->find($id);
+        $tarea = $this->checkTareaFound($id);
+        $this->denyAccessUnlessGranted(TareaVoter::OWN, $tarea);
 
-        if (!is_null($tarea)) {
-            $uploaderHelper->uploadPlano($uploadedFile, $tarea->getCodigo(), false);
-            return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
-        } else {
-            return $this->handleView($this->view(
-                new ApiProblem(Response::HTTP_NOT_FOUND, "El id no corresponde a ninguna tarea", "No se encontró la tarea"),
-                Response::HTTP_NOT_FOUND
-            ));
-        }
+        $uploaderHelper->uploadPlano($uploadedFile, $tarea->getCodigo(), false);
+        return $this->handleView($this->view(['status' => 'ok'], Response::HTTP_OK));
     }
 }

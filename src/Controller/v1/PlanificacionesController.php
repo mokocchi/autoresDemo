@@ -9,6 +9,8 @@ use App\Entity\Actividad;
 use App\Entity\Salto;
 use App\Entity\Tarea;
 use App\Repository\ActividadRepository;
+use App\Security\Voter\ActividadVoter;
+use App\Security\Voter\TareaVoter;
 use Symfony\Component\HttpFoundation\Request;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use Swagger\Annotations as SWG;
@@ -31,33 +33,6 @@ class PlanificacionesController extends BaseController
     private function checkTareaFound($id)
     {
         return $this->checkEntityFound(Tarea::class, $id);
-    }
-
-    private function checkOwnActividad($actividad)
-    {
-        if ($actividad->getAutor()->getId() !== $this->getUser()->getId()) {
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_FORBIDDEN, "La actividad no pertenece al usuario actual", "No se puede acceder a la actividad"),
-            );
-        }
-    }
-
-    private function checkOwnTarea($tarea)
-    {
-        if ($tarea->getAutor()->getId() !== $this->getUser()->getId()) {
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_FORBIDDEN, "La tarea no pertenece al usuario actual", "No se puede acceder a la tarea"),
-            );
-        }
-    }
-
-    private function checkAccessTarea($tarea)
-    {
-        if ($tarea->getEstado()->getNombre() == "Privado" && $tarea->getAutor()->getId() !== $this->getUser()->getId()) {
-            throw new ApiProblemException(
-                new ApiProblem(Response::HTTP_FORBIDDEN, "La tarea es privada o no pertenece al usuario actual", "No se puede acceder a la tarea")
-            );
-        }
     }
 
     public function checkTareaBelongsToActividad($actividad, $tarea)
@@ -214,18 +189,18 @@ class PlanificacionesController extends BaseController
 
         $em = $this->getDoctrine()->getManager();
         $actividad = $this->checkActividadFound($id);
-        $this->checkOwnActividad($actividad);
+        $this->denyAccessUnlessGranted(ActividadVoter::OWN, $actividad);
 
         $saltos = [];
         $this->checkIsArray($data["saltos"], "saltos");
         foreach ($data["saltos"] as $saltoArray) {
             $origen = $this->checkTareaFound($saltoArray["origen"]);
-            $this->checkAccessTarea($origen);
+            $this->denyAccessUnlessGranted(TareaVoter::ACCESS, $origen);
             $destinos = [];
             $this->checkIsArray($saltoArray["destinos"], "destinos");
             foreach ($saltoArray["destinos"] as $destinoId) {
                 $destino = $this->checkTareaFound($destinoId);
-                $this->checkAccessTarea($destino);
+                $this->denyAccessUnlessGranted(TareaVoter::ACCESS, $destino);
                 $this->checkTareaBelongsToActividad($actividad, $destino);
                 $destinos[] = $destino;
             }
@@ -243,14 +218,14 @@ class PlanificacionesController extends BaseController
         $iniciales = [];
         foreach ($data["iniciales"] as $inicialId) {
             $inicial = $this->checkTareaFound($inicialId);
-            $this->checkAccessTarea($inicial);
+            $this->denyAccessUnlessGranted(TareaVoter::ACCESS, $inicial);
             $this->checkTareaBelongsToActividad($actividad, $inicial);
             $iniciales[] = $inicial;
         }
         $opcionales = [];
         foreach ($data["opcionales"] as $opcionalId) {
             $opcional = $this->checkTareaFound($opcionalId);
-            $this->checkAccessTarea($opcional);
+            $this->denyAccessUnlessGranted(TareaVoter::ACCESS, $opcional);
             $this->checkTareaBelongsToActividad($actividad, $opcional);
             $opcionales[] = $opcional;
         }
@@ -345,6 +320,7 @@ class PlanificacionesController extends BaseController
     public function getActividadPlanificacionAction($id)
     {
         $actividad = $this->checkActividadFound($id);
+        $this->denyAccessUnlessGranted(ActividadVoter::ACCESS, $actividad);
         $planificacion = $actividad->getPlanificacion();
         return $this->handleView($this->getViewWithGroups($planificacion, "autor"));
     }
