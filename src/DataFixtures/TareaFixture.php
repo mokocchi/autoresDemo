@@ -2,11 +2,8 @@
 
 namespace App\DataFixtures;
 
-use App\Entity\Article;
-use App\Entity\Comment;
 use App\Entity\Dominio;
 use App\Entity\Estado;
-use App\Entity\Tag;
 use App\Entity\Tarea;
 use App\Entity\TipoTarea;
 use App\Entity\Usuario;
@@ -15,7 +12,7 @@ use Doctrine\Persistence\ObjectManager;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\File\File;
 
-class TareaFixtures extends BaseFixture
+class TareaFixture extends BaseFixture
 {
     private static $nombresTarea = [
         'Números Prueba',
@@ -48,9 +45,9 @@ class TareaFixtures extends BaseFixture
 
     protected function loadData(ObjectManager $manager)
     {
-        $this->createMany(5, 'main_tareas', function ($count) use ($manager) {
+        $this->createMany(10, 'main_tareas', function ($count) use ($manager) {
             $tarea = new Tarea();
-            $tarea->setNombre($this->faker->randomElement(self::$nombresTarea))
+            $tarea->setNombre("Tarea prueba". ($count + 1))
                 ->setConsigna("Tarea libre!");
 
             $tipoDeposito = $manager->getRepository(TipoTarea::class)->findOneBy(["codigo" => "deposit"]);
@@ -71,7 +68,7 @@ class TareaFixtures extends BaseFixture
 
             $tarea->setCodigo($this->faker->sha256);
 
-            $usuario = $manager->getRepository(Usuario::class)->findOneBy(["email" => "ag6071267@gmail.com"]);
+            $usuario = $manager->getRepository(Usuario::class)->findOneBy(["email" => "autor@autores.demo"]);
             $tarea->setAutor($usuario);
 
             $this->fakeUploadImage($tarea->getCodigo());
