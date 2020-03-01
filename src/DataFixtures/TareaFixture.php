@@ -2,6 +2,7 @@
 
 namespace App\DataFixtures;
 
+use App\Entity\Actividad;
 use App\Entity\Dominio;
 use App\Entity\Estado;
 use App\Entity\Tarea;
@@ -14,12 +15,6 @@ use Symfony\Component\HttpFoundation\File\File;
 
 class TareaFixture extends BaseFixture
 {
-    private static $nombresTarea = [
-        'Números Prueba',
-        'Palabras Prueba',
-        'Sonidos Prueba',
-    ];
-
     private static $planosTarea = [
         'mesa1.png',
         'mesa2.png',
@@ -75,7 +70,21 @@ class TareaFixture extends BaseFixture
 
             return $tarea;
         });
+        $manager->flush();
 
+        $tareas = $manager->getRepository(Tarea::class)->findBy(["consigna" => "Tarea libre!"]);
+        $actividad = $manager->getRepository(Actividad::class)->find(2);
+        $actividad->addTarea($tareas[0]);
+        $actividad->addTarea($tareas[1]);
+        $actividad->addTarea($tareas[2]);
+        $actividad->addTarea($tareas[3]);
+        $actividad->addTarea($tareas[4]);
+        $actividad->addTarea($tareas[5]);
+        $actividad->addTarea($tareas[6]);
+        $actividad->addTarea($tareas[7]);
+        $actividad->addTarea($tareas[8]);
+        $actividad->addTarea($tareas[9]);
+        $manager->persist($actividad);
         $manager->flush();
     }
 }
