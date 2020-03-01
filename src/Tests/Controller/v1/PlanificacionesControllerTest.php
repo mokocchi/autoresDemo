@@ -358,6 +358,67 @@ class PlanificacionesControllerTest extends ApiTestCase
         }
     }
 
+    /** @group put */
+    /** @group now */
+    public function testPutTwicePlanificacionOverwritten()
+    {
+        $actividad = $this->createActividad(
+            [
+                "nombre" => "Actividad test",
+                "objetivo" => "Probar el seteo de planificaciones",
+                "codigo" => self::$actividadCodigo
+            ]
+        );
+        $tareas = [];
+        for ($i = 1; $i <= 10; $i++) {
+            $tareas[] = $this->createTarea([
+                "nombre" => "Tarea test " . $i,
+                "consigna" => "Probar el seteo de planificaciones",
+                "codigo" => self::$tareaCodigo . $i,
+                "tipo" => "simple"
+            ]);
+        }
+        $ids = [];
+        foreach ($tareas as $tarea) {
+            $actividad->addTarea($tarea);
+            $ids[] = $tarea->getId();
+        }
+        $planificacion = $actividad->getPlanificacion();
+        $salto1 = $this->createSalto([
+            "origen" => $tareas[0],
+            "condicion" => "ALL",
+            "destinos" => [$tareas[1], $tareas[2]],
+            "planificacion" => $planificacion
+        ]);
+        $salto2 = $this->createSalto([
+            "origen" => $tareas[3],
+            "condicion" => "ALL",
+            "destinos" => [$tareas[4]],
+            "planificacion" => $planificacion
+        ]);
+        $planificacion->addInicial($tareas[2]);
+        $planificacion->addOpcional($tareas[7]);
+        self::$em->persist($salto1);
+        self::$em->persist($salto2);
+        self::$em->persist($planificacion);
+        self::$em->flush();
+        $id = $actividad->getId();
+        $options = [
+            "headers" => ["Authorization" => self::getAuthHeader()],
+            "json" => [
+                "saltos" => [],
+                "opcionales" => [],
+                "iniciales" => []
+            ]
+        ];
+        $uri = self::$resourceUri . '/' . $id;
+        $response = self::$client->put($uri, $options);
+        $data = $this->getJson($response);
+        $this->assertEmpty($data["saltos"]);
+        $this->assertEmpty($data["iniciales_ids"]);
+        $this->assertEmpty($data["opcionales_ids"]);
+    }
+
     /** @group get */
     public function testGet()
     {
