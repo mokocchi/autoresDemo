@@ -25,7 +25,7 @@ class Idioma
     /**
      * @ORM\Column(type="string", length=255)
      * @Expose
-     * @Groups({"autor", "select"})
+     * @Groups({"autor", "select", "publico"})
      */
     private $nombre;
 

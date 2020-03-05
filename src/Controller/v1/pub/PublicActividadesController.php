@@ -6,7 +6,6 @@ use App\Api\ApiProblem;
 use App\Api\ApiProblemException;
 use App\Controller\BaseController;
 use App\Entity\Actividad;
-use App\Entity\Estado;
 use App\Pagination\PaginationFactory;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\HeaderUtils;
@@ -91,6 +90,58 @@ class PublicActividadesController extends BaseController
         $actividad = $this->checkActividadFound($id);
         $this->checkAccessActividad($actividad);
         return $this->handleView($this->getViewWithGroups($actividad, "publico"));
+    }
+
+    /**
+     * Lista las tareas de una actividad
+     * @Rest\Get("/{id}/tareas", name="get_actividad_tareas_public")
+     *
+     * @SWG\Response(
+     *     response=401,
+     *     description="No autorizado"
+     * )
+     * 
+     * @SWG\Response(
+     *     response=403,
+     *     description="Permisos insuficientes"
+     * )
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="Authorization",
+     *     in="header",
+     *     type="string",
+     *     description="Bearer token",
+     * )
+     * 
+     * @SWG\Response(
+     *     response=200,
+     *     description="Operación exitosa"
+     * )
+     *
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error en el servidor"
+     * )
+     * 
+     * @SWG\Parameter(
+     *     required=true,
+     *     name="id",
+     *     in="path",
+     *     type="string",
+     *     description="Id de la actividad",
+     *     schema={}
+     * )
+     * 
+     * @SWG\Tag(name="Actividad")
+     * @return Response
+     */
+    public function getActividadTareasAction($id)
+    {
+        $actividad = $this->checkActividadFound($id);
+        $this->checkAccessActividad($actividad);
+        $tareas = $actividad->getTareas();
+        return $this->handleView($this->getViewWithGroups(["results" => $tareas], "publico"));
     }
 
     /**

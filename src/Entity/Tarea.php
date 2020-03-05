@@ -25,7 +25,7 @@ class Tarea
      * @ORM\GeneratedValue()
      * @ORM\Column(type="integer")
      * @Expose
-     * @Groups({"autor"})
+     * @Groups({"autor", "publico"})
      */
     private $id;
 
