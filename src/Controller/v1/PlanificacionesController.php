@@ -53,7 +53,7 @@ class PlanificacionesController extends BaseController
 
     public function checkGraphHasExit($tareas, $saltos)
     {
-        if(count($saltos) == 0) {
+        if (count($saltos) == 0) {
             return true;
         }
         $targetedTareas = [];
@@ -61,12 +61,11 @@ class PlanificacionesController extends BaseController
             $targetedTareas[$tarea->getId()] = false;
         }
         foreach ($saltos as $salto) {
-            foreach ($salto["destinos"] as $destino) {
-                $targetedTareas[$destino->getId()] = true;
-            }
+            $targetedTareas[$salto["origen"]->getId()] = true;
         }
+
         foreach ($targetedTareas as $target) {
-            if(!$target) {
+            if (!$target) {
                 return true;
             }
         }
